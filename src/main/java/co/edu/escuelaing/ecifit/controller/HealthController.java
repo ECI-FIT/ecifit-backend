@@ -1,15 +1,18 @@
 package co.edu.escuelaing.ecifit.controller;
 
+import co.edu.escuelaing.ecifit.controller.docs.HealthApi;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api")
-public class HealthController {
+@RequestMapping("/api/v1")
+public class HealthController implements HealthApi {
 
+    @Override
     @GetMapping("/health")
-    public String health() {
-        return "ECIFIT backend is running";
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("ECI FIT backend is running");
     }
 }
