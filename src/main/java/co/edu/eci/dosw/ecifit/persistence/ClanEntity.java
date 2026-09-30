@@ -1,8 +1,15 @@
 package co.edu.eci.dosw.ecifit.persistence;
 
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "clanes")
@@ -14,6 +21,11 @@ public class ClanEntity {
     private String nombre;
     private Integer saludTorre = 5000;
     private Integer puntosTotales;
+
+    @ElementCollection
+    @CollectionTable(name = "clan_miembros", joinColumns = @JoinColumn(name = "clan_id"))
+    @Column(name = "estudiante_id")
+    private List<String> miembrosIds = new ArrayList<>();
 
     public ClanEntity() {
     }
@@ -48,6 +60,14 @@ public class ClanEntity {
 
     public void setPuntosTotales(Integer puntosTotales) {
         this.puntosTotales = puntosTotales;
+    }
+
+    public List<String> getMiembrosIds() {
+        return miembrosIds;
+    }
+
+    public void setMiembrosIds(List<String> miembrosIds) {
+        this.miembrosIds = miembrosIds;
     }
 }
   

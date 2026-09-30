@@ -1,0 +1,63 @@
+package co.edu.eci.dosw.ecifit.validator;
+
+import co.edu.eci.dosw.ecifit.exception.ConflictoException;
+import co.edu.eci.dosw.ecifit.exception.ReglaDeNegocioException;
+import co.edu.eci.dosw.ecifit.model.Clan;
+import co.edu.eci.dosw.ecifit.repository.ClanRepository;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class ClanValidatorTest {
+
+    @Mock
+    private ClanRepository clanRepository;
+    @InjectMocks
+    private ClanValidator validator;
+
+    @Test
+    @DisplayName("validarNombreUnico - nombre disponible no lanza excepcion")
+    void validarNombreUnico_nombreDisponible_noLanzaExcepcion() {
+        when(clanRepository.existsByNombre("Guerreros ECI")).thenReturn(false);
+
+        assertDoesNotThrow(() -> validator.validarNombreUnico("Guerreros ECI"));
+    }
+
+    @Test
+    @DisplayName("validarNombreUnico - nombre duplicado lanza ConflictoException")
+    void validarNombreUnico_nombreDuplicado_lanzaConflicto() {
+        when(clanRepository.existsByNombre("Guerreros ECI")).thenReturn(true);
+
+        assertThrows(ConflictoException.class,
+                () -> validator.validarNombreUnico("Guerreros ECI"));
+    }
+
+    @Test
+    @DisplayName("validarCupoDisponible - clan con cupo no lanza excepcion")
+    void validarCupoDisponible_clanConCupo_noLanzaExcepcion() {
+        Clan clan = new Clan("C1", "Guerreros ECI");
+        clan.agregarMiembro("E1");
+
+        assertDoesNotThrow(() -> validator.validarCupoDisponible(clan));
+    }
+
+    @Test
+    @DisplayName("validarCupoDisponible - clan lleno lanza ReglaDeNegocioException")
+    void validarCupoDisponible_clanLleno_lanzaReglaDeNegocio() {
+        Clan clan = new Clan("C1", "Guerreros ECI");
+        for (int i = 0; i < 5; i++) {
+            clan.agregarMiembro("E" + i);
+        }
+
+        assertThrows(ReglaDeNegocioException.class,
+                () -> validator.validarCupoDisponible(clan));
+    }
+}

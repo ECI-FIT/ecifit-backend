@@ -187,18 +187,20 @@ class DomainTests {
         @Test
         @DisplayName("TorreClan recibe daño solo si el estudiante atacante es de un clan rival")
         void testTorreClanRival() {
-            TorreClan torre = new TorreClan(500, "CLAN_ALFA");
+            Clan clanAlfa = new Clan("CLAN_ALFA", "Alfa");
+            clanAlfa.setSaludTorre(500);
+            TorreClan torre = new TorreClan(clanAlfa);
 
             Estudiante aliado = new Estudiante("E1", "Carlos", "carlos@escuelaing.edu.co", 0, new Tanque(), "CLAN_ALFA");
             torre.onActividadRegistrada(100, aliado);
-            assertEquals(500, torre.getSaludHp(), "No debe recibir daño de un miembro del mismo clan");
+            assertEquals(500, torre.getClanDefensor().getSaludTorre(), "No debe recibir daño de un miembro del mismo clan");
 
             Estudiante rival = new Estudiante("E2", "Diana", "diana@escuelaing.edu.co", 0, new Corredor(), "CLAN_BETA");
             torre.onActividadRegistrada(200, rival);
-            assertEquals(300, torre.getSaludHp(), "Debe recibir daño de un miembro de clan rival");
+            assertEquals(300, torre.getClanDefensor().getSaludTorre(), "Debe recibir daño de un miembro de clan rival");
 
-            torre.recibirDano(400);
-            assertEquals(0, torre.getSaludHp(), "La salud no debe bajar de 0");
+            clanAlfa.recibirDano(400);
+            assertEquals(0, torre.getClanDefensor().getSaludTorre(), "La salud no debe bajar de 0");
             assertTrue(torre.estaDestruida());
         }
     }
