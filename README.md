@@ -23,26 +23,43 @@ La aplicación sigue una estructura en capas con patrones de diseño GoF aplicad
 ecifit-backend/
 ├── src/
 │   ├── main/
-│   │   └── java/
-│   │       └── co/edu/escuelaing/ecifit/
-│   │           ├── EcifitApplication.java
-│   │           ├── config/
-│   │           ├── controller/
-│   │           ├── dto/
-│   │           ├── exception/
-│   │           ├── model/
-│   │           ├── repository/
-│   │           ├── service/
-│   │           └── pattern/
-│   │               ├── chain/
-│   │               ├── factory/
-│   │               ├── observer/
-│   │               ├── state/
-│   │               └── strategy/
+│   │   ├── java/
+│   │   │   └── co/edu/eci/dosw/ecifit/
+│   │   │       ├── EciFitApplication.java
+│   │   │       ├── config/
+│   │   │       ├── controller/
+│   │   │       │   └── docs/
+│   │   │       ├── dto/
+│   │   │       │   ├── request/
+│   │   │       │   └── response/
+│   │   │       ├── exception/
+│   │   │       ├── mapper/
+│   │   │       ├── model/
+│   │   │       │   ├── factory/
+│   │   │       │   ├── observer/
+│   │   │       │   ├── state/
+│   │   │       │   └── strategy/
+│   │   │       ├── persistence/
+│   │   │       ├── repository/
+│   │   │       ├── security/
+│   │   │       ├── service/
+│   │   │       └── validator/
+│   │   └── resources/
+│   │       └── application.properties
 │   └── test/
-│       └── java/
-│           └── co/edu/escuelaing/ecifit/
+│       ├── java/
+│       │   └── co/edu/eci/dosw/ecifit/
+│       │       ├── EciFitTest.java
+│       │       ├── controller/
+│       │       ├── exception/
+│       │       ├── model/
+│       │       ├── security/
+│       │       ├── service/
+│       │       └── validator/
+│       └── resources/
+│           └── application.properties
 ├── .gitignore
+├── docker-compose.yml
 ├── pom.xml
 └── README.md
 ```
@@ -50,12 +67,11 @@ ecifit-backend/
 ## Stack tecnológico
 
 - Java 21
-- Spring Boot 3.x
+- Spring Boot 3
 - Spring Web
 - Spring Data JPA
 - Spring Validation
 - Spring Security
-- H2 Database
 - OpenAPI/Swagger
 
 ## Justificación de Patrones de Diseño (GoF)
@@ -130,12 +146,12 @@ La aplicación quedará disponible por defecto en el puerto 8080.
 ### 3.1 Justificación de Componentes por Fila
 Cada fila representa un flujo completo e independiente de una funcionalidad (Activity, Student, Clan, Mission, Season) compuesto por:
 
-- **\*Controller:** Componente de entrada web REST. Recibe la petición HTTP, aplica validación sintáctica (`@Valid`) sobre el RequestDTO y retorna el código de respuesta correspondiente (200, 201, 400, etc.) sin procesar lógica de negocio.
-- **\*Mapper (Mapper IN):** Componente de presentación implementado con MapStruct. Transforma RequestDTO a Dominio Puro y Dominio Puro a ResponseDTO, evitando que el controlador exponga o conozca entidades internas.
-- **\*Service:** Componente de lógica de aplicación / casos de uso. Opera exclusivamente con entidades de dominio; no recibe DTOs ni entidades de base de datos.
-- **\*Validator:** Componente perpendicular de reglas de negocio (`@Component`). Valida restricciones complejas (ej. anti-cheat, límite de 5 miembros en clan) de forma aislada para cumplir el Principio de Responsabilidad Única (SRP) y lanza excepciones tipadas (409, 422).
-- **\*Mapper (Mapper OUT):** Componente de persistencia. Traduce objetos del Dominio Puro a Entity (JPA) o Document (Mongo) antes de persistir, y viceversa. Aísla la base de datos del núcleo de la aplicación.
-- **\*Repository:** Componente de acceso a datos que extiende JpaRepository o MongoRepository para ejecutar transacciones en el motor de base de datos.
+- **Controller:** Componente de entrada web REST. Recibe la petición HTTP, aplica validación sintáctica (`@Valid`) sobre el RequestDTO y retorna el código de respuesta correspondiente (200, 201, 400, etc.) sin procesar lógica de negocio.
+- **Mapper (Mapper IN):** Componente de presentación implementado con MapStruct. Transforma RequestDTO a Dominio Puro y Dominio Puro a ResponseDTO, evitando que el controlador exponga o conozca entidades internas.
+- **Service:** Componente de lógica de aplicación / casos de uso. Opera exclusivamente con entidades de dominio; no recibe DTOs ni entidades de base de datos.
+- **Validator:** Componente perpendicular de reglas de negocio (`@Component`). Valida restricciones complejas (ej. anti-cheat, límite de 5 miembros en clan) de forma aislada para cumplir el Principio de Responsabilidad Única (SRP) y lanza excepciones tipadas (409, 422).
+- **Mapper (Mapper OUT):** Componente de persistencia. Traduce objetos del Dominio Puro a Entity (JPA) o Document (Mongo) antes de persistir, y viceversa. Aísla la base de datos del núcleo de la aplicación.
+- **Repository:** Componente de acceso a datos que extiende JpaRepository o MongoRepository para ejecutar transacciones en el motor de base de datos.
 - **DB:** Recurso de almacenamiento persistente centralizado donde convergen todos los repositorios.
 
 
