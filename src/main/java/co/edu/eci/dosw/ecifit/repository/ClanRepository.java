@@ -1,6 +1,6 @@
-package co.edu.escuelaing.ecifit.repository;
+package co.edu.eci.dosw.ecifit.repository;
 
-import co.edu.escuelaing.ecifit.model.entity.ClanEntity;
+import co.edu.eci.dosw.ecifit.persistence.ClanEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,4 +1,4 @@
-package co.edu.escuelaing.ecifit.model.dto.request;
+package co.edu.eci.dosw.ecifit.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 

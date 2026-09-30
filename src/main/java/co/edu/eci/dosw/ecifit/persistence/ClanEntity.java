@@ -1,4 +1,4 @@
-package co.edu.escuelaing.ecifit.model.entity;
+package co.edu.eci.dosw.ecifit.persistence;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -50,3 +50,4 @@ public class ClanEntity {
         this.puntosTotales = puntosTotales;
     }
 }
+  
