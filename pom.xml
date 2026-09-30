@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>co.edu.escuelaing</groupId>
+    <groupId>co.edu.eci.dosw</groupId>
     <artifactId>ecifit-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>ecifit-backend</name>
@@ -115,7 +115,7 @@
                 <version>${jacoco.version}</version>
                 <configuration>
                     <excludes>
-                        <exclude>**/EcifitApplication.class</exclude>
+                        <exclude>**/EciFitApplication.class</exclude>
                         <exclude>**/config/**</exclude>
                         <exclude>**/model/entity/**</exclude>
                         <exclude>**/model/dto/**</exclude>
