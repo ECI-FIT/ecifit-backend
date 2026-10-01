@@ -12,6 +12,7 @@ public abstract class Mision {
     private String descripcion;
     private Integer recompensa;
     private Boolean completada;
+    private String estudianteId;
 
     protected Mision() {
         this.completada = false;
@@ -63,5 +64,13 @@ public abstract class Mision {
 
     public void setCompletada(Boolean completada) {
         this.completada = completada;
+    }
+
+    public String getEstudianteId() {
+        return estudianteId;
+    }
+
+    public void setEstudianteId(String estudianteId) {
+        this.estudianteId = estudianteId;
     }
 }

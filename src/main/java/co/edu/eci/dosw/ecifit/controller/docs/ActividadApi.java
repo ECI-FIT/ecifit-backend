@@ -2,7 +2,7 @@ package co.edu.eci.dosw.ecifit.controller.docs;
 
 import co.edu.eci.dosw.ecifit.dto.request.RegistrarActividadRequestDTO;
 import co.edu.eci.dosw.ecifit.dto.response.ActividadResponseDTO;
-import co.edu.eci.dosw.ecifit.exception.ErrorResponseDTO;
+import co.edu.eci.dosw.ecifit.dto.response.ErrorResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;

@@ -26,20 +26,23 @@ public class MisionDiaria extends Mision {
      * Evalúa si la actividad cumple la duración diaria objetivo requerida.
      *
      * @param a Actividad física registrada.
-     * @return true si la actividad es válida y cumple con la duración mínima diaria.
+     * @return true si la actividad es válida y completa la misión por primera vez,
+     *         false si no cumple los requisitos o la misión ya estaba completada.
      */
     @Override
     public Boolean verificarCumplimiento(Actividad a) {
         if (Boolean.TRUE.equals(getCompletada())) {
-            return true;
+            return false;
         }
 
         if (a != null && Boolean.TRUE.equals(a.esValida())) {
-            if (a.getDuracionMinutos() != null && a.getDuracionMinutos() >= duracionMinimaObjetivo) {
+            if (a.getDuracionMinutos() != null
+                    && a.getDuracionMinutos() >= duracionMinimaObjetivo) {
                 setCompletada(true);
                 return true;
             }
         }
+
         return false;
     }
 

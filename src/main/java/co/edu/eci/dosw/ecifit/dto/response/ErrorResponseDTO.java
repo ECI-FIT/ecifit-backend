@@ -1,4 +1,4 @@
-package co.edu.eci.dosw.ecifit.exception;
+package co.edu.eci.dosw.ecifit.dto.response;
 
 import java.time.LocalDateTime;
 
