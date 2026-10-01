@@ -2,6 +2,7 @@ package co.edu.eci.dosw.ecifit.model;
 
 import co.edu.eci.dosw.ecifit.model.strategy.RolTemporada;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -14,6 +15,9 @@ import java.util.Objects;
  */
 public class Estudiante {
 
+    private static final int DIAS_RACHA_BONO = 7;
+    private static final int BONO_RACHA_SIETE_DIAS = 200;
+
     private String id;
     private String nombre;
     private String correoInstitucional;
@@ -21,10 +25,12 @@ public class Estudiante {
     private RolTemporada rolActivo;
     private final List<Actividad> actividadesRealizadas;
     private String clanId;
+    private boolean bonoRachaSieteDiasOtorgado;
 
     public Estudiante() {
         this.puntosAcumulados = 0;
         this.actividadesRealizadas = new ArrayList<>();
+        this.bonoRachaSieteDiasOtorgado = false;
     }
 
     public Estudiante(String id, String nombre, String correoInstitucional, RolTemporada rolActivo) {
@@ -34,6 +40,7 @@ public class Estudiante {
         this.puntosAcumulados = 0;
         this.rolActivo = rolActivo;
         this.actividadesRealizadas = new ArrayList<>();
+        this.bonoRachaSieteDiasOtorgado = false;
     }
 
     public Estudiante(String id, String nombre, String correoInstitucional, Integer puntosAcumulados,
@@ -45,6 +52,7 @@ public class Estudiante {
         this.rolActivo = rolActivo;
         this.clanId = clanId;
         this.actividadesRealizadas = new ArrayList<>();
+        this.bonoRachaSieteDiasOtorgado = false;
     }
 
     /**
@@ -68,8 +76,46 @@ public class Estudiante {
         this.puntosAcumulados = (this.puntosAcumulados != null ? this.puntosAcumulados : 0) + puntosGenerados;
         this.actividadesRealizadas.add(a);
 
+        if (!bonoRachaSieteDiasOtorgado && tieneRachaDeSieteDiasConsecutivos()) {
+            this.puntosAcumulados += BONO_RACHA_SIETE_DIAS;
+            this.bonoRachaSieteDiasOtorgado = true;
+        }
+
         // Notifica a los observadores suscritos a la actividad
         a.notificarObservadores(puntosGenerados, this);
+    }
+
+    /**
+     * Determina si el historial actual contiene actividad puntuable durante
+     * siete días calendario consecutivos, tomando como referencia la actividad
+     * más reciente registrada.
+     *
+     * @return true si existen actividades en los siete días consecutivos
+     *         terminando en la fecha de la actividad más reciente.
+     */
+    private boolean tieneRachaDeSieteDiasConsecutivos() {
+        if (actividadesRealizadas.size() < DIAS_RACHA_BONO) {
+            return false;
+        }
+
+        LocalDate fechaReferencia = actividadesRealizadas.get(actividadesRealizadas.size() - 1)
+                .getFecha()
+                .toLocalDate();
+
+        for (int i = 0; i < DIAS_RACHA_BONO; i++) {
+            LocalDate fechaEsperada = fechaReferencia.minusDays(i);
+
+            boolean existeActividad = actividadesRealizadas.stream()
+                    .anyMatch(actividad ->
+                            actividad.getFecha() != null
+                                    && actividad.getFecha().toLocalDate().equals(fechaEsperada));
+
+            if (!existeActividad) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public String getId() {
