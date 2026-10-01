@@ -1,10 +1,13 @@
 package co.edu.eci.dosw.ecifit.model.factory;
 
+import org.springframework.stereotype.Component;
+
 import java.util.UUID;
 
 /**
  * Fábrica concreta estándar para la generación de misiones del ciclo universitario regular.
  */
+@Component
 public class FabricaMisionesEstandar implements FabricaMisiones {
 
     @Override

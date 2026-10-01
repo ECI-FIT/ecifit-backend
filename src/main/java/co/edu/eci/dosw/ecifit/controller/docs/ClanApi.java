@@ -13,13 +13,13 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 
-@Tag(name = "Clanes", description = "Creacion y gestion de clanes")
+@Tag(name = "Clanes", description = "Creación y gestion de clanes")
 public interface ClanApi {
 
     @Operation(summary = "Crear un clan")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Clan creado"),
-            @ApiResponse(responseCode = "400", description = "Datos invalidos"),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos"),
             @ApiResponse(responseCode = "409", description = "Nombre de clan duplicado")
     })
     ResponseEntity<ClanResponseDTO> crear(@Valid CrearClanRequestDTO dto);

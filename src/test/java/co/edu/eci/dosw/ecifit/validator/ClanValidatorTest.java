@@ -24,7 +24,7 @@ class ClanValidatorTest {
     private ClanValidator validator;
 
     @Test
-    @DisplayName("validarNombreUnico - nombre disponible no lanza excepcion")
+    @DisplayName("validarNombreUnico - nombre disponible no lanza excepción")
     void validarNombreUnico_nombreDisponible_noLanzaExcepcion() {
         when(clanRepository.existsByNombre("Guerreros ECI")).thenReturn(false);
 
@@ -41,7 +41,7 @@ class ClanValidatorTest {
     }
 
     @Test
-    @DisplayName("validarCupoDisponible - clan con cupo no lanza excepcion")
+    @DisplayName("validarCupoDisponible - clan con cupo no lanza excepción")
     void validarCupoDisponible_clanConCupo_noLanzaExcepcion() {
         Clan clan = new Clan("C1", "Guerreros ECI");
         clan.agregarMiembro("E1");

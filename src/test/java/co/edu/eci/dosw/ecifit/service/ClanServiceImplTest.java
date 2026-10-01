@@ -104,7 +104,7 @@ class ClanServiceImplTest {
     }
 
     @Test
-    @DisplayName("obtenerTodos - sin datos devuelve lista vacia, no null")
+    @DisplayName("obtenerTodos - sin datos devuelve lista vacía, no null")
     void obtenerTodos_sinDatos_devuelveListaVacia() {
         when(clanRepository.findAll()).thenReturn(List.of());
 

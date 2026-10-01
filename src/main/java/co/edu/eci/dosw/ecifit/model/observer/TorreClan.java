@@ -5,7 +5,7 @@ import co.edu.eci.dosw.ecifit.model.Estudiante;
 
 /**
  * Observador concreto que representa la torre defensiva de un clan en la guerra de clanes.
- * Reacciona al registro de actividades de estudiantes de clanes rivales, aplicando el dano
+ * Reacciona al registro de actividades de estudiantes de clanes rivales, aplicando el daño
  * directamente sobre el Clan de dominio (unica fuente de verdad de la salud de la torre).
  */
 public class TorreClan implements ActividadObserver {

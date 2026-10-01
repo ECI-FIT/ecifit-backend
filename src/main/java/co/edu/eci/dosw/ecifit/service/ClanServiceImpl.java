@@ -71,7 +71,7 @@ public class ClanServiceImpl implements IClanService {
         clan.recibirDano(dano);
 
         ClanEntity actualizado = clanRepository.save(entityMapper.toEntity(clan));
-        log.info("Clan {} recibio {} de dano. Salud restante: {}", clanId, dano, actualizado.getSaludTorre());
+        log.info("Clan {} recibió {} de daño. Salud restante: {}", clanId, dano, actualizado.getSaludTorre());
         return entityMapper.toDomain(actualizado);
     }
 }
