@@ -1,33 +1,95 @@
-# Maven
-/target/
+# Maven & Build Output
+
+target/
 !.mvn/wrapper/maven-wrapper.jar
+!mvnw
+!mvnw.cmd
+.mvn/timing.properties
+dependency-reduced-pom.xml
 
-# IntelliJ / VS Code
-.idea/
-.vscode/
-*.iml
-
-# Compiled files
 *.class
 *.jar
 *.war
 *.ear
+*.nar
+*.zip
+*.tar.gz
+*.rar
 
-# Logs
+*.exec
+*.dump
+jacoco.exec
+target/jacoco.exec
+target/site/jacoco/
+
+# SonarQube & SonarLint
+.sonar/
+.scannerwork/
+.sonarlint/
+
 *.log
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Spring Boot
-application-local.properties
-
-# Temporary files
-*.tmp
-*.bak
-*.swp
-
-# Java crash logs
+logs/
+log/
+spring.log
 hs_err_pid*
 replay_pid*
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Eclipse
+.project
+.classpath
+.settings/
+bin/
+
+# NetBeans
+nbproject/private/
+nbbuild/
+dist/
+nbproject/load-build-properties.xml
+
+
+.env
+.env.local
+.env.*.local
+*.env
+application-local.properties
+application-local.yml
+application-dev.properties
+application-secrets.*
+secrets/
+
+pgdata/
+mongo_data/
+docker-compose.override.yml
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux / Vim / Emacs
+*~
+*.swp
+*.swo
+*.tmp
+*.bak
