@@ -29,17 +29,24 @@ class MisionValidatorTest {
     @Test
     @DisplayName("validarNoCompletada - misión pendiente no lanza excepción")
     void validarNoCompletada_misionPendiente_noLanzaExcepcion() {
+        // Arrange
         MisionDiaria mision = new MisionDiaria("M1", "Caminar 30 min", 50, 30);
 
-        assertDoesNotThrow(() -> validator.validarNoCompletada(mision));
+        // Act
+        org.junit.jupiter.api.function.Executable accion = () -> validator.validarNoCompletada(mision);
+
+        // Assert
+        assertDoesNotThrow(accion);
     }
 
     @Test
     @DisplayName("validarNoCompletada - misión completada lanza EstadoInvalidoException")
     void validarNoCompletada_misionCompletada_lanzaEstadoInvalido() {
+        // Arrange
         MisionDiaria mision = new MisionDiaria("M1", "Caminar 30 min", 50, 30);
         mision.setCompletada(true);
 
+        // Act & Assert
         assertThrows(EstadoInvalidoException.class,
                 () -> validator.validarNoCompletada(mision));
     }
@@ -47,16 +54,22 @@ class MisionValidatorTest {
     @Test
     @DisplayName("validarLimiteMisionesActivas - estudiante con cupo no lanza excepción")
     void validarLimiteMisionesActivas_conCupo_noLanzaExcepcion() {
+        // Arrange
         MisionEntity activa = new MisionEntity();
         activa.setCompletada(false);
         when(misionRepository.findByEstudianteId("E1")).thenReturn(List.of(activa));
 
-        assertDoesNotThrow(() -> validator.validarLimiteMisionesActivas("E1"));
+        // Act
+        org.junit.jupiter.api.function.Executable accion = () -> validator.validarLimiteMisionesActivas("E1");
+
+        // Assert
+        assertDoesNotThrow(accion);
     }
 
     @Test
     @DisplayName("validarLimiteMisionesActivas - tres misiones activas lanza ReglaDeNegocioException")
     void validarLimiteMisionesActivas_limiteAlcanzado_lanzaReglaDeNegocio() {
+        // Arrange
         MisionEntity activa1 = new MisionEntity();
         activa1.setCompletada(false);
         MisionEntity activa2 = new MisionEntity();
@@ -65,6 +78,7 @@ class MisionValidatorTest {
         activa3.setCompletada(false);
         when(misionRepository.findByEstudianteId("E1")).thenReturn(List.of(activa1, activa2, activa3));
 
+        // Act & Assert
         assertThrows(ReglaDeNegocioException.class,
                 () -> validator.validarLimiteMisionesActivas("E1"));
     }

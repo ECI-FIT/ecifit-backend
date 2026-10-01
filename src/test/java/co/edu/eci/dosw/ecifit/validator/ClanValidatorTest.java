@@ -26,16 +26,23 @@ class ClanValidatorTest {
     @Test
     @DisplayName("validarNombreUnico - nombre disponible no lanza excepción")
     void validarNombreUnico_nombreDisponible_noLanzaExcepcion() {
+        // Arrange
         when(clanRepository.existsByNombre("Guerreros ECI")).thenReturn(false);
 
-        assertDoesNotThrow(() -> validator.validarNombreUnico("Guerreros ECI"));
+        // Act
+        org.junit.jupiter.api.function.Executable accion = () -> validator.validarNombreUnico("Guerreros ECI");
+
+        // Assert
+        assertDoesNotThrow(accion);
     }
 
     @Test
     @DisplayName("validarNombreUnico - nombre duplicado lanza ConflictoException")
     void validarNombreUnico_nombreDuplicado_lanzaConflicto() {
+        // Arrange
         when(clanRepository.existsByNombre("Guerreros ECI")).thenReturn(true);
 
+        // Act & Assert
         assertThrows(ConflictoException.class,
                 () -> validator.validarNombreUnico("Guerreros ECI"));
     }
@@ -43,20 +50,27 @@ class ClanValidatorTest {
     @Test
     @DisplayName("validarCupoDisponible - clan con cupo no lanza excepción")
     void validarCupoDisponible_clanConCupo_noLanzaExcepcion() {
+        // Arrange
         Clan clan = new Clan("C1", "Guerreros ECI");
         clan.agregarMiembro("E1");
 
-        assertDoesNotThrow(() -> validator.validarCupoDisponible(clan));
+        // Act
+        org.junit.jupiter.api.function.Executable accion = () -> validator.validarCupoDisponible(clan);
+
+        // Assert
+        assertDoesNotThrow(accion);
     }
 
     @Test
     @DisplayName("validarCupoDisponible - clan lleno lanza ReglaDeNegocioException")
     void validarCupoDisponible_clanLleno_lanzaReglaDeNegocio() {
+        // Arrange
         Clan clan = new Clan("C1", "Guerreros ECI");
         for (int i = 0; i < 5; i++) {
             clan.agregarMiembro("E" + i);
         }
 
+        // Act & Assert
         assertThrows(ReglaDeNegocioException.class,
                 () -> validator.validarCupoDisponible(clan));
     }

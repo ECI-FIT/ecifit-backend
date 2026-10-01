@@ -49,6 +49,7 @@ class MisionServiceImplTest {
     @Test
     @DisplayName("generarMisionDiaria - estudiante con cupo genera y guarda la misión")
     void generarMisionDiaria_estudianteConCupo_retornaConId() {
+        // Arrange
         Mision misionCreada = new MisionDiaria("M1", "Caminar 30 min", 50, 30);
         MisionEntity entidad = new MisionEntity();
         entidad.setId("M1");
@@ -61,8 +62,10 @@ class MisionServiceImplTest {
         when(misionRepository.save(entidad)).thenReturn(entidad);
         when(entityMapper.toDomain(entidad)).thenReturn(misionGuardada);
 
+        // Act
         Mision resultado = service.generarMisionDiaria("E1");
 
+        // Assert
         assertNotNull(resultado.getId());
         assertEquals("E1", resultado.getEstudianteId());
         verify(validator, times(1)).validarLimiteMisionesActivas("E1");
@@ -72,9 +75,11 @@ class MisionServiceImplTest {
     @Test
     @DisplayName("evaluarCumplimiento - misión inexistente lanza RecursoNoEncontradoException")
     void evaluarCumplimiento_misionInexistente_lanzaExcepcion() {
+        // Arrange
         when(misionRepository.findById("M99")).thenReturn(Optional.empty());
         Actividad actividad = new Actividad("A1", "Trote", 35, 6, LocalDateTime.now());
 
+        // Act & Assert
         assertThrows(co.edu.eci.dosw.ecifit.exception.RecursoNoEncontradoException.class,
                 () -> service.evaluarCumplimiento("M99", actividad));
     }
@@ -82,9 +87,11 @@ class MisionServiceImplTest {
     @Test
     @DisplayName("generarMisionDiaria - limite de misiones activas propaga ReglaDeNegocioException")
     void generarMisionDiaria_limiteAlcanzado_lanzaReglaDeNegocio() {
+        // Arrange
         doThrow(new ReglaDeNegocioException("El estudiante ya tiene 3 misiones activas simultáneamente"))
                 .when(validator).validarLimiteMisionesActivas("E1");
 
+        // Act & Assert
         assertThrows(ReglaDeNegocioException.class,
                 () -> service.generarMisionDiaria("E1"));
         verify(misionRepository, never()).save(any());
@@ -93,6 +100,7 @@ class MisionServiceImplTest {
     @Test
     @DisplayName("evaluarCumplimiento - misión ya completada lanza EstadoInvalidoException")
     void evaluarCumplimiento_misionCompletada_lanzaEstadoInvalido() {
+        // Arrange
         MisionEntity entidad = new MisionEntity();
         entidad.setId("M1");
         entidad.setCompletada(true);
@@ -106,6 +114,7 @@ class MisionServiceImplTest {
 
         Actividad actividad = new Actividad("A1", "Trote", 35, 6, LocalDateTime.now());
 
+        // Act & Assert
         assertThrows(EstadoInvalidoException.class,
                 () -> service.evaluarCumplimiento("M1", actividad));
         verify(misionRepository, never()).save(any());
@@ -114,10 +123,13 @@ class MisionServiceImplTest {
     @Test
     @DisplayName("obtenerPorEstudiante - sin misiones devuelve lista vacía, no null")
     void obtenerPorEstudiante_sinDatos_devuelveListaVacia() {
+        // Arrange
         when(misionRepository.findByEstudianteId("E1")).thenReturn(List.of());
 
+        // Act
         List<Mision> resultado = service.obtenerPorEstudiante("E1");
 
+        // Assert
         assertNotNull(resultado);
         assertTrue(resultado.isEmpty());
     }

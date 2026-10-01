@@ -44,6 +44,7 @@ class ClanServiceImplTest {
     @Test
     @DisplayName("crear - clan valido se guarda y retorna con id asignado")
     void crear_clanValido_retornaConId() {
+        // Arrange
         Clan dominio = new Clan(null, "Guerreros ECI");
         ClanEntity entidad = new ClanEntity();
         entidad.setId("C1");
@@ -54,8 +55,10 @@ class ClanServiceImplTest {
         when(clanRepository.save(entidad)).thenReturn(entidad);
         when(entityMapper.toDomain(entidad)).thenReturn(dominioConId);
 
+        // Act
         Clan resultado = service.crear(dominio);
 
+        // Assert
         assertNotNull(resultado.getId());
         assertEquals("Guerreros ECI", resultado.getNombre());
         verify(validator, times(1)).validarNombreUnico("Guerreros ECI");
@@ -65,8 +68,10 @@ class ClanServiceImplTest {
     @Test
     @DisplayName("obtenerPorId - id inexistente lanza RecursoNoEncontradoException")
     void obtenerPorId_idInexistente_lanzaExcepcion() {
+        // Arrange
         when(clanRepository.findById("C99")).thenReturn(Optional.empty());
 
+        // Act & Assert
         assertThrows(RecursoNoEncontradoException.class,
                 () -> service.obtenerPorId("C99"));
     }
@@ -74,10 +79,12 @@ class ClanServiceImplTest {
     @Test
     @DisplayName("crear - nombre duplicado propaga ConflictoException del validator")
     void crear_nombreDuplicado_lanzaConflicto() {
+        // Arrange
         Clan dominio = new Clan(null, "Guerreros ECI");
         doThrow(new ConflictoException("Ya existe un clan con ese nombre"))
                 .when(validator).validarNombreUnico("Guerreros ECI");
 
+        // Act & Assert
         assertThrows(ConflictoException.class,
                 () -> service.crear(dominio));
         verify(clanRepository, never()).save(any());
@@ -86,6 +93,7 @@ class ClanServiceImplTest {
     @Test
     @DisplayName("unirse - clan lleno lanza ReglaDeNegocioException")
     void unirse_clanLleno_lanzaReglaDeNegocio() {
+        // Arrange
         Clan clanLleno = new Clan("C1", "Guerreros ECI");
         for (int i = 0; i < 5; i++) {
             clanLleno.agregarMiembro("E" + i);
@@ -98,6 +106,7 @@ class ClanServiceImplTest {
         doThrow(new ReglaDeNegocioException("El clan ya alcanzo el limite de 5 miembros"))
                 .when(validator).validarCupoDisponible(clanLleno);
 
+        // Act & Assert
         assertThrows(ReglaDeNegocioException.class,
                 () -> service.unirse("C1", "E99"));
         verify(clanRepository, never()).save(any());
@@ -106,10 +115,13 @@ class ClanServiceImplTest {
     @Test
     @DisplayName("obtenerTodos - sin datos devuelve lista vacía, no null")
     void obtenerTodos_sinDatos_devuelveListaVacia() {
+        // Arrange
         when(clanRepository.findAll()).thenReturn(List.of());
 
+        // Act
         List<Clan> resultado = service.obtenerTodos();
 
+        // Assert
         assertNotNull(resultado);
         assertTrue(resultado.isEmpty());
     }
