@@ -191,4 +191,38 @@ class GlobalExceptionHandlerTest {
         assertEquals("/api/error", response.ruta());
         assertNotNull(response.timestamp());
     }
+
+    @Test
+    @DisplayName("Debe manejar acceso denegado con estado 403")
+    void debeManejarAccesoDenegado() {
+        org.springframework.security.access.AccessDeniedException exception =
+                new org.springframework.security.access.AccessDeniedException("Acceso prohibido");
+
+        ErrorResponseDTO response = handler.handleAccesoDenegado(
+                exception,
+                crearRequest("/api/v1/test/admin")
+        );
+
+        assertEquals(403, response.status());
+        assertEquals("Acceso denegado: permisos insuficientes", response.mensaje());
+        assertEquals("/api/v1/test/admin", response.ruta());
+        assertNotNull(response.timestamp());
+    }
+
+    @Test
+    @DisplayName("Debe manejar credenciales inválidas con estado 401")
+    void debeManejarCredencialesInvalidas() {
+        org.springframework.security.authentication.BadCredentialsException exception =
+                new org.springframework.security.authentication.BadCredentialsException("Credenciales malas");
+
+        ErrorResponseDTO response = handler.handleCredencialesInvalidas(
+                exception,
+                crearRequest("/api/v1/auth/login")
+        );
+
+        assertEquals(401, response.status());
+        assertEquals("Credenciales inválidas", response.mensaje());
+        assertEquals("/api/v1/auth/login", response.ruta());
+        assertNotNull(response.timestamp());
+    }
 }
