@@ -1,5 +1,10 @@
 package co.edu.eci.dosw.ecifit.security;
 
+import co.edu.eci.dosw.ecifit.dto.request.CrearEstudianteRequestDTO;
+import co.edu.eci.dosw.ecifit.dto.request.CrearMisionRequestDTO;
+import co.edu.eci.dosw.ecifit.dto.request.RegistrarActividadRequestDTO;
+import co.edu.eci.dosw.ecifit.dto.request.TemporadaRequestDTO;
+import co.edu.eci.dosw.ecifit.dto.request.UnirseClanRequestDTO;
 import co.edu.eci.dosw.ecifit.security.dto.request.LoginRequestDTO;
 import co.edu.eci.dosw.ecifit.security.enums.Rol;
 import co.edu.eci.dosw.ecifit.security.jwt.JwtUtil;
@@ -12,6 +17,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDate;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -123,5 +130,122 @@ class SecurityIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.mensaje").value("Credenciales inválidas"));
+    }
+
+    // =========================================================================
+    // PRUEBAS DE LA MATRIZ RBAC SOBRE ENDPOINTS DE NEGOCIO (Sprint 3)
+    // =========================================================================
+
+    @Test
+    @DisplayName("POST /api/v1/estudiantes sin autenticación debe retornar 401 Unauthorized")
+    void debeRechazarCrearEstudianteSinAutenticacion() throws Exception {
+        // Arrange & Act & Assert
+        mockMvc.perform(post("/api/v1/estudiantes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/estudiantes con rol ESTUDIANTE debe retornar 403 Forbidden")
+    @WithMockUser(username = "estudiante@mail.escuelaing.edu.co", roles = {"ESTUDIANTE"})
+    void debeRechazarCrearEstudianteConRolEstudiante() throws Exception {
+        // Arrange
+        CrearEstudianteRequestDTO dto = new CrearEstudianteRequestDTO("Carlos", "carlos@mail.escuelaing.edu.co", "TANQUE");
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/estudiantes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.mensaje").value("Acceso denegado: permisos insuficientes"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/actividades con rol ENTRENADOR debe retornar 403 Forbidden")
+    @WithMockUser(username = "entrenador@mail.escuelaing.edu.co", roles = {"ENTRENADOR"})
+    void debeRechazarRegistrarActividadConRolEntrenador() throws Exception {
+        // Arrange
+        RegistrarActividadRequestDTO dto = new RegistrarActividadRequestDTO("EST-1", "CARDIO", 30, 8);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/actividades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.mensaje").value("Acceso denegado: permisos insuficientes"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/temporadas con rol ESTUDIANTE debe retornar 403 Forbidden")
+    @WithMockUser(username = "estudiante@mail.escuelaing.edu.co", roles = {"ESTUDIANTE"})
+    void debeRechazarCrearTemporadaConRolEstudiante() throws Exception {
+        // Arrange
+        TemporadaRequestDTO dto = TemporadaRequestDTO.builder()
+                .nombre("2026-1")
+                .fechaInicio(LocalDate.now())
+                .fechaFin(LocalDate.now().plusMonths(4))
+                .build();
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/temporadas")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.mensaje").value("Acceso denegado: permisos insuficientes"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/misiones/diarias con rol ESTUDIANTE debe retornar 403 Forbidden")
+    @WithMockUser(username = "estudiante@mail.escuelaing.edu.co", roles = {"ESTUDIANTE"})
+    void debeRechazarCrearMisionConRolEstudiante() throws Exception {
+        // Arrange
+        CrearMisionRequestDTO dto = new CrearMisionRequestDTO("EST-1");
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/misiones/diarias")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.mensaje").value("Acceso denegado: permisos insuficientes"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/clanes/unirse con rol ADMINISTRADOR debe retornar 403 Forbidden")
+    @WithMockUser(username = "admin@mail.escuelaing.edu.co", roles = {"ADMINISTRADOR"})
+    void debeRechazarUnirseClanConRolAdministrador() throws Exception {
+        // Arrange
+        UnirseClanRequestDTO dto = new UnirseClanRequestDTO("EST-1", "C1");
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/clanes/unirse")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.mensaje").value("Acceso denegado: permisos insuficientes"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/clanes sin autenticación debe retornar 401 Unauthorized")
+    void debeRechazarConsultaClanesSinToken() throws Exception {
+        // Arrange & Act & Assert
+        mockMvc.perform(get("/api/v1/clanes"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/clanes con rol ESTUDIANTE debe retornar 200 OK")
+    @WithMockUser(username = "estudiante@mail.escuelaing.edu.co", roles = {"ESTUDIANTE"})
+    void debePermitirConsultaClanesConRolEstudiante() throws Exception {
+        // Arrange & Act & Assert
+        mockMvc.perform(get("/api/v1/clanes"))
+                .andExpect(status().isOk());
     }
 }
