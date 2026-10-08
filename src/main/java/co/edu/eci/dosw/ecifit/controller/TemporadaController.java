@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,6 +35,7 @@ public class TemporadaController implements TemporadaApi {
 
     @Override
     @PostMapping
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<TemporadaResponseDTO> crear(@Valid @RequestBody TemporadaRequestDTO request) {
         Temporada temporada = temporadaMapper.toDomain(request);
         Temporada creada = temporadaService.crear(temporada);
@@ -42,6 +44,7 @@ public class TemporadaController implements TemporadaApi {
 
     @Override
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ESTUDIANTE', 'ENTRENADOR', 'ADMINISTRADOR')")
     public ResponseEntity<TemporadaResponseDTO> obtenerPorId(@PathVariable UUID id) {
         Temporada temporada = temporadaService.obtenerPorId(id);
         return ResponseEntity.ok(temporadaMapper.toResponse(temporada));
@@ -49,6 +52,7 @@ public class TemporadaController implements TemporadaApi {
 
     @Override
     @GetMapping("/activa")
+    @PreAuthorize("hasAnyRole('ESTUDIANTE', 'ENTRENADOR', 'ADMINISTRADOR')")
     public ResponseEntity<TemporadaResponseDTO> obtenerActiva() {
         Temporada temporada = temporadaService.obtenerActiva();
         return ResponseEntity.ok(temporadaMapper.toResponse(temporada));
@@ -56,6 +60,7 @@ public class TemporadaController implements TemporadaApi {
 
     @Override
     @GetMapping("/{temporadaId}/ranking")
+    @PreAuthorize("hasAnyRole('ESTUDIANTE', 'ENTRENADOR', 'ADMINISTRADOR')")
     public ResponseEntity<List<RankingTemporadaResponseDTO>> obtenerRanking(@PathVariable UUID temporadaId) {
         List<RankingTemporada> ranking = temporadaService.obtenerRankingGeneral(temporadaId);
         List<RankingTemporadaResponseDTO> response = ranking.stream()

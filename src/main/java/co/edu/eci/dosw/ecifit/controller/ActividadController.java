@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,6 +30,7 @@ public class ActividadController implements ActividadApi {
 
     @Override
     @PostMapping
+    @PreAuthorize("hasRole('ESTUDIANTE')")
     public ResponseEntity<ActividadResponseDTO> registrarActividad(@Valid @RequestBody RegistrarActividadRequestDTO dto) {
         Actividad actividad = actividadMapper.toDomain(dto);
         final int[] puntosCalculados = new int[1];
@@ -41,6 +43,7 @@ public class ActividadController implements ActividadApi {
 
     @Override
     @GetMapping("/estudiante/{estudianteId}")
+    @PreAuthorize("hasAnyRole('ESTUDIANTE', 'ENTRENADOR', 'ADMINISTRADOR')")
     public ResponseEntity<List<ActividadResponseDTO>> obtenerHistorial(@PathVariable String estudianteId) {
         List<Actividad> actividades = actividadService.obtenerHistorialPorEstudiante(estudianteId);
         List<ActividadResponseDTO> response = actividadMapper.toResponseList(actividades, estudianteId);

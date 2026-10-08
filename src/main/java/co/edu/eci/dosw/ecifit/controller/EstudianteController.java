@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,6 +28,7 @@ public class EstudianteController implements EstudianteApi {
 
     @Override
     @PostMapping
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<EstudianteResponseDTO> crearEstudiante(@Valid @RequestBody CrearEstudianteRequestDTO dto) {
         Estudiante dominio = estudianteMapper.toDomain(dto);
         Estudiante creado = estudianteService.crearEstudiante(dominio, dto.rol());
@@ -36,6 +38,7 @@ public class EstudianteController implements EstudianteApi {
 
     @Override
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ESTUDIANTE', 'ENTRENADOR', 'ADMINISTRADOR')")
     public ResponseEntity<EstudianteResponseDTO> obtenerPorId(@PathVariable String id) {
         Estudiante estudiante = estudianteService.obtenerPorId(id);
         return ResponseEntity.ok(estudianteMapper.toResponse(estudiante));
