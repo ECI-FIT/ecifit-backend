@@ -2,6 +2,26 @@
 
 Backend para la plataforma de gamificación y entrenamiento de ECI FIT.
 
+**QA:** <!-- Julián: URL de Swagger en QA -->
+**PROD:** <!-- Julián: URL de Swagger en PROD -->
+**Frontend:** <!-- link al repositorio del frontend -->
+
+## Índice
+1. [Objetivo](#objetivo)
+2. [Arquitectura propuesta](#arquitectura-propuesta)
+3. [Estructura del proyecto](#estructura-del-proyecto)
+4. [Stack tecnológico](#stack-tecnológico)
+5. [Justificación de Patrones de Diseño (GoF)](#justificación-de-patrones-de-diseño-gof)
+6. [Diagramas](#diagramas)
+7. [Base de datos](#base-de-datos)
+8. [Seguridad](#seguridad)
+9. [Cómo levantar localmente](#cómo-levantar-localmente)
+10. [Variables de entorno](#variables-de-entorno)
+11. [Ejecución de pruebas](#ejecución-de-pruebas)
+12. [CI/CD](#cicd)
+13. [Despliegue](#despliegue)
+14. [Integrantes](#integrantes)
+
 ## Objetivo
 
 Proveer la capa de negocio, persistencia y exposición de APIs para gestionar:
@@ -12,6 +32,10 @@ Proveer la capa de negocio, persistencia y exposición de APIs para gestionar:
 - misiones y retos
 - puntuaciones y validaciones
 - eventos y notificaciones
+- PostgreSQL
+- Docker
+- GitHub Actions
+- Azure App Service
 
 ## Arquitectura propuesta
 
@@ -102,6 +126,16 @@ El núcleo de **ECI FIT** aplica principios de *Clean Architecture* apoyados en 
 * **Problema:** El sistema requiere un motor *Anti-Cheat* robusto para los registros de actividad. Validar integridad de datos, límites físicos humanos (ej. velocidad/distancia irreales) y estado de penalización en un solo bloque de código dificulta su mantenimiento.
 * **Implementación:** Construimos un *Pipeline de Validación*. La petición de actividad atraviesa una cadena de eslabones independientes (`DataIntegrityHandler` -> `AntiCheatHandler` -> `BanStatusHandler`). Esto permite inyectar nuevas reglas antifraude a futuro sin alterar los validadores existentes.
 
+### Resumen de patrones
+
+| Patrón | Problema que resuelve | Clases | Diagrama |
+|---|---|---|---|
+| Strategy | El cálculo de puntos varía según el rol del estudiante. Evita condicionales anidados al agregar nuevos roles. | `RolTemporada`, `Tanque`, `Corredor`, `Estratega` | Diagrama de clases |
+| Observer | Registrar una actividad dispara varios efectos (ligas y torre del clan) sin acoplar los módulos. | `ActividadObserver`, `GestorLigas`, `TorreClan` | Diagrama de clases |
+| State | Las reglas cambian según el calendario académico (semana regular o de parciales). | `EstadoTemporada`, `SemanaRegular`, `SemanaParciales` | Diagrama de clases |
+| Abstract Factory | La creación de misiones no debe acoplarse a la lógica de negocio. | `FabricaMisiones`, `FabricaMisionesEstandar`, `Mision`, `MisionDiaria`, `MisionSemanal` | Diagrama de clases |
+| Chain of Responsibility | Validar integridad, anti-cheat y penalizaciones de una actividad sin concentrar todo en un solo bloque. | <!-- Daniel V: clases cuando se implemente --> | Diagrama de clases |
+
 ## Diagramas
 ### 1. Diagrama de clases
 <img width="2658" height="1331" alt="clasesS2" src="https://github.com/user-attachments/assets/a2c60164-23ac-4b18-be73-bdccecb7e443" />
@@ -156,4 +190,64 @@ Cada fila representa un flujo completo e independiente de una funcionalidad (Act
 - **Repository:** Componente de acceso a datos que extiende JpaRepository o MongoRepository para ejecutar transacciones en el motor de base de datos.
 - **DB:** Recurso de almacenamiento persistente centralizado donde convergen todos los repositorios.
 
+## Base de datos
+<!-- Juan David: imagen del ERD -->
+
+### Decisión de persistencia
+<!-- Juan David: justificación de PostgreSQL -->
+
+## Seguridad
+<!-- Juan David: autenticación JWT y BCrypt -->
+
+### Roles y permisos
+| Endpoint | Método | Público | Roles permitidos |
+|---|---|---|---|
+| /auth/login | POST | Sí | - |
+|  |  |  |  |
+
+## Cómo levantar localmente
+**Prerrequisitos:** Java 21, Maven y Docker.
+
+1. Clonar el repositorio.
+2. Copiar `.env.example` como `.env` y completar los valores.
+3. Ejecutar `docker compose up --build -d`.
+4. Abrir `http://localhost:8080/swagger-ui.html`.
+
+## Variables de entorno
+Referencia: `.env.example`.
+
+| Variable | Descripción | Ejemplo |
+|---|---|---|
+| DB_URL | URL de conexión a PostgreSQL | jdbc:postgresql://localhost:5432/ecifit |
+| DB_USER | Usuario de la base de datos | ecifit |
+| DB_PASSWORD | Contraseña de la base de datos | ****** |
+| JWT_SECRET | Clave para firmar los tokens (mínimo 44 caracteres Base64) | ****** |
+
+## Ejecución de pruebas
+Ejecutar `mvn test`. El reporte de cobertura de JaCoCo se genera en `target/site/jacoco/index.html`.
+
+<!-- captura de mvn test y de la cobertura de JaCoCo -->
+
+## CI/CD
+- **ci-qa.yml:** push a `main`, ejecuta pruebas, construye la imagen y despliega en QA.
+- **ci-prod.yml:** tag `v*.*.*`, despliega en PROD con aprobación manual.
+
+**Secrets configurados:** `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `AZURE_CREDENTIALS`, `JWT_SECRET_QA`, `JWT_SECRET_PROD`, `DB_PASSWORD_QA`, `DB_PASSWORD_PROD`, `AZURE_WEBAPP_NAME_QA`, `AZURE_WEBAPP_NAME_PROD`
+
+<!-- Julián: link a GitHub Actions y captura del pipeline en verde -->
+
+## Despliegue
+**Imagen Docker:** <!-- Daniel V: link a Docker Hub con tag -->
+
+### Diagrama de despliegue
+<!-- Julián: imagen del diagrama hecho en draw.io, Lucidchart o Miro -->
+
+## Integrantes
+| Nombre                             | Rol | Qué implementó                                                                                                                             |
+|------------------------------------|---|--------------------------------------------------------------------------------------------------------------------------------------------|
+| Sebastián Camilo Granados López    | Líder técnico | Gestión del sprint en Jira, diagrama de flujo de pantallas, integración y verificación de QA y PROD, README del backend.                   |
+| Daniel Jose Villamizar Castellanos | Backend: funcionalidades y Docker | Funcionalidades pendientes, manejo global de excepciones, pruebas, Dockerización, imagen en Docker Hub, diagramas de clases y componentes. |
+| Juan David Munar Chaparro          | Backend: seguridad | Autenticación JWT, roles y permisos por endpoint, pruebas de seguridad, funcionalidades pendientes, diagrama de base de datos.             |
+| Julian Camilo Giral Cobos          | Backend: CI/CD y Azure | Pipelines de QA y PROD, despliegue en Azure, secrets y variables de entorno, diagrama de despliegue.                                       |
+| Daniel Alfredo Barrera Aranque     | Frontend | Mascota, manual de identidad, mockups finales en Figma, README del frontend.                                                               |
 
