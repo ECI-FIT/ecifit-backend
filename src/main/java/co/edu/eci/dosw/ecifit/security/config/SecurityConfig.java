@@ -29,7 +29,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -94,20 +94,13 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/error"
                         ).permitAll()
-                        // Rutas existentes del Sprint 2 y Ligas (compatibilidad no bloqueante)
-                        .requestMatchers(
-                                "/api/v1/estudiantes/**",
-                                "/api/v1/actividades/**",
-                                "/api/v1/clanes/**",
-                                "/api/v1/misiones/**",
-                                "/api/v1/temporadas/**"
-                        ).permitAll()
-                        // Rutas para verificación de seguridad y roles
+                        // Rutas públicas de prueba o health
                         .requestMatchers("/api/v1/test/publico").permitAll()
+                        // Rutas para verificación de seguridad y roles en tests
                         .requestMatchers("/api/v1/test/protegido").authenticated()
                         .requestMatchers("/api/v1/test/admin").hasRole("ADMINISTRADOR")
                         .requestMatchers("/api/v1/test/estudiante").hasRole("ESTUDIANTE")
-                        // Cualquier otra petición debe estar autenticada
+                        // Cualquier otra petición (incluyendo endpoints de negocio) requiere autenticación
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
