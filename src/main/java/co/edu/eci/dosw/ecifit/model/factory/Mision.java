@@ -34,6 +34,21 @@ public abstract class Mision {
      */
     public abstract Boolean verificarCumplimiento(Actividad a);
 
+    /**
+     * Evalúa el estado de cumplimiento intrínseco de la misión sin necesidad de una nueva actividad puntual.
+     * Por defecto retorna si la misión ya cumplió sus criterios o condiciones requeridas.
+     *
+     * @return true si la misión cumple los criterios para ser completada, false en caso contrario.
+     */
+    public boolean evaluarCumplimiento() {
+        // Si la misión ya fue completada, no es evaluable positivamente
+        if (Boolean.TRUE.equals(this.completada)) {
+            return false;
+        }
+        // Criterio de dominio: Es completable si tiene un estudiante asignado y está en estado activo
+        return this.estudianteId != null && !this.estudianteId.isBlank();
+    }
+
     public String getId() {
         return id;
     }

@@ -35,4 +35,17 @@ public interface MisionApi {
     @ApiResponse(responseCode = "200", description = "Listado de misiones del estudiante")
     ResponseEntity<List<MisionResponseDTO>> obtenerPorEstudiante(
             @Parameter(description = "Id del estudiante") String estudianteId);
+
+    @Operation(summary = "Completar una misión y reclamar su recompensa")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Misión completada y recompensa otorgada exitosamente"),
+            @ApiResponse(responseCode = "400", description = "Solicitud inválida"),
+            @ApiResponse(responseCode = "401", description = "No autenticado"),
+            @ApiResponse(responseCode = "403", description = "Acceso denegado: permisos insuficientes"),
+            @ApiResponse(responseCode = "404", description = "Misión o estudiante no encontrado"),
+            @ApiResponse(responseCode = "409", description = "Conflicto o estado inválido al completar la misión"),
+            @ApiResponse(responseCode = "422", description = "Criterios de la misión no cumplidos o estado inválido")
+    })
+    ResponseEntity<MisionResponseDTO> completar(
+            @Parameter(description = "Id de la misión") String id);
 }
