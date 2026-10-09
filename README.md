@@ -4,7 +4,7 @@ Backend para la plataforma de gamificación y entrenamiento de ECI FIT.
 
 - **QA:** https://ecifit-qa-bxhdd4a0dkc4bma0.canadacentral-01.azurewebsites.net/swagger-ui/index.html
 - **PROD:** https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html
-- **Frontend:** <!-- link al repositorio del frontend -->
+- **Frontend:** https://github.com/ECI-FIT/ecifit-frontend.git
 
 ## Índice
 1. [Objetivo](#objetivo)
@@ -258,7 +258,7 @@ Ejecutar `mvn test`. El reporte de cobertura de JaCoCo se genera en `target/site
 **Imagen Docker:** <!-- Daniel V: link a Docker Hub con tag -->
 
 ### Diagrama de despliegue
-<!-- Julián: imagen del diagrama hecho en draw.io, Lucidchart o Miro -->
+![diagrama-despliegue.jpeg](docs/diagrama-despliegue.jpeg)
 
 ## Integrantes
 | Nombre                             | Rol | Qué implementó                                                                                                                             |
