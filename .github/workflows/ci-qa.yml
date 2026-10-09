@@ -12,38 +12,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Descargar codigo
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configurar Java
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '24'
           cache: maven
 
-      - name: Ejecutar pruebas
+      - name: Run tests
         run: mvn -B clean verify
 
-      - name: Iniciar sesion en Docker Hub
+      - name: Docker Hub login
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Construir y publicar imagen QA
+      - name: Build and push QA image
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: cobos1/ecifit-backend:qa
 
-      - name: Iniciar sesion en Azure
+      - name: Azure login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Desplegar en QA
+      - name: Deploy QA
         uses: azure/webapps-deploy@v3
         with:
           app-name: EciFit-qa
