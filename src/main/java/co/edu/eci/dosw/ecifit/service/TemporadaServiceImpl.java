@@ -69,6 +69,11 @@ public class TemporadaServiceImpl implements ITemporadaService {
 
     @Override
     public List<RankingTemporada> obtenerRankingGeneral(UUID temporadaId) {
+        if (!temporadaRepository.existsById(temporadaId)) {
+            log.warn("Intento de consultar ranking de temporada inexistente: id={}", temporadaId);
+            throw new RecursoNoEncontradoException("Temporada", temporadaId);
+        }
+
         List<RankingTemporada> ranking = rankingTemporadaRepository
                 .findByTemporadaIdOrderByPuntosAcumuladosDesc(temporadaId)
                 .stream()
