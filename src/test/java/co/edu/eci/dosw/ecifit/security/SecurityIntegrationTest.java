@@ -39,6 +39,12 @@ class SecurityIntegrationTest {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private co.edu.eci.dosw.ecifit.repository.MisionRepository misionRepository;
+
+    @Autowired
+    private co.edu.eci.dosw.ecifit.repository.EstudianteRepository estudianteRepository;
+
     @Test
     @DisplayName("GET /api/v1/test/publico debe retornar 200 OK de forma anónima")
     void debePermitirAccesoARutaPublica() throws Exception {
@@ -216,6 +222,33 @@ class SecurityIntegrationTest {
     }
 
     @Test
+    @DisplayName("POST /api/v1/misiones/semanales con rol ESTUDIANTE debe retornar 403 Forbidden")
+    @WithMockUser(username = "estudiante@mail.escuelaing.edu.co", roles = {"ESTUDIANTE"})
+    void debeRechazarCrearMisionSemanalConRolEstudiante() throws Exception {
+        // Arrange
+        CrearMisionRequestDTO dto = new CrearMisionRequestDTO("EST-1");
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/misiones/semanales")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.mensaje").value("Acceso denegado: permisos insuficientes"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/misiones/{id}/completar con rol ENTRENADOR debe retornar 403 Forbidden")
+    @WithMockUser(username = "entrenador@mail.escuelaing.edu.co", roles = {"ENTRENADOR"})
+    void debeRechazarCompletarMisionConRolEntrenador() throws Exception {
+        // Arrange & Act & Assert
+        mockMvc.perform(post("/api/v1/misiones/M-1/completar"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.mensaje").value("Acceso denegado: permisos insuficientes"));
+    }
+
+    @Test
     @DisplayName("POST /api/v1/clanes/unirse con rol ADMINISTRADOR debe retornar 403 Forbidden")
     @WithMockUser(username = "admin@mail.escuelaing.edu.co", roles = {"ADMINISTRADOR"})
     void debeRechazarUnirseClanConRolAdministrador() throws Exception {
@@ -247,5 +280,63 @@ class SecurityIntegrationTest {
         // Arrange & Act & Assert
         mockMvc.perform(get("/api/v1/clanes"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/misiones/diarias con datos inválidos debe retornar 400 Bad Request")
+    @WithMockUser(username = "entrenador@mail.escuelaing.edu.co", roles = {"ENTRENADOR"})
+    void debeRetornar400AlCrearMisionDiariaConDatosInvalidos() throws Exception {
+        // Arrange
+        String invalidJson = """
+                {
+                  "estudianteId": "EST-1",
+                  "descripcion": "",
+                  "recompensa": -50
+                }
+                """;
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/misiones/diarias")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.mensaje").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/misiones/{id}/completar - primera llamada retorna 200 OK y segunda retorna 422 Unprocessable Entity")
+    @WithMockUser(username = "estudiante@mail.escuelaing.edu.co", roles = {"ESTUDIANTE"})
+    void debeCompletarMisionPrimeraVezYRetornar422EnSegundaVez() throws Exception {
+        // Arrange: Crear estudiante y misión pendiente en BD
+        String estId = "EST-FLOW-1";
+        co.edu.eci.dosw.ecifit.persistence.EstudianteEntity est = co.edu.eci.dosw.ecifit.persistence.EstudianteEntity.builder()
+                .id(estId)
+                .nombre("Atleta Flow")
+                .puntosAcumulados(50)
+                .build();
+        estudianteRepository.save(est);
+
+        String misId = java.util.UUID.randomUUID().toString();
+        co.edu.eci.dosw.ecifit.persistence.MisionEntity mis = new co.edu.eci.dosw.ecifit.persistence.MisionEntity();
+        mis.setId(misId);
+        mis.setEstudianteId(estId);
+        mis.setDescripcion("Misión de integración");
+        mis.setRecompensa(50);
+        mis.setCompletada(false);
+        mis.setTipo("DIARIA");
+        misionRepository.save(mis);
+
+        // Act & Assert 1: Primera llamada -> 200 OK, completada: true
+        mockMvc.perform(post("/api/v1/misiones/{id}/completar", misId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(misId))
+                .andExpect(jsonPath("$.completada").value(true));
+
+        // Act & Assert 2: Segunda llamada consecutiva -> 422 Unprocessable Entity con mensaje exacto
+        mockMvc.perform(post("/api/v1/misiones/{id}/completar", misId))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.status").value(422))
+                .andExpect(jsonPath("$.mensaje").value("La misión ya se encuentra completada previamente"));
     }
 }

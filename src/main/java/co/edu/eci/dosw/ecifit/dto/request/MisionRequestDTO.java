@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
-public record CrearMisionRequestDTO(
+public record MisionRequestDTO(
         @NotBlank(message = "El ID del estudiante es obligatorio")
         @NotNull(message = "El ID del estudiante es obligatorio")
         @JsonAlias({"estudianteId", "idEstudiante", "estudiante_id"})
@@ -28,8 +28,11 @@ public record CrearMisionRequestDTO(
         @Schema(description = "Puntos de recompensa por cumplir la misión", example = "50")
         Integer recompensa
 ) {
-    public CrearMisionRequestDTO(String estudianteId) {
+    public MisionRequestDTO(String estudianteId) {
         this(estudianteId, "Activación ECI Diaria: Completa al menos 30 minutos de actividad física hoy", 50);
     }
+
+    public CrearMisionRequestDTO toCrearMisionRequestDTO() {
+        return new CrearMisionRequestDTO(estudianteId, descripcion, recompensa);
+    }
 }
-  
