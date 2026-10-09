@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,6 +30,7 @@ public class MisionController implements MisionApi {
 
     @Override
     @PostMapping("/diarias")
+    @PreAuthorize("hasAnyRole('ENTRENADOR', 'ADMINISTRADOR')")
     public ResponseEntity<MisionResponseDTO> generarDiaria(@RequestBody @Valid CrearMisionRequestDTO dto) {
         Mision mision = misionService.generarMisionDiaria(dto.estudianteId());
         return ResponseEntity.status(HttpStatus.CREATED).body(misionMapper.toResponse(mision));
@@ -36,6 +38,7 @@ public class MisionController implements MisionApi {
 
     @Override
     @PostMapping("/semanales")
+    @PreAuthorize("hasAnyRole('ENTRENADOR', 'ADMINISTRADOR')")
     public ResponseEntity<MisionResponseDTO> generarSemanal(@RequestBody @Valid CrearMisionRequestDTO dto) {
         Mision mision = misionService.generarMisionSemanal(dto.estudianteId());
         return ResponseEntity.status(HttpStatus.CREATED).body(misionMapper.toResponse(mision));
@@ -43,6 +46,7 @@ public class MisionController implements MisionApi {
 
     @Override
     @GetMapping("/estudiante/{estudianteId}")
+    @PreAuthorize("hasAnyRole('ESTUDIANTE', 'ENTRENADOR', 'ADMINISTRADOR')")
     public ResponseEntity<List<MisionResponseDTO>> obtenerPorEstudiante(@PathVariable String estudianteId) {
         List<MisionResponseDTO> misiones = misionService.obtenerPorEstudiante(estudianteId).stream()
                 .map(misionMapper::toResponse)

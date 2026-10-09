@@ -56,6 +56,23 @@ public class GlobalExceptionHandler {
         return new ErrorResponseDTO(400, "La solicitud tiene un formato inválido", request.getRequestURI());
     }
 
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorResponseDTO handleAccesoDenegado(org.springframework.security.access.AccessDeniedException ex, HttpServletRequest request) {
+        log.warn("Acceso denegado: ruta={}, mensaje={}", request.getRequestURI(), ex.getMessage());
+        return new ErrorResponseDTO(403, "Acceso denegado: permisos insuficientes", request.getRequestURI());
+    }
+
+    @ExceptionHandler({
+            org.springframework.security.authentication.BadCredentialsException.class,
+            org.springframework.security.authentication.InternalAuthenticationServiceException.class
+    })
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ErrorResponseDTO handleCredencialesInvalidas(org.springframework.security.core.AuthenticationException ex, HttpServletRequest request) {
+        log.warn("Credenciales inválidas o fallo de autenticación: ruta={}", request.getRequestURI());
+        return new ErrorResponseDTO(401, "Credenciales inválidas", request.getRequestURI());
+    }
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponseDTO handleGeneral(Exception ex, HttpServletRequest request) {
