@@ -2,9 +2,9 @@
 
 Backend para la plataforma de gamificación y entrenamiento de ECI FIT.
 
-**QA:** <!-- Julián: URL de Swagger en QA -->
-**PROD:** <!-- Julián: URL de Swagger en PROD -->
-**Frontend:** <!-- link al repositorio del frontend -->
+- **QA:** https://ecifit-qa-bxhdd4a0dkc4bma0.canadacentral-01.azurewebsites.net/swagger-ui/index.html
+- **PROD:** https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html
+- **Frontend:** <!-- link al repositorio del frontend -->
 
 ## Índice
 1. [Objetivo](#objetivo)
@@ -238,7 +238,9 @@ Referencia: `.env.example`.
 ## Ejecución de pruebas
 Ejecutar `mvn test`. El reporte de cobertura de JaCoCo se genera en `target/site/jacoco/index.html`.
 
-<!-- captura de mvn test y de la cobertura de JaCoCo -->
+![mvn-test.png](docs/mvn-test.png)
+
+![cobertura-jacoco.png](docs/cobertura-jacoco.png)
 
 ## CI/CD
 - **ci-qa.yml:** push a `main`, ejecuta pruebas, construye la imagen y despliega en QA.
@@ -246,7 +248,11 @@ Ejecutar `mvn test`. El reporte de cobertura de JaCoCo se genera en `target/site
 
 **Secrets configurados:** `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `AZURE_CREDENTIALS`, `JWT_SECRET_QA`, `JWT_SECRET_PROD`, `DB_PASSWORD_QA`, `DB_PASSWORD_PROD`, `AZURE_WEBAPP_NAME_QA`, `AZURE_WEBAPP_NAME_PROD`
 
-<!-- Julián: link a GitHub Actions y captura del pipeline en verde -->
+[Ver ejecuciones en GitHub Actions](https://github.com/ECI-FIT/ecifit-backend/actions)
+
+![Pipeline QA](docs/pipeline-qa.jpeg)
+
+![Pipeline PROD](docs/pipeline-prod.jpeg)
 
 ## Despliegue
 **Imagen Docker:** <!-- Daniel V: link a Docker Hub con tag -->
