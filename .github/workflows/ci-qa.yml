@@ -1,4 +1,3 @@
-```yaml
 name: CI-CD QA
 
 on:
@@ -48,4 +47,3 @@ jobs:
         with:
           app-name: EciFit-qa
           images: cobos1/ecifit-backend:qa
-```
