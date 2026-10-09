@@ -202,20 +202,26 @@ La API usa autenticación stateless con JWT (JJWT 0.12.3). `JwtAuthFilter` valid
 Las credenciales inválidas devuelven 401 y el acceso con un rol sin permisos devuelve 403. Ambos casos se manejan con `CustomAuthenticationEntryPoint`, `CustomAccessDeniedHandler` y `GlobalExceptionHandler`, y responden con `ErrorResponseDTO`.
 
 ### Roles y permisos
-| Módulo | Método | Endpoint                                 | Público | Roles permitidos |
-|---|---|------------------------------------------|---|---|
-| Autenticación | POST | `/api/v1/auth/login`                     | Sí | - |
-| Documentación | GET | `/swagger-ui/**`, `/v3/api-docs/**`      | Sí | - |
-| Estudiantes | POST | `/api/v1/estudiantes`                    | No | ADMINISTRADOR |
-| Estudiantes | GET | `/api/v1/estudiantes/{id}`               | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
-| Actividades | POST | `/api/v1/actividades`                    | No | ESTUDIANTE |
-| Actividades | GET | `/api/v1/agitctividades/estudiante/{id}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
-| Clanes | POST | `/api/v1/clanes`                         | No | ESTUDIANTE, ADMINISTRADOR |
-| Clanes | POST | `/api/v1/clanes/{id}/unirse`             | No | ESTUDIANTE |
-| Misiones | POST | `/api/v1/misiones`                       | No | ENTRENADOR, ADMINISTRADOR |
-| Misiones | GET | `/api/v1/misiones/estudiante/{id}`       | No | ESTUDIANTE |
-| Temporadas | POST | `/api/v1/temporadas`                     | No | ADMINISTRADOR |
-| Temporadas | GET | `/api/v1/temporadas/ranking`             | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Módulo | Método | Endpoint | Público | Roles permitidos |
+|---|---|---|---|---|
+| Autenticación | POST | `/api/v1/auth/login` | Sí | - |
+| Documentación | GET | `/swagger-ui/**`, `/v3/api-docs/**` | Sí | - |
+| Estudiantes | POST | `/api/v1/estudiantes` | No | ADMINISTRADOR |
+| Estudiantes | GET | `/api/v1/estudiantes/{id}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Actividades | POST | `/api/v1/actividades` | No | ESTUDIANTE |
+| Actividades | GET | `/api/v1/actividades/estudiante/{estudianteId}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Clanes | POST | `/api/v1/clanes` | No | ESTUDIANTE, ADMINISTRADOR |
+| Clanes | POST | `/api/v1/clanes/unirse` | No | ESTUDIANTE |
+| Clanes | GET | `/api/v1/clanes` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Clanes | GET | `/api/v1/clanes/{id}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Misiones | POST | `/api/v1/misiones/diarias` | No | ENTRENADOR, ADMINISTRADOR |
+| Misiones | POST | `/api/v1/misiones/semanales` | No | ENTRENADOR, ADMINISTRADOR |
+| Misiones | POST | `/api/v1/misiones/{id}/completar` | No | ESTUDIANTE, ADMINISTRADOR |
+| Misiones | GET | `/api/v1/misiones/estudiante/{estudianteId}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Temporadas | POST | `/api/v1/temporadas` | No | ADMINISTRADOR |
+| Temporadas | GET | `/api/v1/temporadas/{id}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Temporadas | GET | `/api/v1/temporadas/activa` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Temporadas | GET | `/api/v1/temporadas/{temporadaId}/ranking` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
 
 ## Cómo levantar localmente
 **Prerrequisitos:** Java 21, Maven y Docker.
@@ -255,13 +261,15 @@ Ejecutar `mvn test`. El reporte de cobertura de JaCoCo se genera en `target/site
 ![Pipeline PROD](docs/pipeline-prod.jpeg)
 
 ## Despliegue
-**Imagen Docker:** <!-- Daniel V: link a Docker Hub con tag -->
+**Imagen Docker:** https://hub.docker.com/r/cobos1/ecifit-backend
 
 ### Diagrama de despliegue
 ![diagrama-despliegue.jpeg](docs/diagrama-despliegue.jpeg)
 
 ## Integrantes
-| Nombre                             | Rol | Qué implementó                                                                                                                             |
+Los roles cambian en cada sprint. Esta tabla corresponde al Sprint 3.
+
+| Nombre | Rol en el Sprint 3 | Qué implementó en el Sprint 3 |
 |------------------------------------|---|--------------------------------------------------------------------------------------------------------------------------------------------|
 | Sebastián Camilo Granados López    | Líder técnico | Gestión del sprint en Jira, diagrama de flujo de pantallas, integración y verificación de QA y PROD, README del backend.                   |
 | Daniel Jose Villamizar Castellanos | Backend: funcionalidades y Docker | Funcionalidades pendientes, manejo global de excepciones, pruebas, Dockerización, imagen en Docker Hub, diagramas de clases y componentes. |
