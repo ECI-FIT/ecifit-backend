@@ -2,9 +2,9 @@
 
 Backend para la plataforma de gamificación y entrenamiento de ECI FIT.
 
-**QA:** <!-- Julián: URL de Swagger en QA -->
-**PROD:** <!-- Julián: URL de Swagger en PROD -->
-**Frontend:** <!-- link al repositorio del frontend -->
+- **QA:** https://ecifit-qa-bxhdd4a0dkc4bma0.canadacentral-01.azurewebsites.net/swagger-ui/index.html
+- **PROD:** https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html
+- **Frontend:** https://github.com/ECI-FIT/ecifit-frontend.git
 
 ## Índice
 1. [Objetivo](#objetivo)
@@ -202,20 +202,26 @@ La API usa autenticación stateless con JWT (JJWT 0.12.3). `JwtAuthFilter` valid
 Las credenciales inválidas devuelven 401 y el acceso con un rol sin permisos devuelve 403. Ambos casos se manejan con `CustomAuthenticationEntryPoint`, `CustomAccessDeniedHandler` y `GlobalExceptionHandler`, y responden con `ErrorResponseDTO`.
 
 ### Roles y permisos
-| Módulo | Método | Endpoint                                 | Público | Roles permitidos |
-|---|---|------------------------------------------|---|---|
-| Autenticación | POST | `/api/v1/auth/login`                     | Sí | - |
-| Documentación | GET | `/swagger-ui/**`, `/v3/api-docs/**`      | Sí | - |
-| Estudiantes | POST | `/api/v1/estudiantes`                    | No | ADMINISTRADOR |
-| Estudiantes | GET | `/api/v1/estudiantes/{id}`               | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
-| Actividades | POST | `/api/v1/actividades`                    | No | ESTUDIANTE |
-| Actividades | GET | `/api/v1/agitctividades/estudiante/{id}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
-| Clanes | POST | `/api/v1/clanes`                         | No | ESTUDIANTE, ADMINISTRADOR |
-| Clanes | POST | `/api/v1/clanes/{id}/unirse`             | No | ESTUDIANTE |
-| Misiones | POST | `/api/v1/misiones`                       | No | ENTRENADOR, ADMINISTRADOR |
-| Misiones | GET | `/api/v1/misiones/estudiante/{id}`       | No | ESTUDIANTE |
-| Temporadas | POST | `/api/v1/temporadas`                     | No | ADMINISTRADOR |
-| Temporadas | GET | `/api/v1/temporadas/ranking`             | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Módulo | Método | Endpoint | Público | Roles permitidos |
+|---|---|---|---|---|
+| Autenticación | POST | `/api/v1/auth/login` | Sí | - |
+| Documentación | GET | `/swagger-ui/**`, `/v3/api-docs/**` | Sí | - |
+| Estudiantes | POST | `/api/v1/estudiantes` | No | ADMINISTRADOR |
+| Estudiantes | GET | `/api/v1/estudiantes/{id}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Actividades | POST | `/api/v1/actividades` | No | ESTUDIANTE |
+| Actividades | GET | `/api/v1/actividades/estudiante/{estudianteId}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Clanes | POST | `/api/v1/clanes` | No | ESTUDIANTE, ADMINISTRADOR |
+| Clanes | POST | `/api/v1/clanes/unirse` | No | ESTUDIANTE |
+| Clanes | GET | `/api/v1/clanes` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Clanes | GET | `/api/v1/clanes/{id}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Misiones | POST | `/api/v1/misiones/diarias` | No | ENTRENADOR, ADMINISTRADOR |
+| Misiones | POST | `/api/v1/misiones/semanales` | No | ENTRENADOR, ADMINISTRADOR |
+| Misiones | POST | `/api/v1/misiones/{id}/completar` | No | ESTUDIANTE, ADMINISTRADOR |
+| Misiones | GET | `/api/v1/misiones/estudiante/{estudianteId}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Temporadas | POST | `/api/v1/temporadas` | No | ADMINISTRADOR |
+| Temporadas | GET | `/api/v1/temporadas/{id}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Temporadas | GET | `/api/v1/temporadas/activa` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Temporadas | GET | `/api/v1/temporadas/{temporadaId}/ranking` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
 
 ## Cómo levantar localmente
 **Prerrequisitos:** Java 21, Maven y Docker.
@@ -238,7 +244,9 @@ Referencia: `.env.example`.
 ## Ejecución de pruebas
 Ejecutar `mvn test`. El reporte de cobertura de JaCoCo se genera en `target/site/jacoco/index.html`.
 
-<!-- captura de mvn test y de la cobertura de JaCoCo -->
+![mvn-test.png](docs/mvn-test.png)
+
+![cobertura-jacoco.png](docs/cobertura-jacoco.png)
 
 ## CI/CD
 - **ci-qa.yml:** push a `main`, ejecuta pruebas, construye la imagen y despliega en QA.
@@ -246,16 +254,22 @@ Ejecutar `mvn test`. El reporte de cobertura de JaCoCo se genera en `target/site
 
 **Secrets configurados:** `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `AZURE_CREDENTIALS`, `JWT_SECRET_QA`, `JWT_SECRET_PROD`, `DB_PASSWORD_QA`, `DB_PASSWORD_PROD`, `AZURE_WEBAPP_NAME_QA`, `AZURE_WEBAPP_NAME_PROD`
 
-<!-- Julián: link a GitHub Actions y captura del pipeline en verde -->
+[Ver ejecuciones en GitHub Actions](https://github.com/ECI-FIT/ecifit-backend/actions)
+
+![Pipeline QA](docs/pipeline-qa.jpeg)
+
+![Pipeline PROD](docs/pipeline-prod.jpeg)
 
 ## Despliegue
-**Imagen Docker:** <!-- Daniel V: link a Docker Hub con tag -->
+**Imagen Docker:** https://hub.docker.com/r/cobos1/ecifit-backend
 
 ### Diagrama de despliegue
-<!-- Julián: imagen del diagrama hecho en draw.io, Lucidchart o Miro -->
+![diagrama-despliegue.jpeg](docs/diagrama-despliegue.jpeg)
 
 ## Integrantes
-| Nombre                             | Rol | Qué implementó                                                                                                                             |
+Los roles cambian en cada sprint. Esta tabla corresponde al Sprint 3.
+
+| Nombre | Rol en el Sprint 3 | Qué implementó en el Sprint 3 |
 |------------------------------------|---|--------------------------------------------------------------------------------------------------------------------------------------------|
 | Sebastián Camilo Granados López    | Líder técnico | Gestión del sprint en Jira, diagrama de flujo de pantallas, integración y verificación de QA y PROD, README del backend.                   |
 | Daniel Jose Villamizar Castellanos | Backend: funcionalidades y Docker | Funcionalidades pendientes, manejo global de excepciones, pruebas, Dockerización, imagen en Docker Hub, diagramas de clases y componentes. |
