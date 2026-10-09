@@ -191,19 +191,31 @@ Cada fila representa un flujo completo e independiente de una funcionalidad (Act
 - **DB:** Recurso de almacenamiento persistente centralizado donde convergen todos los repositorios.
 
 ## Base de datos
-<!-- Juan David: imagen del ERD -->
+![Diagrama de base de datos](docs/diagrama-bd.jpeg)
 
 ### Decisión de persistencia
-<!-- Juan David: justificación de PostgreSQL -->
+Se usa PostgreSQL por su cumplimiento del estándar ACID, necesario para mantener la consistencia en el cálculo concurrente de puntos de clanes y daño a las torres. Además, garantiza integridad referencial mediante claves foráneas y restricciones de unicidad (por ejemplo, sobre el correo institucional), y sus índices optimizan las consultas de rankings.
 
 ## Seguridad
-<!-- Juan David: autenticación JWT y BCrypt -->
+La API usa autenticación stateless con JWT (JJWT 0.12.3). `JwtAuthFilter` valida el token en cada petición con un secreto definido en la variable de entorno `JWT_SECRET`. Los usuarios se guardan en la tabla `usuarios`, separada del dominio, con contraseñas cifradas con BCrypt.
+
+Las credenciales inválidas devuelven 401 y el acceso con un rol sin permisos devuelve 403. Ambos casos se manejan con `CustomAuthenticationEntryPoint`, `CustomAccessDeniedHandler` y `GlobalExceptionHandler`, y responden con `ErrorResponseDTO`.
 
 ### Roles y permisos
-| Endpoint | Método | Público | Roles permitidos |
-|---|---|---|---|
-| /auth/login | POST | Sí | - |
-|  |  |  |  |
+| Módulo | Método | Endpoint                                 | Público | Roles permitidos |
+|---|---|------------------------------------------|---|---|
+| Autenticación | POST | `/api/v1/auth/login`                     | Sí | - |
+| Documentación | GET | `/swagger-ui/**`, `/v3/api-docs/**`      | Sí | - |
+| Estudiantes | POST | `/api/v1/estudiantes`                    | No | ADMINISTRADOR |
+| Estudiantes | GET | `/api/v1/estudiantes/{id}`               | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Actividades | POST | `/api/v1/actividades`                    | No | ESTUDIANTE |
+| Actividades | GET | `/api/v1/agitctividades/estudiante/{id}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Clanes | POST | `/api/v1/clanes`                         | No | ESTUDIANTE, ADMINISTRADOR |
+| Clanes | POST | `/api/v1/clanes/{id}/unirse`             | No | ESTUDIANTE |
+| Misiones | POST | `/api/v1/misiones`                       | No | ENTRENADOR, ADMINISTRADOR |
+| Misiones | GET | `/api/v1/misiones/estudiante/{id}`       | No | ESTUDIANTE |
+| Temporadas | POST | `/api/v1/temporadas`                     | No | ADMINISTRADOR |
+| Temporadas | GET | `/api/v1/temporadas/ranking`             | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
 
 ## Cómo levantar localmente
 **Prerrequisitos:** Java 21, Maven y Docker.
