@@ -3,10 +3,13 @@ package co.edu.eci.dosw.ecifit.model;
 import co.edu.eci.dosw.ecifit.model.strategy.RolTemporada;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Entidad de dominio que representa a un estudiante de la Escuela Colombiana de Ingeniería en ECI FIT.
@@ -25,12 +28,11 @@ public class Estudiante {
     private RolTemporada rolActivo;
     private final List<Actividad> actividadesRealizadas;
     private String clanId;
-    private boolean bonoRachaSieteDiasOtorgado;
+    private LocalDate fechaUltimoBonoRacha;
 
     public Estudiante() {
         this.puntosAcumulados = 0;
         this.actividadesRealizadas = new ArrayList<>();
-        this.bonoRachaSieteDiasOtorgado = false;
     }
 
     public Estudiante(String id, String nombre, String correoInstitucional, RolTemporada rolActivo) {
@@ -40,7 +42,6 @@ public class Estudiante {
         this.puntosAcumulados = 0;
         this.rolActivo = rolActivo;
         this.actividadesRealizadas = new ArrayList<>();
-        this.bonoRachaSieteDiasOtorgado = false;
     }
 
     public Estudiante(String id, String nombre, String correoInstitucional, Integer puntosAcumulados,
@@ -52,7 +53,6 @@ public class Estudiante {
         this.rolActivo = rolActivo;
         this.clanId = clanId;
         this.actividadesRealizadas = new ArrayList<>();
-        this.bonoRachaSieteDiasOtorgado = false;
     }
 
     /**
@@ -75,46 +75,53 @@ public class Estudiante {
 
         this.puntosAcumulados = (this.puntosAcumulados != null ? this.puntosAcumulados : 0) + puntosGenerados;
         this.actividadesRealizadas.add(a);
-
-        if (!bonoRachaSieteDiasOtorgado && tieneRachaDeSieteDiasConsecutivos()) {
-            this.puntosAcumulados += BONO_RACHA_SIETE_DIAS;
-            this.bonoRachaSieteDiasOtorgado = true;
-        }
+        evaluarRacha(actividadesRealizadas);
 
         // Notifica a los observadores suscritos a la actividad
         a.notificarObservadores(puntosGenerados, this);
     }
 
     /**
-     * Determina si el historial actual contiene actividad puntuable durante
-     * siete días calendario consecutivos, tomando como referencia la actividad
-     * más reciente registrada.
+     * Otorga la bonificación una vez por cada periodo superior a siete días
+     * cuando el historial contiene actividad en siete días calendario consecutivos.
      *
-     * @return true si existen actividades en los siete días consecutivos
-     *         terminando en la fecha de la actividad más reciente.
+     * @param historial actividades recientes del estudiante
+     * @return true si se otorgó la bonificación
      */
-    private boolean tieneRachaDeSieteDiasConsecutivos() {
-        if (actividadesRealizadas.size() < DIAS_RACHA_BONO) {
+    public boolean evaluarRacha(List<Actividad> historial) {
+        if (historial == null || historial.size() < DIAS_RACHA_BONO) {
             return false;
         }
 
-        LocalDate fechaReferencia = actividadesRealizadas.get(actividadesRealizadas.size() - 1)
-                .getFecha()
-                .toLocalDate();
+        LocalDate hoy = LocalDate.now();
+        if (fechaUltimoBonoRacha != null
+                && ChronoUnit.DAYS.between(fechaUltimoBonoRacha, hoy) <= DIAS_RACHA_BONO) {
+            return false;
+        }
 
-        for (int i = 0; i < DIAS_RACHA_BONO; i++) {
-            LocalDate fechaEsperada = fechaReferencia.minusDays(i);
-
-            boolean existeActividad = actividadesRealizadas.stream()
-                    .anyMatch(actividad ->
-                            actividad.getFecha() != null
-                                    && actividad.getFecha().toLocalDate().equals(fechaEsperada));
-
-            if (!existeActividad) {
-                return false;
+        Set<LocalDate> fechasConActividad = new HashSet<>();
+        for (Actividad actividad : historial) {
+            if (actividad != null && actividad.getFecha() != null) {
+                fechasConActividad.add(actividad.getFecha().toLocalDate());
             }
         }
 
+        boolean tieneSieteDiasConsecutivos = fechasConActividad.stream().anyMatch(fechaReferencia -> {
+            for (int i = 1; i < DIAS_RACHA_BONO; i++) {
+                if (!fechasConActividad.contains(fechaReferencia.minusDays(i))) {
+                    return false;
+                }
+            }
+            return true;
+        });
+
+        if (!tieneSieteDiasConsecutivos) {
+            return false;
+        }
+
+        this.puntosAcumulados = (this.puntosAcumulados != null ? this.puntosAcumulados : 0)
+                + BONO_RACHA_SIETE_DIAS;
+        this.fechaUltimoBonoRacha = hoy;
         return true;
     }
 
@@ -168,6 +175,14 @@ public class Estudiante {
 
     public void setClanId(String clanId) {
         this.clanId = clanId;
+    }
+
+    public LocalDate getFechaUltimoBonoRacha() {
+        return fechaUltimoBonoRacha;
+    }
+
+    public void setFechaUltimoBonoRacha(LocalDate fechaUltimoBonoRacha) {
+        this.fechaUltimoBonoRacha = fechaUltimoBonoRacha;
     }
 
     @Override

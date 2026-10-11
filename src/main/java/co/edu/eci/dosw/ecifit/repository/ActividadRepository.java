@@ -4,10 +4,14 @@ import co.edu.eci.dosw.ecifit.persistence.ActividadEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
 public interface ActividadRepository extends JpaRepository<ActividadEntity, String> {
 
     List<ActividadEntity> findByEstudianteIdOrderByFechaDesc(String estudianteId);
+
+    List<ActividadEntity> findByEstudianteIdAndFechaAfterOrderByFechaDesc(
+            String estudianteId, LocalDateTime fechaInicio);
 }
