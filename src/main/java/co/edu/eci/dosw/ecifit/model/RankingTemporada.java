@@ -34,6 +34,15 @@ public class RankingTemporada {
         actualizarLiga();
     }
 
+    public void reducirPuntos(int puntos) {
+        if (puntos < 0) {
+            throw new ReglaDeNegocioException("Los puntos a reducir no pueden ser negativos");
+        }
+        int puntosActuales = this.puntosAcumulados != null ? this.puntosAcumulados : 0;
+        this.puntosAcumulados = Math.max(0, puntosActuales - puntos);
+        actualizarLiga();
+    }
+
     public void actualizarLiga() {
         int puntos = this.puntosAcumulados != null ? this.puntosAcumulados : 0;
         if (puntos >= 4000) {

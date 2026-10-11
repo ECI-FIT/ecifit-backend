@@ -13,5 +13,7 @@ public interface RankingTemporadaRepository extends JpaRepository<RankingTempora
 
     Optional<RankingTemporadaEntity> findByEstudianteIdAndTemporadaId(UUID estudianteId, UUID temporadaId);
 
+    List<RankingTemporadaEntity> findByTemporadaId(UUID temporadaId);
+
     List<RankingTemporadaEntity> findByTemporadaIdOrderByPuntosAcumuladosDesc(UUID temporadaId);
 }
