@@ -4,8 +4,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("Pruebas de racha de actividad - RF-20 y RF-21")
 class RachaActividadTest {
@@ -129,5 +131,24 @@ class RachaActividadTest {
          * Por lo tanto no debe existir bono.
          */
         assertEquals(40, estudiante.getPuntosAcumulados());
+    }
+
+    @Test
+    @DisplayName("Debe permitir un nuevo bono solo después de más de siete días")
+    void debeRespetarElPeriodoEntreBonos() {
+        Estudiante estudiante = new Estudiante("E4", "Ana Perez", "ana@escuelaing.edu.co", null);
+        estudiante.setFechaUltimoBonoRacha(LocalDate.now().minusDays(8));
+
+        LocalDateTime inicio = LocalDateTime.now().minusDays(6);
+        List<Actividad> historial = java.util.stream.IntStream.range(0, 7)
+                .mapToObj(dia -> new Actividad("A-" + dia, "Cardio", 10, 1, inicio.plusDays(dia)))
+                .toList();
+
+        assertTrue(estudiante.evaluarRacha(historial));
+        assertEquals(200, estudiante.getPuntosAcumulados());
+        assertEquals(LocalDate.now(), estudiante.getFechaUltimoBonoRacha());
+
+        assertFalse(estudiante.evaluarRacha(historial));
+        assertEquals(200, estudiante.getPuntosAcumulados());
     }
 }

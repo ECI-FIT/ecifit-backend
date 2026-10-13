@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -89,6 +90,62 @@ class ActividadServiceImplTest {
         verify(estudianteRepository).findById(estudianteId);
         verify(actividadValidator).validar(actividad);
         verify(actividadRepository).save(actividadEntity);
+        verify(estudianteRepository).save(estudianteEntity);
+    }
+
+    @Test
+    @DisplayName("Debe consultar el histórico y persistir el bono por racha de siete días")
+    void debeOtorgarYPersistirBonoDeRachaAlRegistrarActividad() {
+        String estudianteId = "EST-7";
+        LocalDateTime hoy = LocalDateTime.now();
+        Actividad actividad = new Actividad("ACT-7", "CARDIO", 10, 1, hoy);
+        EstudianteEntity estudianteEntity = EstudianteEntity.builder()
+                .id(estudianteId)
+                .puntosAcumulados(100)
+                .build();
+        Estudiante estudiante = new Estudiante(estudianteId, "Ana Perez", "ana@escuelaing.edu.co", 100, null, null);
+        ActividadEntity actividadEntity = ActividadEntity.builder()
+                .id("ACT-7")
+                .tipo("CARDIO")
+                .duracionMinutos(10)
+                .intensidad(1)
+                .fecha(hoy)
+                .estudianteId(estudianteId)
+                .puntosOtorgados(10)
+                .build();
+
+        List<ActividadEntity> historialEntities = java.util.stream.IntStream.range(0, 7)
+                .mapToObj(dia -> ActividadEntity.builder()
+                        .id("HIST-" + dia)
+                        .tipo("CARDIO")
+                        .duracionMinutos(10)
+                        .intensidad(1)
+                        .fecha(hoy.minusDays(dia))
+                        .estudianteId(estudianteId)
+                        .build())
+                .toList();
+        List<Actividad> historial = historialEntities.stream()
+                .map(entity -> new Actividad(entity.getId(), entity.getTipo(), entity.getDuracionMinutos(),
+                        entity.getIntensidad(), entity.getFecha()))
+                .toList();
+
+        when(estudianteRepository.findById(estudianteId)).thenReturn(Optional.of(estudianteEntity));
+        doNothing().when(actividadValidator).validar(actividad);
+        when(estudianteEntityMapper.toDomain(estudianteEntity)).thenReturn(estudiante);
+        when(actividadEntityMapper.toEntity(eq(actividad), eq(estudianteId), eq(10))).thenReturn(actividadEntity);
+        when(actividadRepository.findByEstudianteIdAndFechaAfterOrderByFechaDesc(
+                eq(estudianteId), any(LocalDateTime.class))).thenReturn(historialEntities);
+        for (int i = 0; i < historialEntities.size(); i++) {
+            when(actividadEntityMapper.toDomain(historialEntities.get(i))).thenReturn(historial.get(i));
+        }
+
+        Actividad resultado = actividadService.registrarActividad(actividad, estudianteId);
+
+        assertSame(actividad, resultado);
+        assertEquals(310, estudianteEntity.getPuntosAcumulados());
+        assertEquals(LocalDate.now(), estudianteEntity.getFechaUltimoBonoRacha());
+        verify(actividadRepository).findByEstudianteIdAndFechaAfterOrderByFechaDesc(
+                eq(estudianteId), any(LocalDateTime.class));
         verify(estudianteRepository).save(estudianteEntity);
     }
 

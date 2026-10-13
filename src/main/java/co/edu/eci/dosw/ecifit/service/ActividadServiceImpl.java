@@ -15,7 +15,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -37,14 +39,30 @@ public class ActividadServiceImpl implements IActividadService {
         actividadValidator.validar(actividad);
 
         Estudiante estudiante = estudianteEntityMapper.toDomain(estudianteEntity);
+        var fechaUltimoBonoAntesDelRegistro = estudiante.getFechaUltimoBonoRacha();
         int puntosGenerados = calcularPuntosSegunRol(estudiante, actividad);
 
         ActividadEntity actividadEntity = actividadEntityMapper.toEntity(actividad, estudianteId, puntosGenerados);
         actividadRepository.save(actividadEntity);
 
+        LocalDateTime fechaInicio = LocalDateTime.now().minusDays(7);
+        List<Actividad> historialReciente = actividadRepository
+                .findByEstudianteIdAndFechaAfterOrderByFechaDesc(estudianteId, fechaInicio)
+                .stream()
+                .map(actividadEntityMapper::toDomain)
+                .toList();
+        estudiante.evaluarRacha(historialReciente);
+
+        boolean bonoOtorgado = !Objects.equals(
+                fechaUltimoBonoAntesDelRegistro, estudiante.getFechaUltimoBonoRacha());
         estudianteEntity.setPuntosAcumulados(estudiante.getPuntosAcumulados());
+        estudianteEntity.setFechaUltimoBonoRacha(estudiante.getFechaUltimoBonoRacha());
         estudianteRepository.save(estudianteEntity);
 
+        if (bonoOtorgado) {
+            log.info("Bono de racha de 7 días otorgado al estudiante ID: {}. Puntos concedidos: 200",
+                    estudianteId);
+        }
         log.info("Actividad física registrada exitosamente para estudiante ID: {}. Puntos concedidos: {}", estudianteId, puntosGenerados);
         return actividad;
     }

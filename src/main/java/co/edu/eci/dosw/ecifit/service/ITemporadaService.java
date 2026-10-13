@@ -15,4 +15,6 @@ public interface ITemporadaService {
     Temporada obtenerActiva();
 
     List<RankingTemporada> obtenerRankingGeneral(UUID temporadaId);
+
+    void recalcularLigasSemanal();
 }

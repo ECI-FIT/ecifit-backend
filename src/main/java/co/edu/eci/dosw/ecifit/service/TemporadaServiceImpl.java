@@ -83,4 +83,29 @@ public class TemporadaServiceImpl implements ITemporadaService {
         log.info("Ranking general obtenido para temporada {}: {} registros", temporadaId, ranking.size());
         return ranking;
     }
+
+    @Override
+    public void recalcularLigasSemanal() {
+        TemporadaEntity temporadaActiva = temporadaRepository.findByEstadoActivoTrue()
+                .orElse(null);
+        if (temporadaActiva == null) {
+            log.warn("No se ejecutó el recálculo semanal: no existe una temporada activa");
+            return;
+        }
+
+        List<RankingTemporada> rankings = rankingTemporadaRepository
+                .findByTemporadaId(temporadaActiva.getId())
+                .stream()
+                .map(rankingTemporadaEntityMapper::toDomain)
+                .toList();
+
+        rankings.forEach(ranking -> ranking.reducirPuntos(50));
+
+        rankingTemporadaRepository.saveAll(rankings.stream()
+                .map(rankingTemporadaEntityMapper::toEntity)
+                .toList());
+
+        log.info("Recálculo semanal completado para temporada {}: {} rankings procesados",
+                temporadaActiva.getId(), rankings.size());
+    }
 }
