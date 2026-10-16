@@ -12,6 +12,7 @@ import co.edu.eci.dosw.ecifit.validator.ITemporadaValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -28,6 +29,7 @@ public class TemporadaServiceImpl implements ITemporadaService {
     private final ITemporadaValidator temporadaValidator;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Temporada crear(Temporada temporada) {
         if (temporada.getEstadoActivo() == null) {
             temporada.setEstadoActivo(true);
@@ -85,6 +87,7 @@ public class TemporadaServiceImpl implements ITemporadaService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void recalcularLigasSemanal() {
         TemporadaEntity temporadaActiva = temporadaRepository.findByEstadoActivoTrue()
                 .orElse(null);

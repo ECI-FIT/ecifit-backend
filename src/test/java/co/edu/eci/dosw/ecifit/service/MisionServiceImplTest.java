@@ -42,8 +42,6 @@ class MisionServiceImplTest {
     @Mock
     private MisionEntityMapper entityMapper;
     @Mock
-    private co.edu.eci.dosw.ecifit.mapper.MisionMapper misionMapper;
-    @Mock
     private IMisionValidator validator;
     @Mock
     private FabricaMisiones fabricaMisiones;
@@ -226,20 +224,16 @@ class MisionServiceImplTest {
         misionDominio.setEstudianteId(estudianteId);
         misionDominio.setCompletada(false);
 
-        co.edu.eci.dosw.ecifit.dto.response.MisionResponseDTO expectedResponse =
-                new co.edu.eci.dosw.ecifit.dto.response.MisionResponseDTO(misionId, "Meta 30 min", recompensa, true, estudianteId);
-
         when(misionRepository.findById(misionId)).thenReturn(Optional.of(misionEntity));
         when(entityMapper.toDomain(misionEntity)).thenReturn(misionDominio);
         when(estudianteRepository.findById(estudianteId)).thenReturn(Optional.of(estudianteEntity));
-        when(misionMapper.toResponse(misionDominio)).thenReturn(expectedResponse);
 
         // Act
-        co.edu.eci.dosw.ecifit.dto.response.MisionResponseDTO response = service.completarMision(misionId);
+        Mision response = service.completarMision(misionId);
 
         // Assert
         assertNotNull(response);
-        assertTrue(response.completada());
+        assertTrue(response.getCompletada());
         assertEquals(150, estudianteEntity.getPuntosAcumulados());
         assertTrue(misionEntity.isCompletada());
         verify(misionRepository, times(1)).save(misionEntity);
@@ -306,11 +300,9 @@ class MisionServiceImplTest {
     }
 
     @Test
-    @DisplayName("generarMisionDiaria - con CrearMisionRequestDTO personalizado persiste datos del payload")
+    @DisplayName("generarMisionDiaria - con descripción y recompensa personalizadas persiste esos datos")
     void generarMisionDiaria_conPayloadPersonalizado_persisteDatosPersonalizados() {
         // Arrange
-        co.edu.eci.dosw.ecifit.dto.request.CrearMisionRequestDTO dto =
-                new co.edu.eci.dosw.ecifit.dto.request.CrearMisionRequestDTO("E1", "Correr 5k", 80);
         Mision misionCreada = new MisionDiaria("M-CUSTOM", "Default", 50, 30);
         MisionEntity entidad = new MisionEntity();
         entidad.setId("M-CUSTOM");
@@ -327,7 +319,7 @@ class MisionServiceImplTest {
         when(entityMapper.toDomain(entidad)).thenReturn(misionGuardada);
 
         // Act
-        Mision resultado = service.generarMisionDiaria(dto);
+        Mision resultado = service.generarMisionDiaria("E1", "Correr 5k", 80);
 
         // Assert
         assertNotNull(resultado);

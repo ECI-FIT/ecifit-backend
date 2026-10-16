@@ -32,7 +32,7 @@ public class MisionController implements MisionApi {
     @PostMapping("/diarias")
     @PreAuthorize("hasAnyRole('ENTRENADOR', 'ADMINISTRADOR')")
     public ResponseEntity<MisionResponseDTO> generarDiaria(@RequestBody @Valid CrearMisionRequestDTO dto) {
-        Mision mision = misionService.generarMisionDiaria(dto);
+        Mision mision = misionService.generarMisionDiaria(dto.estudianteId(), dto.descripcion(), dto.recompensa());
         return ResponseEntity.status(HttpStatus.CREATED).body(misionMapper.toResponse(mision));
     }
 
@@ -40,7 +40,7 @@ public class MisionController implements MisionApi {
     @PostMapping("/semanales")
     @PreAuthorize("hasAnyRole('ENTRENADOR', 'ADMINISTRADOR')")
     public ResponseEntity<MisionResponseDTO> generarSemanal(@RequestBody @Valid CrearMisionRequestDTO dto) {
-        Mision mision = misionService.generarMisionSemanal(dto);
+        Mision mision = misionService.generarMisionSemanal(dto.estudianteId(), dto.descripcion(), dto.recompensa());
         return ResponseEntity.status(HttpStatus.CREATED).body(misionMapper.toResponse(mision));
     }
 
@@ -58,7 +58,6 @@ public class MisionController implements MisionApi {
     @PostMapping("/{id}/completar")
     @PreAuthorize("hasAnyRole('ESTUDIANTE', 'ADMINISTRADOR')")
     public ResponseEntity<MisionResponseDTO> completar(@PathVariable String id) {
-        MisionResponseDTO response = misionService.completarMision(id);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(misionMapper.toResponse(misionService.completarMision(id)));
     }
 }
