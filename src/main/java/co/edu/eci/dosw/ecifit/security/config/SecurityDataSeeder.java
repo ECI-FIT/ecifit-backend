@@ -36,10 +36,18 @@ public class SecurityDataSeeder implements CommandLineRunner {
                     .activo(true)
                     .build();
 
+            UsuarioEntity entrenador = UsuarioEntity.builder()
+                    .email("entrenador@mail.escuelaing.edu.co")
+                    .password(passwordEncoder.encode("Entrenador123*"))
+                    .rol(Rol.ENTRENADOR)
+                    .activo(true)
+                    .build();
+
             usuarioRepository.save(admin);
             usuarioRepository.save(estudiante);
+            usuarioRepository.save(entrenador);
 
-            log.info("Usuarios de prueba creados exitosamente: admin y estudiante");
+            log.info("Usuarios de prueba creados exitosamente: admin, estudiante y entrenador");
         }
     }
 }
