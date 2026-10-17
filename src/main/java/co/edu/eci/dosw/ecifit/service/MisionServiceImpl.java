@@ -1,12 +1,9 @@
 package co.edu.eci.dosw.ecifit.service;
 
-import co.edu.eci.dosw.ecifit.dto.request.CrearMisionRequestDTO;
-import co.edu.eci.dosw.ecifit.dto.response.MisionResponseDTO;
 import co.edu.eci.dosw.ecifit.exception.EstadoInvalidoException;
 import co.edu.eci.dosw.ecifit.exception.RecursoNoEncontradoException;
 import co.edu.eci.dosw.ecifit.exception.ReglaDeNegocioException;
 import co.edu.eci.dosw.ecifit.mapper.MisionEntityMapper;
-import co.edu.eci.dosw.ecifit.mapper.MisionMapper;
 import co.edu.eci.dosw.ecifit.model.Actividad;
 import co.edu.eci.dosw.ecifit.model.factory.FabricaMisiones;
 import co.edu.eci.dosw.ecifit.model.factory.Mision;
@@ -31,38 +28,17 @@ public class MisionServiceImpl implements IMisionService {
     private final MisionRepository misionRepository;
     private final EstudianteRepository estudianteRepository;
     private final MisionEntityMapper entityMapper;
-    private final MisionMapper misionMapper;
     private final IMisionValidator validator;
     private final FabricaMisiones fabricaMisiones;
 
     @Override
     @Transactional
-    public Mision generarMisionDiaria(CrearMisionRequestDTO dto) {
-        log.info("Generando misión diaria para estudiante={}", dto.estudianteId());
-        validator.validarLimiteMisionesActivas(dto.estudianteId());
-
-        Mision mision = fabricaMisiones.crearMisionDiaria();
-        mision.setEstudianteId(dto.estudianteId());
-        if (dto.descripcion() != null && !dto.descripcion().isBlank()) {
-            mision.setDescripcion(dto.descripcion());
-        }
-        if (dto.recompensa() != null) {
-            mision.setRecompensa(dto.recompensa());
-        }
-
-        MisionEntity guardada = misionRepository.save(entityMapper.toEntity(mision));
-        log.info("Misión diaria generada: id={}, estudianteId={}", guardada.getId(), dto.estudianteId());
-        return entityMapper.toDomain(guardada);
-    }
-
-    @Override
-    @Transactional
-    public Mision generarMisionDiaria(String estudianteId) {
+    public Mision generarMisionDiaria(String estudianteId, String descripcion, Integer recompensa) {
         log.info("Generando misión diaria para estudiante={}", estudianteId);
         validator.validarLimiteMisionesActivas(estudianteId);
 
         Mision mision = fabricaMisiones.crearMisionDiaria();
-        mision.setEstudianteId(estudianteId);
+        personalizar(mision, estudianteId, descripcion, recompensa);
 
         MisionEntity guardada = misionRepository.save(entityMapper.toEntity(mision));
         log.info("Misión diaria generada: id={}, estudianteId={}", guardada.getId(), estudianteId);
@@ -71,38 +47,39 @@ public class MisionServiceImpl implements IMisionService {
 
     @Override
     @Transactional
-    public Mision generarMisionSemanal(CrearMisionRequestDTO dto) {
-        log.info("Generando misión semanal para estudiante={}", dto.estudianteId());
-        validarEstudianteExiste(dto.estudianteId());
-        validator.validarLimiteMisionesActivas(dto.estudianteId());
+    public Mision generarMisionDiaria(String estudianteId) {
+        return generarMisionDiaria(estudianteId, null, null);
+    }
+
+    @Override
+    @Transactional
+    public Mision generarMisionSemanal(String estudianteId, String descripcion, Integer recompensa) {
+        log.info("Generando misión semanal para estudiante={}", estudianteId);
+        validarEstudianteExiste(estudianteId);
+        validator.validarLimiteMisionesActivas(estudianteId);
 
         Mision mision = fabricaMisiones.crearMisionSemanal();
-        mision.setEstudianteId(dto.estudianteId());
-        if (dto.descripcion() != null && !dto.descripcion().isBlank()) {
-            mision.setDescripcion(dto.descripcion());
-        }
-        if (dto.recompensa() != null) {
-            mision.setRecompensa(dto.recompensa());
-        }
+        personalizar(mision, estudianteId, descripcion, recompensa);
 
         MisionEntity guardada = misionRepository.save(entityMapper.toEntity(mision));
-        log.info("Misión semanal generada: id={}, estudianteId={}", guardada.getId(), dto.estudianteId());
+        log.info("Misión semanal generada: id={}, estudianteId={}", guardada.getId(), estudianteId);
         return entityMapper.toDomain(guardada);
     }
 
     @Override
     @Transactional
     public Mision generarMisionSemanal(String estudianteId) {
-        log.info("Generando misión semanal para estudiante={}", estudianteId);
-        validarEstudianteExiste(estudianteId);
-        validator.validarLimiteMisionesActivas(estudianteId);
+        return generarMisionSemanal(estudianteId, null, null);
+    }
 
-        Mision mision = fabricaMisiones.crearMisionSemanal();
+    private void personalizar(Mision mision, String estudianteId, String descripcion, Integer recompensa) {
         mision.setEstudianteId(estudianteId);
-
-        MisionEntity guardada = misionRepository.save(entityMapper.toEntity(mision));
-        log.info("Misión semanal generada: id={}, estudianteId={}", guardada.getId(), estudianteId);
-        return entityMapper.toDomain(guardada);
+        if (descripcion != null && !descripcion.isBlank()) {
+            mision.setDescripcion(descripcion);
+        }
+        if (recompensa != null) {
+            mision.setRecompensa(recompensa);
+        }
     }
 
     private EstudianteEntity validarEstudianteExiste(String estudianteId) {
@@ -143,7 +120,7 @@ public class MisionServiceImpl implements IMisionService {
 
     @Override
     @Transactional
-    public MisionResponseDTO completarMision(UUID id) {
+    public Mision completarMision(UUID id) {
         if (id == null) {
             throw new RecursoNoEncontradoException("Mision", null);
         }
@@ -152,7 +129,7 @@ public class MisionServiceImpl implements IMisionService {
 
     @Override
     @Transactional
-    public MisionResponseDTO completarMision(String id) {
+    public Mision completarMision(String id) {
         log.info("Procesando solicitud para completar misión id={}", id);
 
         MisionEntity misionEntity = misionRepository.findById(id)
@@ -198,6 +175,6 @@ public class MisionServiceImpl implements IMisionService {
                     recompensa, estudianteId, estudianteEntity.getPuntosAcumulados());
         }
 
-        return misionMapper.toResponse(mision);
+        return mision;
     }
 }

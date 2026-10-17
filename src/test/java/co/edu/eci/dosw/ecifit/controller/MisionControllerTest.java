@@ -20,7 +20,6 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -102,7 +101,7 @@ class MisionControllerTest {
                 "M-1", "Completar 30 minutos de trote", 50, false, "EST-1"
         );
 
-        when(misionService.generarMisionDiaria(any(CrearMisionRequestDTO.class))).thenReturn(mision);
+        when(misionService.generarMisionDiaria("EST-1", "Completar 30 minutos de trote", 50)).thenReturn(mision);
         when(misionMapper.toResponse(mision)).thenReturn(responseDTO);
 
         // Act & Assert
@@ -121,11 +120,15 @@ class MisionControllerTest {
     void debeCompletarMisionExitosamenteYRetornar200() throws Exception {
         // Arrange
         String misionId = "M-100";
+        Mision mision = new MisionDiaria(misionId, "Meta 30 min", 50, 30);
+        mision.setEstudianteId("EST-1");
+        mision.setCompletada(true);
         MisionResponseDTO responseDTO = new MisionResponseDTO(
                 misionId, "Meta 30 min", 50, true, "EST-1"
         );
 
-        when(misionService.completarMision(misionId)).thenReturn(responseDTO);
+        when(misionService.completarMision(misionId)).thenReturn(mision);
+        when(misionMapper.toResponse(mision)).thenReturn(responseDTO);
 
         // Act & Assert
         mockMvc.perform(post("/api/v1/misiones/{id}/completar", misionId))

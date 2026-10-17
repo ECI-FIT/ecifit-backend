@@ -8,6 +8,7 @@ import co.edu.eci.dosw.ecifit.mapper.TemporadaEntityMapper;
 import co.edu.eci.dosw.ecifit.model.RankingTemporada;
 import co.edu.eci.dosw.ecifit.model.Temporada;
 import co.edu.eci.dosw.ecifit.persistence.RankingTemporadaEntity;
+import co.edu.eci.dosw.ecifit.persistence.TemporadaEntity;
 import co.edu.eci.dosw.ecifit.repository.RankingTemporadaRepository;
 import co.edu.eci.dosw.ecifit.repository.TemporadaRepository;
 import co.edu.eci.dosw.ecifit.validator.ITemporadaValidator;
@@ -30,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -141,5 +143,112 @@ class TemporadaServiceImplTest {
 
         // Act & Assert
         assertThrows(RecursoNoEncontradoException.class, () -> service.obtenerActiva());
+    }
+
+    @Test
+    @DisplayName("crear - datos válidos guarda y devuelve la temporada")
+    void crear_datosValidos_guardaYRetornaTemporada() {
+        // Arrange
+        LocalDate inicio = LocalDate.of(2026, 8, 1);
+        LocalDate fin = LocalDate.of(2026, 12, 1);
+        Temporada temporada = new Temporada(null, "2026-2", inicio, fin, null);
+        TemporadaEntity entity = new TemporadaEntity();
+        Temporada guardada = new Temporada(temporadaId, "2026-2", inicio, fin, true);
+
+        when(temporadaEntityMapper.toEntity(temporada)).thenReturn(entity);
+        when(temporadaRepository.save(entity)).thenReturn(entity);
+        when(temporadaEntityMapper.toDomain(entity)).thenReturn(guardada);
+
+        // Act
+        Temporada resultado = service.crear(temporada);
+
+        // Assert
+        assertEquals(temporadaId, resultado.getId());
+        assertTrue(temporada.getEstadoActivo());
+        verify(temporadaValidator).validarFechas(inicio, fin);
+        verify(temporadaValidator).validarTemporadaUnicaActiva(true);
+        verify(temporadaRepository).save(entity);
+    }
+
+    @Test
+    @DisplayName("obtenerPorId - temporada existente la devuelve")
+    void obtenerPorId_temporadaExistente_retornaTemporada() {
+        // Arrange
+        TemporadaEntity entity = new TemporadaEntity();
+        Temporada temporada = new Temporada(temporadaId, "2026-2", LocalDate.of(2026, 8, 1), LocalDate.of(2026, 12, 1), true);
+        when(temporadaRepository.findById(temporadaId)).thenReturn(Optional.of(entity));
+        when(temporadaEntityMapper.toDomain(entity)).thenReturn(temporada);
+
+        // Act
+        Temporada resultado = service.obtenerPorId(temporadaId);
+
+        // Assert
+        assertEquals(temporadaId, resultado.getId());
+        assertEquals("2026-2", resultado.getNombre());
+    }
+
+    @Test
+    @DisplayName("obtenerPorId - temporada inexistente lanza RecursoNoEncontradoException (404)")
+    void obtenerPorId_temporadaInexistente_lanzaExcepcion() {
+        // Arrange
+        when(temporadaRepository.findById(temporadaId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(RecursoNoEncontradoException.class, () -> service.obtenerPorId(temporadaId));
+    }
+
+    @Test
+    @DisplayName("obtenerActiva - existe temporada activa y la devuelve")
+    void obtenerActiva_conTemporadaActiva_retornaTemporada() {
+        // Arrange
+        TemporadaEntity entity = new TemporadaEntity();
+        entity.setId(temporadaId);
+        Temporada temporada = new Temporada(temporadaId, "2026-2", LocalDate.of(2026, 8, 1), LocalDate.of(2026, 12, 1), true);
+        when(temporadaRepository.findByEstadoActivoTrue()).thenReturn(Optional.of(entity));
+        when(temporadaEntityMapper.toDomain(entity)).thenReturn(temporada);
+
+        // Act
+        Temporada resultado = service.obtenerActiva();
+
+        // Assert
+        assertEquals(temporadaId, resultado.getId());
+        assertTrue(resultado.getEstadoActivo());
+    }
+
+    @Test
+    @DisplayName("recalcularLigasSemanal - con temporada activa reduce 50 puntos a cada ranking y guarda")
+    void recalcularLigasSemanal_conTemporadaActiva_reducePuntosYGuarda() {
+        // Arrange
+        TemporadaEntity activa = new TemporadaEntity();
+        activa.setId(temporadaId);
+        RankingTemporadaEntity rankingEntity = new RankingTemporadaEntity();
+        RankingTemporada ranking = new RankingTemporada();
+        ranking.setPuntosAcumulados(200);
+
+        when(temporadaRepository.findByEstadoActivoTrue()).thenReturn(Optional.of(activa));
+        when(rankingTemporadaRepository.findByTemporadaId(temporadaId)).thenReturn(List.of(rankingEntity));
+        when(rankingTemporadaEntityMapper.toDomain(rankingEntity)).thenReturn(ranking);
+        when(rankingTemporadaEntityMapper.toEntity(ranking)).thenReturn(rankingEntity);
+
+        // Act
+        service.recalcularLigasSemanal();
+
+        // Assert
+        assertEquals(150, ranking.getPuntosAcumulados());
+        verify(rankingTemporadaRepository, times(1)).saveAll(List.of(rankingEntity));
+    }
+
+    @Test
+    @DisplayName("recalcularLigasSemanal - sin temporada activa no procesa rankings")
+    void recalcularLigasSemanal_sinTemporadaActiva_noHaceNada() {
+        // Arrange
+        when(temporadaRepository.findByEstadoActivoTrue()).thenReturn(Optional.empty());
+
+        // Act
+        service.recalcularLigasSemanal();
+
+        // Assert
+        verify(rankingTemporadaRepository, never()).findByTemporadaId(any());
+        verify(rankingTemporadaRepository, never()).saveAll(any());
     }
 }
