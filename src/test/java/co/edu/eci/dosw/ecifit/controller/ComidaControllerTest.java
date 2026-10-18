@@ -3,6 +3,7 @@ package co.edu.eci.dosw.ecifit.controller;
 import co.edu.eci.dosw.ecifit.dto.request.RegistrarComidaRequestDTO;
 import co.edu.eci.dosw.ecifit.dto.response.ComidaResponseDTO;
 import co.edu.eci.dosw.ecifit.exception.RecursoNoEncontradoException;
+import co.edu.eci.dosw.ecifit.exception.ReglaDeNegocioException;
 import co.edu.eci.dosw.ecifit.mapper.ComidaMapper;
 import co.edu.eci.dosw.ecifit.model.CalificacionComida;
 import co.edu.eci.dosw.ecifit.model.Comida;
@@ -111,6 +112,25 @@ class ComidaControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void debeReevaluarUnaComida() throws Exception {
+        Comida dominio = new Comida();
+        when(comidaService.reevaluar("C-1")).thenReturn(dominio);
+        when(comidaMapper.toResponse(dominio)).thenReturn(respuesta());
+
+        mockMvc.perform(post("/api/v1/nutricion/comidas/C-1/evaluar"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("EVALUADA"));
+    }
+
+    @Test
+    void debeRetornar422AlReevaluarUnaComidaYaEvaluada() throws Exception {
+        when(comidaService.reevaluar("C-1")).thenThrow(new ReglaDeNegocioException("La comida ya fue evaluada."));
+
+        mockMvc.perform(post("/api/v1/nutricion/comidas/C-1/evaluar"))
+                .andExpect(status().isUnprocessableEntity());
     }
 
     @Test

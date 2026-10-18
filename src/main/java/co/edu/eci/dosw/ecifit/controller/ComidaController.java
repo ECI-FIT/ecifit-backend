@@ -40,6 +40,13 @@ public class ComidaController implements ComidaApi {
     }
 
     @Override
+    @PostMapping("/{id}/evaluar")
+    @PreAuthorize("hasAnyRole('ESTUDIANTE', 'ADMINISTRADOR')")
+    public ResponseEntity<ComidaResponseDTO> reevaluar(@PathVariable String id) {
+        return ResponseEntity.ok(comidaMapper.toResponse(comidaService.reevaluar(id)));
+    }
+
+    @Override
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ESTUDIANTE', 'ENTRENADOR', 'ADMINISTRADOR')")
     public ResponseEntity<ComidaResponseDTO> obtenerPorId(@PathVariable String id) {

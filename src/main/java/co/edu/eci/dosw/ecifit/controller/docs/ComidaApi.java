@@ -22,8 +22,10 @@ public interface ComidaApi {
 
     @Operation(
             summary = "Registrar una comida",
-            description = "Registra una comida consumida por el estudiante (desayuno, almuerzo, etc.). "
-                    + "Solo la primera comida de cada tipo en el día otorga puntos."
+            description = "Registra una comida consumida por el estudiante (desayuno, almuerzo, etc.) y la evalúa "
+                    + "con IA: si es balanceada, una calificación, un consejo y recomendaciones. "
+                    + "Otorga 5 puntos, más 15 si es balanceada; solo la primera comida de cada tipo en el día "
+                    + "da puntos. Si la IA no responde, la comida queda PENDIENTE y se reintenta automáticamente."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Comida registrada",
@@ -37,6 +39,21 @@ public interface ComidaApi {
                     content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
     ResponseEntity<ComidaResponseDTO> registrar(@Valid @RequestBody RegistrarComidaRequestDTO dto);
+
+    @Operation(
+            summary = "Reintentar la evaluación nutricional de una comida",
+            description = "Vuelve a pedir la evaluación a la IA para una comida pendiente o con error. "
+                    + "Si la IA sigue sin responder, la comida queda pendiente."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Resultado del reintento",
+                    content = @Content(schema = @Schema(implementation = ComidaResponseDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Comida no encontrada",
+                    content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class))),
+            @ApiResponse(responseCode = "422", description = "La comida ya fue evaluada",
+                    content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
+    })
+    ResponseEntity<ComidaResponseDTO> reevaluar(@Parameter(description = "Id de la comida") String id);
 
     @Operation(summary = "Consultar una comida")
     @ApiResponses(value = {

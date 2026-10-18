@@ -9,6 +9,10 @@ public interface IComidaService {
 
     Comida registrar(Comida comida);
 
+    Comida reevaluar(String id);
+
+    int reintentarPendientes();
+
     Comida obtenerPorId(String id);
 
     List<Comida> obtenerHistorial(String estudianteId, LocalDate fecha);
