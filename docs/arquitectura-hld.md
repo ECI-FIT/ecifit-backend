@@ -21,6 +21,7 @@ ECI FIT Backend es el servidor de la plataforma de gamificación deportiva de la
 | Swagger (springdoc) | 2.8.17 | Documentación interactiva de la API |
 | JaCoCo | 0.8.15 | Mide la cobertura de las pruebas |
 | Docker | — | Empaqueta la aplicación para ejecutarla en cualquier entorno |
+| Google Gemini API | gemini-2.5-flash-lite | Evalúa si una comida es balanceada y genera el consejo nutricional |
 | GitHub Actions | — | Ejecuta pruebas y despliega automáticamente |
 | Azure App Service | — | Servidor en la nube donde se publica la API (QA y PROD) |
 
@@ -39,10 +40,10 @@ ECI FIT Backend es el servidor de la plataforma de gamificación deportiva de la
 | RF-09 | Exigir una duración mínima (10 min) | Registro de actividades | Implementado |
 | RF-10 | Dar puntos por actividad válida | Registro de actividades | Implementado |
 | RF-11 | Dar puntos extra por ir al gimnasio | Asistencia al gimnasio | Implementado |
-| RF-12 | Registrar comida consumida | — | No implementado |
-| RF-13 | Clasificar comida balanceada | — | No implementado |
-| RF-14 | Dar puntos por registro nutricional | — | No implementado |
-| RF-15 | Consultar menú del comedor | — | No implementado |
+| RF-12 | Registrar comida consumida | Nutrición | Implementado |
+| RF-13 | Clasificar comida balanceada | Nutrición (evaluación con Gemini) | Implementado |
+| RF-14 | Dar puntos por registro nutricional | Nutrición | Implementado |
+| RF-15 | Consultar menú del comedor | Comedor | Implementado |
 | RF-16 | Generar misiones diarias | Misiones | Implementado |
 | RF-17 | Generar misiones semanales | Misiones | Implementado |
 | RF-18 | Registrar que se cumplió una misión | Misiones | Parcial: no pide evidencia |
@@ -71,7 +72,7 @@ ECI FIT Backend es el servidor de la plataforma de gamificación deportiva de la
 | RF-41 | Mapa de ocupación del gimnasio | — | No implementado |
 | RF-42 | Confirmar asistencia al gimnasio (entrenador) | Asistencia al gimnasio | Implementado |
 
-**Resumen:** 23 implementados, 6 parciales y 13 no implementados.
+**Resumen:** 27 implementados, 6 parciales y 9 no implementados.
 
 ## 4. Diagramas arquitectónicos
 
@@ -200,3 +201,50 @@ Para usar cualquier endpoint hay que iniciar sesión primero y enviar el token q
 **Reglas:** solo una asistencia por estudiante al día. Cada asistencia suma 20 puntos.
 
 **Devuelve** (`AsistenciaGymResponseDTO`): id, estudiante, entrenador, fecha y hora, y puntos otorgados.
+
+### 5.6 Nutrición
+
+| Acción | Método y ruta | Quién puede |
+|---|---|---|
+| Registrar una comida | `POST /api/v1/nutricion/comidas` | Estudiante, Administrador |
+| Reintentar la evaluación de una comida | `POST /api/v1/nutricion/comidas/{id}/evaluar` | Estudiante, Administrador |
+| Consultar una comida | `GET /api/v1/nutricion/comidas/{id}` | Todos |
+| Ver comidas de un estudiante | `GET /api/v1/nutricion/comidas/estudiante/{estudianteId}?fecha=AAAA-MM-DD` | Todos |
+
+**Datos para registrar** (`RegistrarComidaRequestDTO`)
+
+| Campo | Obligatorio | Regla |
+|---|---|---|
+| estudianteId | Sí | El estudiante debe existir |
+| tipo | Sí | DESAYUNO, MEDIA_MANANA, ALMUERZO, ONCES o CENA |
+| descripcion | Sí | Entre 3 y 500 caracteres |
+| fechaHora | No | Si no se envía, se usa la hora actual. No puede ser futura ni de hace más de 24 horas |
+
+**Reglas:**
+- Al registrar, Gemini evalúa la comida y devuelve si es balanceada, una calificación (BUENA, REGULAR o MALA), un puntaje de 0 a 100, un consejo y recomendaciones.
+- Los puntos los calcula el backend, no la IA: 5 por la comida y 15 más si es balanceada (máximo 20).
+- Solo la primera comida de cada tipo en el día da puntos. Las siguientes se guardan y se evalúan, pero suman 0.
+- Si Gemini no responde (sin clave, sin cuota, timeout o respuesta inválida), la comida queda `PENDIENTE` sin puntos. Un proceso automático la reintenta cada 15 minutos; después de 3 intentos fallidos pasa a `ERROR`. También se puede reintentar a mano con `/evaluar`.
+- La clave de Gemini se configura con la variable de entorno `GEMINI_API_KEY`, y el modelo con `GEMINI_MODELO` (opcional).
+
+**Devuelve** (`ComidaResponseDTO`): id, estudiante, tipo, descripción, fecha y hora, estado, balanceada, calificación, puntaje, consejo, recomendaciones, puntos otorgados y un aviso de que es una orientación general que no reemplaza a un profesional de la salud.
+
+### 5.7 Comedor
+
+| Acción | Método y ruta | Quién puede |
+|---|---|---|
+| Publicar el menú | `POST /api/v1/comedor/menus` | Administrador |
+| Ver el menú de hoy | `GET /api/v1/comedor/menus/hoy` | Todos |
+| Ver el menú de una fecha | `GET /api/v1/comedor/menus?fecha=AAAA-MM-DD` | Todos |
+
+**Datos para publicar** (`CrearMenuComedorRequestDTO`)
+
+| Campo | Obligatorio | Regla |
+|---|---|---|
+| fecha | Sí | — |
+| tipo | Sí | DESAYUNO, MEDIA_MANANA, ALMUERZO, ONCES o CENA |
+| platos | Sí | Al menos uno. Cada plato tiene nombre (obligatorio, máximo 120 caracteres), descripción (opcional, máximo 300) y precio (opcional, no negativo) |
+
+**Reglas:** solo puede haber un menú por fecha y tipo de comida. Si no hay menú publicado, las consultas devuelven una lista vacía.
+
+**Devuelve** (`MenuComedorResponseDTO`): id, fecha, tipo y platos.
