@@ -247,9 +247,11 @@ Si una regla de negocio no se cumple en cualquier paso, el manejador de errores 
 
 ### Patrones de diseño
 
-| Patrón | Para qué se usa | Dónde |
-|---|---|---|
-| Strategy | Calcular los puntos según el rol (Tanque, Corredor, Estratega) | `model/strategy` |
-| Observer | Avisar cuando se registra una actividad para calcular sus puntos | `model/observer` |
-| State | Cambiar las reglas entre semana regular y semana de parciales | `model/state` |
-| Abstract Factory | Crear misiones diarias y semanales | `model/factory` |
+| Patrón | Para qué se usa | Dónde | Uso actual |
+|---|---|---|---|
+| Strategy | Calcular los puntos según el rol (Tanque, Corredor, Estratega) | `model/strategy` | En uso al registrar actividades |
+| Observer | Avisar cuando se registra una actividad para calcular sus puntos | `model/observer` | En uso para el cálculo de puntos. `GestorLigas` y `TorreClan` están definidos pero sin conectar |
+| State | Cambiar las reglas entre semana regular y semana de parciales | `model/state` | Definido, sin conectar: falta registrar las fechas de parciales |
+| Abstract Factory | Crear misiones diarias y semanales | `model/factory` | En uso al generar misiones |
+
+Las ligas usan un único conjunto de umbrales definido en `LigaEnum`: Bronce (0), Plata (1000), Oro (2000), Platino (3000) y Diamante (4000).

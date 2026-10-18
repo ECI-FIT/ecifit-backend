@@ -45,17 +45,7 @@ public class RankingTemporada {
 
     public void actualizarLiga() {
         int puntos = this.puntosAcumulados != null ? this.puntosAcumulados : 0;
-        if (puntos >= 4000) {
-            this.ligaActual = LigaEnum.DIAMANTE;
-        } else if (puntos >= 3000) {
-            this.ligaActual = LigaEnum.PLATINO;
-        } else if (puntos >= 2000) {
-            this.ligaActual = LigaEnum.ORO;
-        } else if (puntos >= 1000) {
-            this.ligaActual = LigaEnum.PLATA;
-        } else {
-            this.ligaActual = LigaEnum.BRONCE;
-        }
+        this.ligaActual = LigaEnum.desdePuntos(puntos);
     }
 
     public UUID getId() {
