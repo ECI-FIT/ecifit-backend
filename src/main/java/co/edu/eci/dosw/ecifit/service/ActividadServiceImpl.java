@@ -29,6 +29,7 @@ public class ActividadServiceImpl implements IActividadService {
     private final ActividadEntityMapper actividadEntityMapper;
     private final EstudianteEntityMapper estudianteEntityMapper;
     private final IActividadValidator actividadValidator;
+    private final ITemporadaService temporadaService;
 
     @Override
     @Transactional
@@ -40,6 +41,7 @@ public class ActividadServiceImpl implements IActividadService {
 
         Estudiante estudiante = estudianteEntityMapper.toDomain(estudianteEntity);
         var fechaUltimoBonoAntesDelRegistro = estudiante.getFechaUltimoBonoRacha();
+        int puntosAntes = estudiante.getPuntosAcumulados() != null ? estudiante.getPuntosAcumulados() : 0;
         int puntosGenerados = calcularPuntosSegunRol(estudiante, actividad);
 
         ActividadEntity actividadEntity = actividadEntityMapper.toEntity(actividad, estudianteId, puntosGenerados);
@@ -58,6 +60,7 @@ public class ActividadServiceImpl implements IActividadService {
         estudianteEntity.setPuntosAcumulados(estudiante.getPuntosAcumulados());
         estudianteEntity.setFechaUltimoBonoRacha(estudiante.getFechaUltimoBonoRacha());
         estudianteRepository.save(estudianteEntity);
+        temporadaService.sumarPuntosTemporadaActiva(estudianteId, estudiante.getPuntosAcumulados() - puntosAntes);
 
         if (bonoOtorgado) {
             log.info("Bono de racha de 7 días otorgado al estudiante ID: {}. Puntos concedidos: 200",

@@ -31,6 +31,7 @@ public class AsistenciaGymServiceImpl implements IAsistenciaGymService {
     private final EstudianteEntityMapper estudianteEntityMapper;
     private final AsistenciaGymEntityMapper asistenciaGymEntityMapper;
     private final IAsistenciaGymValidator asistenciaGymValidator;
+    private final ITemporadaService temporadaService;
 
     @Override
     @Transactional
@@ -55,6 +56,7 @@ public class AsistenciaGymServiceImpl implements IAsistenciaGymService {
                 : 0;
         estudiante.setPuntosAcumulados(puntosActuales + AsistenciaGym.PUNTOS_ASISTENCIA);
         estudianteRepository.save(estudianteEntityMapper.toEntity(estudiante));
+        temporadaService.sumarPuntosTemporadaActiva(estudianteId, AsistenciaGym.PUNTOS_ASISTENCIA);
 
         AsistenciaGym asistencia = new AsistenciaGym(
                 UUID.randomUUID().toString(), estudianteId, entrenadorId, LocalDateTime.now());

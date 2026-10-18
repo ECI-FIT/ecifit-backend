@@ -30,6 +30,7 @@ public class MisionServiceImpl implements IMisionService {
     private final MisionEntityMapper entityMapper;
     private final IMisionValidator validator;
     private final FabricaMisiones fabricaMisiones;
+    private final ITemporadaService temporadaService;
 
     @Override
     @Transactional
@@ -171,6 +172,7 @@ public class MisionServiceImpl implements IMisionService {
             int recompensa = misionEntity.getRecompensa() != null ? misionEntity.getRecompensa() : 0;
             estudianteEntity.setPuntosAcumulados(puntosActuales + recompensa);
             estudianteRepository.save(estudianteEntity);
+            temporadaService.sumarPuntosTemporadaActiva(estudianteId, recompensa);
             log.info("Recompensa de {} puntos abonada al estudiante {}. Total acumulado: {}",
                     recompensa, estudianteId, estudianteEntity.getPuntosAcumulados());
         }
