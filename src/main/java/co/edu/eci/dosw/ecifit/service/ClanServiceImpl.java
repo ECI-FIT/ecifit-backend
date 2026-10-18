@@ -49,6 +49,23 @@ public class ClanServiceImpl implements IClanService {
     }
 
     @Override
+    public Clan abandonar(String clanId, String estudianteId) {
+        log.info("Estudiante {} abandonando el clan {}", estudianteId, clanId);
+        Clan clan = obtenerPorId(clanId);
+        clan.removerMiembro(estudianteId);
+
+        if (clan.getCantidadMiembros() == 0) {
+            clanRepository.deleteById(clanId);
+            log.info("Clan {} eliminado porque se quedó sin miembros", clanId);
+            return clan;
+        }
+
+        ClanEntity actualizado = clanRepository.save(entityMapper.toEntity(clan));
+        log.info("Estudiante {} salió del clan {}. Líder actual: {}", estudianteId, clanId, clan.getLiderId());
+        return entityMapper.toDomain(actualizado);
+    }
+
+    @Override
     public Clan obtenerPorId(String id) {
         ClanEntity entity = clanRepository.findById(id)
                 .orElseThrow(() -> {

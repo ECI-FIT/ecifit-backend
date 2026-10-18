@@ -21,7 +21,8 @@ public interface ClanMapper {
                 clan.getNombre(),
                 clan.getSaludTorre(),
                 clan.getPuntosTotales(),
-                clan.getCantidadMiembros()
+                clan.getCantidadMiembros(),
+                clan.getLiderId()
         );
     }
 }

@@ -10,6 +10,8 @@ public interface IClanService {
 
     Clan unirse(String clanId, String estudianteId);
 
+    Clan abandonar(String clanId, String estudianteId);
+
     Clan obtenerPorId(String id);
 
     List<Clan> obtenerTodos();

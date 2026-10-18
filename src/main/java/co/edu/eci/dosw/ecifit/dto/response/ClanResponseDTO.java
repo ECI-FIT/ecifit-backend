@@ -5,6 +5,7 @@ public record ClanResponseDTO(
         String nombre,
         Integer saludTorre,
         Integer puntosTotales,
-        int cantidadMiembros
+        int cantidadMiembros,
+        String liderId
 ) {
 }
