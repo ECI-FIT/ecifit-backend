@@ -50,7 +50,7 @@ ECI FIT Backend es el servidor de la plataforma de gamificación deportiva de la
 | RF-20 | Calcular racha de días con actividad | Registro de actividades | Implementado |
 | RF-21 | Dar bono por racha de 7 días | Registro de actividades | Implementado |
 | RF-22 | Crear temporada del semestre | Temporadas | Implementado |
-| RF-23 | Sumar puntos a la temporada | Temporadas | Parcial: las actividades no suman al ranking |
+| RF-23 | Sumar puntos a la temporada | Actividades, misiones y gimnasio | Implementado |
 | RF-24 | Calcular la liga del estudiante | Temporadas | Implementado |
 | RF-25 | Recalcular ligas cada semana | Corte automático de los lunes | Implementado |
 | RF-26 | Subir de liga | Temporadas | Implementado |
@@ -71,7 +71,7 @@ ECI FIT Backend es el servidor de la plataforma de gamificación deportiva de la
 | RF-41 | Mapa de ocupación del gimnasio | — | No implementado |
 | RF-42 | Confirmar asistencia al gimnasio (entrenador) | Asistencia al gimnasio | Implementado |
 
-**Resumen:** 23 implementados, 6 parciales y 13 no implementados.
+**Resumen:** 24 implementados, 5 parciales y 13 no implementados.
 
 ## 4. Diagramas arquitectónicos
 
@@ -200,3 +200,58 @@ Para usar cualquier endpoint hay que iniciar sesión primero y enviar el token q
 **Reglas:** solo una asistencia por estudiante al día. Cada asistencia suma 20 puntos.
 
 **Devuelve** (`AsistenciaGymResponseDTO`): id, estudiante, entrenador, fecha y hora, y puntos otorgados.
+
+## 6. Organización del servidor
+
+### Carpetas del proyecto
+
+Todo el código está en `src/main/java/co/edu/eci/dosw/ecifit/`.
+
+| Carpeta | Qué contiene |
+|---|---|
+| `controller` | Reciben las peticiones del frontend y devuelven la respuesta |
+| `dto` | Formato de los datos que entran (`request`) y salen (`response`) de la API |
+| `mapper` | Convierten los datos entre la API, el dominio y la base de datos |
+| `service` | La lógica de cada funcionalidad (registrar actividad, completar misión, etc.) |
+| `validator` | Reglas de negocio (duración mínima, máximo 5 por clan, una temporada activa…) |
+| `model` | Objetos del dominio y patrones de diseño |
+| `persistence` | Tablas de la base de datos |
+| `repository` | Consultas a la base de datos |
+| `exception` | Errores del negocio y el manejador que los convierte en respuestas claras |
+| `security` | Inicio de sesión, tokens, usuarios y permisos por rol |
+| `scheduler` | Tareas automáticas (corte semanal de ligas) |
+| `config` | Configuración de Swagger |
+
+### Cómo se atiende una petición
+
+Ejemplo: un estudiante registra una actividad.
+
+1. **Seguridad:** se revisa que el token sea válido y que el usuario tenga rol de estudiante. Si no, responde 401 o 403.
+2. **Controller:** recibe los datos y revisa que vengan completos (duración, intensidad, etc.). Si falta algo, responde 400.
+3. **Mapper:** convierte los datos recibidos en un objeto del dominio.
+4. **Service:** busca al estudiante, aplica las reglas del **Validator** y calcula los puntos según su rol.
+5. **Repository:** guarda la actividad, actualiza los puntos del estudiante y los suma al ranking de la temporada activa.
+6. **Controller:** devuelve la actividad registrada con los puntos obtenidos (201).
+
+Si una regla de negocio no se cumple en cualquier paso, el manejador de errores responde con el código y el mensaje correspondientes.
+
+### Componentes transversales
+
+| Componente | Qué hace |
+|---|---|
+| Seguridad | Valida el token en cada petición y restringe cada endpoint según el rol |
+| Manejo de errores | Convierte cualquier error en una respuesta con código, mensaje, ruta y fecha |
+| Corte semanal | Cada lunes a medianoche resta 50 puntos a cada ranking y recalcula las ligas |
+| Datos iniciales | Al arrancar crea un usuario administrador y uno estudiante de prueba |
+| Swagger | Documentación de la API para probar los endpoints desde el navegador |
+
+### Patrones de diseño
+
+| Patrón | Para qué se usa | Dónde | Uso actual |
+|---|---|---|---|
+| Strategy | Calcular los puntos según el rol (Tanque, Corredor, Estratega) | `model/strategy` | En uso al registrar actividades |
+| Observer | Avisar cuando se registra una actividad para calcular sus puntos | `model/observer` | En uso para el cálculo de puntos. `GestorLigas` y `TorreClan` están definidos pero sin conectar |
+| State | Cambiar las reglas entre semana regular y semana de parciales | `model/state` | Definido, sin conectar: falta registrar las fechas de parciales |
+| Abstract Factory | Crear misiones diarias y semanales | `model/factory` | En uso al generar misiones |
+
+Las ligas usan un único conjunto de umbrales definido en `LigaEnum`: Bronce (0), Plata (1000), Oro (2000), Platino (3000) y Diamante (4000).

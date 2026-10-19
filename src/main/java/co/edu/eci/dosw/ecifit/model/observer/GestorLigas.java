@@ -1,6 +1,7 @@
 package co.edu.eci.dosw.ecifit.model.observer;
 
 import co.edu.eci.dosw.ecifit.model.Estudiante;
+import co.edu.eci.dosw.ecifit.model.LigaEnum;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,32 +13,8 @@ import java.util.Map;
  */
 public class GestorLigas implements ActividadObserver {
 
-    public enum NivelLiga {
-        BRONCE(0),
-        PLATA(500),
-        ORO(1500),
-        DIAMANTE(3000);
-
-        private final int umbralPuntos;
-
-        NivelLiga(int umbralPuntos) {
-            this.umbralPuntos = umbralPuntos;
-        }
-
-        public int getUmbralPuntos() {
-            return umbralPuntos;
-        }
-
-        public static NivelLiga calcularNivel(int puntos) {
-            if (puntos >= DIAMANTE.umbralPuntos) return DIAMANTE;
-            if (puntos >= ORO.umbralPuntos) return ORO;
-            if (puntos >= PLATA.umbralPuntos) return PLATA;
-            return BRONCE;
-        }
-    }
-
     private final Map<Estudiante, Integer> rankingTotal;
-    private final Map<Estudiante, NivelLiga> ligasEstudiantes;
+    private final Map<Estudiante, LigaEnum> ligasEstudiantes;
 
     public GestorLigas() {
         this.rankingTotal = new HashMap<>();
@@ -62,7 +39,7 @@ public class GestorLigas implements ActividadObserver {
         for (Map.Entry<Estudiante, Integer> entry : rankingTotal.entrySet()) {
             Estudiante estudiante = entry.getKey();
             Integer puntos = entry.getValue();
-            NivelLiga nuevoNivel = NivelLiga.calcularNivel(puntos != null ? puntos : 0);
+            LigaEnum nuevoNivel = LigaEnum.desdePuntos(puntos != null ? puntos : 0);
             this.ligasEstudiantes.put(estudiante, nuevoNivel);
         }
     }
@@ -71,17 +48,17 @@ public class GestorLigas implements ActividadObserver {
      * Obtiene el nivel de liga actual de un estudiante.
      *
      * @param e Estudiante a consultar.
-     * @return {@link NivelLiga} asignado.
+     * @return {@link LigaEnum} asignado.
      */
-    public NivelLiga obtenerLigaEstudiante(Estudiante e) {
-        return ligasEstudiantes.getOrDefault(e, NivelLiga.BRONCE);
+    public LigaEnum obtenerLigaEstudiante(Estudiante e) {
+        return ligasEstudiantes.getOrDefault(e, LigaEnum.BRONCE);
     }
 
     public Map<Estudiante, Integer> getRankingTotal() {
         return Collections.unmodifiableMap(rankingTotal);
     }
 
-    public Map<Estudiante, NivelLiga> getLigasEstudiantes() {
+    public Map<Estudiante, LigaEnum> getLigasEstudiantes() {
         return Collections.unmodifiableMap(ligasEstudiantes);
     }
 }
