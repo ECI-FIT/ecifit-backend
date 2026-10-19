@@ -125,8 +125,8 @@ Alineación formal y exhaustiva entre el catálogo canónico de los 42 requerimi
 | **RF-41** | Actualizar mapa colaborativo de ocupación | Gimnasio IoT | — | **Limitación Conocida** |
 | **RF-42** | Confirmar asistencia de estudiante por entrenador | Asistencia Gimnasio | `POST /api/v1/gimnasio/asistencias` | **Implementado** |
 
-> [!NOTE]
-> ### Balance y Cuadre Matemático de Requerimientos:
+
+> ### Balance de Requerimientos:
 > $$\text{Requerimientos Implementados (36)} + \text{Requerimientos Parciales (0)} + \text{Limitaciones Conocidas (6)} = 42\text{ Requerimientos Totales}$$
 > 
 > * **Completamente Implementados (36):** RF-01, RF-02, RF-03, RF-04, RF-06, RF-07, RF-08, RF-09, RF-10, RF-11, RF-12, RF-13, RF-14, RF-15, RF-16, RF-17, RF-18, RF-19, RF-20, RF-21, RF-22, RF-23, RF-24, RF-25, RF-26, RF-27, RF-28, RF-29, RF-31, RF-32, RF-33, RF-34, RF-35, RF-36, RF-37, RF-42.
@@ -136,10 +136,6 @@ Alineación formal y exhaustiva entre el catálogo canónico de los 42 requerimi
 ---
 
 ## 4. Diagramas Arquitectónicos
-
-> [!IMPORTANT]
-> **Estándar de Calidad Gráfica para Feria y Auditoría:**
-> Los diagramas estructurales del sistema han sido elaborados en draw.io y Lucidchart bajo la paleta institucional de DOSW, fondo blanco puro `#FFFFFF`, tipografía sin serifa legible y exportados en resolución vectorial SVG o PNG de alta densidad (2x).
 
 ### 4.1 Modelo Entidad-Relación de Base de Datos (ERD)
 Representación de las **12 tablas relacionales** en PostgreSQL 16 normalizadas en Tercera Forma Normal (3FN), con llaves primarias, llaves foráneas e índices únicos:
@@ -185,99 +181,784 @@ Desacoplamiento entre interfaces de controlador, adaptadores de IA, cadena de va
 
 ## 5. Funcionalidades Expuestas (Catálogo Exhaustivo de Endpoints REST)
 
-Cada endpoint está asegurado con Spring Security. Las peticiones autenticadas exigen:  
+Cada endpoint operativo está asegurado con Spring Security 6. Las peticiones a rutas protegidas exigen la cabecera HTTP:  
 `Authorization: Bearer <token_jwt>`
+
+---
 
 ### 5.1 Módulo de Autenticación (`/api/v1/auth`)
 
-#### `POST /api/v1/auth/login`
-- **Autorización:** Público (PermitAll).
-- **Descripción:** Autentica credenciales institucionales y expide token JWT firmado con HMAC-SHA256 (validez 24 horas).
-- **Request Body (`LoginRequestDTO`):** `email` (String), `password` (String).
-- **Response Exitosa (`AuthResponseDTO` — 200 OK):** Token Bearer con rol y correo.
+#### `POST /api/v1/auth/login` · Rol: Público (`PermitAll`) · Respuesta exitosa: `200 OK`
+Autentica las credenciales del usuario y genera un token JWT firmado con algoritmo HMAC-SHA256 (validez de 24 horas).
+
+| Campo | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `email` | String | Sí | Formato RFC 5322 `@mail.escuelaing.edu.co` o `@escuelaing.edu.co` | Correo institucional del usuario registrado |
+| `password` | String | Sí | No vacío, mínimo 6 caracteres | Contraseña en texto plano para validación BCrypt |
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjYXJsb3MucmFtaXJleiIsImF1dGhvcml0aWVzIjpbIlJPTEVfRVNUVURJQU5URSJdfQ.ex...",
+  "tipo": "Bearer",
+  "email": "carlos.ramirez@mail.escuelaing.edu.co",
+  "rol": "ROLE_ESTUDIANTE",
+  "expiresIn": 86400000
+}
+```
 
 ---
 
 ### 5.2 Módulo de Estudiantes (`/api/v1/estudiantes`)
 
-- `POST /api/v1/estudiantes` (`ADMINISTRADOR`) $\rightarrow$ `EstudianteResponseDTO` — 201 Created.
-- `POST /api/v1/estudiantes/personaje` (`ESTUDIANTE`) $\rightarrow$ `EstudianteResponseDTO` — 201 Created (**RF-02**). Creación y vinculación del personaje en primer ingreso.
-- `GET /api/v1/estudiantes/{id}` (`ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR`) $\rightarrow$ `EstudianteResponseDTO` — 200 OK.
-- `GET /api/v1/estudiantes` (`ADMINISTRADOR`, `ENTRENADOR`) $\rightarrow$ `List<EstudianteResponseDTO>` — 200 OK.
+#### `POST /api/v1/estudiantes` · Rol: `ADMINISTRADOR` · Respuesta exitosa: `201 Created`
+Registra un nuevo estudiante en el sistema y le asigna su arquetipo deportivo.
+
+| Campo | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `nombre` | String | Sí | 3 – 100 caracteres, no vacío | Nombre completo del estudiante |
+| `correoInstitucional` | String | Sí | Formato institucional, valor único en BD | Correo electrónico de la Escuela |
+| `rol` | Enum `Rol` | Sí | `TANQUE · CORREDOR · ESTRATEGA` | Arquetipo deportivo asignado al atleta |
+
+```json
+{
+  "id": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90",
+  "nombre": "Carlos Ramirez",
+  "correoInstitucional": "carlos.ramirez@mail.escuelaing.edu.co",
+  "puntosAcumulados": 0,
+  "rolActivo": "TANQUE",
+  "clanId": null
+}
+```
+
+#### `POST /api/v1/estudiantes/personaje` · Rol: `ESTUDIANTE` · Respuesta exitosa: `201 Created`
+Crea y vincula el personaje del estudiante en su primer ingreso (**RF-02**). Lanza HTTP 409 si el estudiante autenticado ya posee un personaje creado.
+
+| Campo | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `nombre` | String | Sí | 3 – 80 caracteres | Nombre visible del personaje del jugador |
+| `rol` | Enum `Rol` | Sí | `TANQUE · CORREDOR · ESTRATEGA` | Rol o especialidad deportiva para la temporada activa |
+
+```json
+{
+  "id": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90",
+  "nombre": "Carlos Ramirez",
+  "correoInstitucional": "carlos.ramirez@mail.escuelaing.edu.co",
+  "puntosAcumulados": 0,
+  "rolActivo": "CORREDOR",
+  "clanId": null
+}
+```
+
+#### `GET /api/v1/estudiantes/{id}` · Rol: `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Consulta el perfil detallado y puntos acumulados de un estudiante específico.
+
+| Parámetro Ruta | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `id` | String | Sí | UUID o ID alfanumérico registrado | Identificador único del estudiante |
+
+```json
+{
+  "id": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90",
+  "nombre": "Carlos Ramirez",
+  "correoInstitucional": "carlos.ramirez@mail.escuelaing.edu.co",
+  "puntosAcumulados": 350,
+  "rolActivo": "TANQUE",
+  "clanId": "CLAN-01"
+}
+```
+
+#### `GET /api/v1/estudiantes` · Rol: `ADMINISTRADOR`, `ENTRENADOR` · Respuesta exitosa: `200 OK`
+Retorna el listado completo de estudiantes registrados en la plataforma. *(Sin cuerpo de solicitud)*.
+
+```json
+[
+  {
+    "id": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90",
+    "nombre": "Carlos Ramirez",
+    "correoInstitucional": "carlos.ramirez@mail.escuelaing.edu.co",
+    "puntosAcumulados": 350,
+    "rolActivo": "TANQUE",
+    "clanId": "CLAN-01"
+  },
+  {
+    "id": "e3171714-53a0-4558-af20-a61d983623d3",
+    "nombre": "Laura Gomez",
+    "correoInstitucional": "laura.gomez@mail.escuelaing.edu.co",
+    "puntosAcumulados": 520,
+    "rolActivo": "CORREDOR",
+    "clanId": null
+  }
+]
+```
 
 ---
 
 ### 5.3 Módulo de Actividades Físicas (`/api/v1/actividades`)
 
-- `POST /api/v1/actividades` (`ESTUDIANTE`) $\rightarrow$ `ActividadResponseDTO` — 201 Created. Pipeline Anti-Cheat con *Chain of Responsibility*.
-- `GET /api/v1/actividades/estudiante/{estudianteId}` (`ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR`) $\rightarrow$ `List<ActividadResponseDTO>` — 200 OK.
+#### `POST /api/v1/actividades` · Rol: `ESTUDIANTE` · Respuesta exitosa: `201 Created`
+Registra un entrenamiento físico. Pasa obligatoriamente por el pipeline Anti-Cheat (*Chain of Responsibility*) y aplica multiplicador según rol (*Strategy*).
+
+| Campo | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `estudianteId` | String | Sí | ID de estudiante registrado | Identificador del estudiante que entrenó |
+| `tipo` | Enum `TipoActividad` | Sí | `CARDIO · FUERZA · FLEXIBILIDAD` | Tipo de entrenamiento realizado |
+| `duracionMinutos` | Integer | Sí | $\ge 10$ y $\le 360$ minutos | Duración continua de la sesión deportiva |
+| `intensidad` | Integer | Sí | Rango entero de 1 a 10 | Escala de esfuerzo percibido |
+
+```json
+{
+  "id": "840e819d-4aa8-4397-bd7f-17f6388c1e97",
+  "tipo": "CARDIO",
+  "duracionMinutos": 45,
+  "intensidad": 8,
+  "fecha": "2026-10-19T07:30:00",
+  "estudianteId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90",
+  "puntosOtorgados": 67
+}
+```
+
+#### `GET /api/v1/actividades/estudiante/{estudianteId}` · Rol: `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Consulta el historial de sesiones físicas registradas por un estudiante.
+
+| Parámetro Ruta | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `estudianteId` | String | Sí | ID de estudiante existente | Identificador del atleta |
+
+```json
+[
+  {
+    "id": "840e819d-4aa8-4397-bd7f-17f6388c1e97",
+    "tipo": "CARDIO",
+    "duracionMinutos": 45,
+    "intensidad": 8,
+    "fecha": "2026-10-19T07:30:00",
+    "estudianteId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90",
+    "puntosOtorgados": 67
+  }
+]
+```
 
 ---
 
-### 5.4 Módulo de Clanes y Retos (`/api/v1/clanes`)
+### 5.4 Módulo de Clanes y Retos Colectivos (`/api/v1/clanes`)
 
-- `POST /api/v1/clanes` (`ESTUDIANTE`, `ADMINISTRADOR`) $\rightarrow$ `ClanResponseDTO` — 201 Created.
-- `POST /api/v1/clanes/unirse` (`ESTUDIANTE`) $\rightarrow$ `ClanResponseDTO` — 200 OK.
-- `POST /api/v1/clanes/abandonar` (`ESTUDIANTE`) $\rightarrow$ `ClanResponseDTO` — 200 OK (**RF-33**).
-- `GET /api/v1/clanes` y `GET /api/v1/clanes/{id}` $\rightarrow$ `ClanResponseDTO` — 200 OK.
-- `POST /api/v1/clanes/retos` (`ENTRENADOR`, `ADMINISTRADOR`) $\rightarrow$ `RetoClanResponseDTO` — 201 Created (**RF-34**).
-- `POST /api/v1/clanes/{clanId}/retos/{retoId}/calcular` (`ENTRENADOR`, `ADMINISTRADOR`) $\rightarrow$ `RetoClanResponseDTO` — 200 OK (**RF-36**).
-- `POST /api/v1/clanes/retos/comparar-duelo` (`ENTRENADOR`, `ADMINISTRADOR`) $\rightarrow$ `ResultadoRetoClanesResponseDTO` — 200 OK (**RF-36**).
-- `GET /api/v1/clanes/{clanId}/retos` $\rightarrow$ `List<RetoClanResponseDTO>` — 200 OK (**RF-37**).
+#### `POST /api/v1/clanes` · Rol: `ESTUDIANTE`, `ADMINISTRADOR` · Respuesta exitosa: `201 Created`
+Funda un nuevo clan estudiantil en la plataforma y designa al creador como líder fundador (**RF-29**).
 
-#### 5.4.1 Sub-Módulo de Invitaciones a Clanes (`/api/v1/clanes/invitaciones`) (RF-30, RF-31)
-- `POST /api/v1/clanes/invitaciones` (`ESTUDIANTE`) $\rightarrow$ `InvitacionClanResponseDTO` — 201 Created. **RF-30:** Miembro del clan envía invitación a un estudiante sin clan.
-  - Request Body (`InvitarClanRequestDTO`): `clanId`, `estudianteId`, `invitadoPorId`.
-- `POST /api/v1/clanes/invitaciones/{id}/responder` (`ESTUDIANTE`) $\rightarrow$ `InvitacionClanResponseDTO` — 200 OK. **RF-31:** Estudiante acepta (`aceptar=true`, se une al clan) o rechaza (`aceptar=false`).
-  - Request Body (`ResponderInvitacionRequestDTO`): `aceptar` (Boolean).
-- `GET /api/v1/clanes/invitaciones/estudiante/{estudianteId}` (`ESTUDIANTE`, `ADMINISTRADOR`) $\rightarrow$ `List<InvitacionClanResponseDTO>` — 200 OK. Consulta invitaciones pendientes.
+| Campo | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `nombre` | String | Sí | 3 – 60 caracteres, valor único en BD | Nombre identificador del clan |
+| `liderEstudianteId` | String | Sí | Estudiante registrado sin clan actual | Identificador del estudiante que funda y lidera el clan |
+
+```json
+{
+  "id": "CLAN-01",
+  "nombre": "Espartanos ECI",
+  "saludTorre": 1000,
+  "puntosTotales": 0,
+  "cantidadMiembros": 1,
+  "liderId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90"
+}
+```
+
+#### `POST /api/v1/clanes/unirse` · Rol: `ESTUDIANTE` · Respuesta exitosa: `200 OK`
+Afilia a un estudiante a un clan existente. Valida que el estudiante no pertenezca ya a un clan y que el clan destino tenga cupo disponible ($< 5$ miembros, **RF-32**).
+
+| Campo | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `estudianteId` | String | Sí | Estudiante registrado sin clan | Identificador del estudiante que ingresa |
+| `clanId` | String | Sí | Clan existente con cupo disponible | Identificador del clan destino |
+
+```json
+{
+  "id": "CLAN-01",
+  "nombre": "Espartanos ECI",
+  "saludTorre": 1000,
+  "puntosTotales": 120,
+  "cantidadMiembros": 2,
+  "liderId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90"
+}
+```
+
+#### `POST /api/v1/clanes/abandonar` · Rol: `ESTUDIANTE` · Respuesta exitosa: `200 OK`
+Permite a un estudiante retirarse voluntariamente de su clan (**RF-33**). Si quien abandona es el líder, el sistema transfiere automáticamente el liderazgo al miembro más antiguo.
+
+| Campo | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `estudianteId` | String | Sí | Estudiante perteneciente al clan | Identificador del estudiante que se retira |
+| `clanId` | String | Sí | Clan actual del estudiante | Identificador del clan abandonado |
+
+```json
+{
+  "id": "CLAN-01",
+  "nombre": "Espartanos ECI",
+  "saludTorre": 1000,
+  "puntosTotales": 120,
+  "cantidadMiembros": 1,
+  "liderId": "e3171714-53a0-4558-af20-a61d983623d3"
+}
+```
+
+#### `GET /api/v1/clanes` · Rol: `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Consulta el listado general de clanes con salud de torre y cantidad de miembros. *(Sin cuerpo de solicitud)*.
+
+```json
+[
+  {
+    "id": "CLAN-01",
+    "nombre": "Espartanos ECI",
+    "saludTorre": 1000,
+    "puntosTotales": 480,
+    "cantidadMiembros": 4,
+    "liderId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90"
+  }
+]
+```
+
+#### `GET /api/v1/clanes/{id}` · Rol: `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Consulta la información detallada de un clan en particular.
+
+| Parámetro Ruta | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `id` | String | Sí | ID de clan registrado | Identificador único del clan |
+
+```json
+{
+  "id": "CLAN-01",
+  "nombre": "Espartanos ECI",
+  "saludTorre": 1000,
+  "puntosTotales": 480,
+  "cantidadMiembros": 4,
+  "liderId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90"
+}
+```
+
+#### `POST /api/v1/clanes/retos` · Rol: `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `201 Created`
+Publica un reto colectivo semanal para un clan determinado (**RF-34**).
+
+| Campo | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `clanId` | String | Sí | ID de clan registrado | Clan al que se le impone el reto semanal |
+| `descripcion` | String | Sí | 5 – 255 caracteres | Detalle del objetivo y disciplina deportiva exigida |
+| `objetivoPuntos` | Integer | Sí | Entero $> 0$ | Meta de puntos colectivos a alcanzar |
+| `recompensa` | Integer | Sí | Entero $> 0$ | Puntos acreditados al clan si supera la meta |
+| `fechaInicio` | LocalDate | Sí | Formato `YYYY-MM-DD` | Fecha de inicio de la vigencia del reto |
+| `fechaFin` | LocalDate | Sí | Posterior a `fechaInicio` | Fecha de cierre del reto semanal |
+
+```json
+{
+  "id": "RETO-01",
+  "clanId": "CLAN-01",
+  "descripcion": "Acumular 500 puntos colectivos en actividades de fuerza",
+  "objetivoPuntos": 500,
+  "progresoActual": 0,
+  "recompensa": 150,
+  "fechaInicio": "2026-10-18",
+  "fechaFin": "2026-10-25",
+  "completado": false,
+  "estadoResultado": "EN_PROGRESO: 0/500 puntos acumulados"
+}
+```
+
+#### `POST /api/v1/clanes/{clanId}/retos/{retoId}/calcular` · Rol: `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Calcula el progreso colectivo acumulado por los miembros del clan y dictamina si el reto semanal fue superado (**RF-35, RF-36**).
+
+| Parámetro Ruta | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `clanId` | String | Sí | ID del clan evaluado | Identificador del clan |
+| `retoId` | String | Sí | ID del reto asignado | Identificador del reto semanal |
+
+```json
+{
+  "id": "RETO-01",
+  "clanId": "CLAN-01",
+  "descripcion": "Acumular 500 puntos colectivos en actividades de fuerza",
+  "objetivoPuntos": 500,
+  "progresoActual": 540,
+  "recompensa": 150,
+  "fechaInicio": "2026-10-18",
+  "fechaFin": "2026-10-25",
+  "completado": true,
+  "estadoResultado": "SUPERADO: +150 pts asignados al clan"
+}
+```
+
+#### `POST /api/v1/clanes/retos/comparar-duelo` · Rol: `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Resuelve y compara un enfrentamiento directo entre dos clanes rivales (**RF-36**), otorgando bonificación de victoria.
+
+| Campo | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `clanId1` | String | Sí | ID del primer clan | Identificador del clan retador |
+| `clanId2` | String | Sí | ID del segundo clan (distinto a clanId1) | Identificador del clan adversario |
+| `bonificacionVictoria` | Integer | Sí | Entero $> 0$ | Puntos transferidos al clan ganador |
+
+```json
+{
+  "clanId1": "CLAN-01",
+  "nombreClan1": "Espartanos ECI",
+  "puntosClan1": 850,
+  "clanId2": "CLAN-02",
+  "nombreClan2": "Titanes de Sistemas",
+  "puntosClan2": 620,
+  "clanGanadorId": "CLAN-01",
+  "bonificacionOtorgada": 200,
+  "esEmpate": false,
+  "mensajeResultado": "¡Victoria para Espartanos ECI! +200 pts otorgados."
+}
+```
+
+#### `GET /api/v1/clanes/{clanId}/retos` · Rol: `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Consulta el historial de retos semanales y resultados de un clan (**RF-37**).
+
+| Parámetro Ruta | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `clanId` | String | Sí | ID de clan registrado | Identificador del clan |
+
+```json
+[
+  {
+    "id": "RETO-01",
+    "clanId": "CLAN-01",
+    "descripcion": "Acumular 500 puntos colectivos en actividades de fuerza",
+    "objetivoPuntos": 500,
+    "progresoActual": 540,
+    "recompensa": 150,
+    "fechaInicio": "2026-10-18",
+    "fechaFin": "2026-10-25",
+    "completado": true,
+    "estadoResultado": "SUPERADO: +150 pts asignados al clan"
+  }
+]
+```
 
 ---
 
-### 5.5 Módulo de Nutrición e IA (`/api/v1/nutricion/comidas`) (RF-12, RF-13, RF-14)
+### 5.5 Sub-Módulo de Invitaciones a Clanes (`/api/v1/clanes/invitaciones`)
 
-- `POST /api/v1/nutricion/comidas` (`ESTUDIANTE`, `ADMINISTRADOR`) $\rightarrow$ `ComidaResponseDTO` — 201 Created. (+5 base, +15 balanceada con Google Gemini 2.5 Flash Lite).
-- `POST /api/v1/nutricion/comidas/{id}/evaluar` (`ESTUDIANTE`, `ADMINISTRADOR`) $\rightarrow$ `ComidaResponseDTO` — 200 OK.
-- `GET /api/v1/nutricion/comidas/estudiante/{estudianteId}` $\rightarrow$ `List<ComidaResponseDTO>` — 200 OK.
+#### `POST /api/v1/clanes/invitaciones` · Rol: `ESTUDIANTE` · Respuesta exitosa: `201 Created`
+Envía una invitación formal a un estudiante para que se incorpore al clan (**RF-30**). Valida que quien invita pertenezca al clan y que el invitado no tenga clan ni invitación activa.
+
+| Campo | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `clanId` | String | Sí | Clan con cupo disponible ($< 5$) | Identificador del clan que invita |
+| `estudianteId` | String | Sí | Estudiante registrado sin clan | Identificador del estudiante invitado |
+| `invitadoPorId` | String | Sí | Miembro activo del clanId | Identificador del estudiante emisor |
+
+```json
+{
+  "id": "INV-01",
+  "clanId": "CLAN-01",
+  "estudianteId": "e3171714-53a0-4558-af20-a61d983623d3",
+  "invitadoPorId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90",
+  "estado": "PENDIENTE",
+  "fecha": "2026-10-19T10:15:00"
+}
+```
+
+#### `POST /api/v1/clanes/invitaciones/{id}/responder` · Rol: `ESTUDIANTE` · Respuesta exitosa: `200 OK`
+Resuelve una invitación pendiente (**RF-31**). Si `aceptar = true`, incorpora al estudiante al clan; si `aceptar = false`, registra el rechazo.
+
+| Parámetro Ruta | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `id` | String | Sí | ID de invitación pendiente | Identificador único de la invitación |
+
+| Campo | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `aceptar` | Boolean | Sí | Booleano `true` o `false` | Aceptar (`true`) o rechazar (`false`) la invitación |
+
+```json
+{
+  "id": "INV-01",
+  "clanId": "CLAN-01",
+  "estudianteId": "e3171714-53a0-4558-af20-a61d983623d3",
+  "invitadoPorId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90",
+  "estado": "ACEPTADA",
+  "fecha": "2026-10-19T10:15:00"
+}
+```
+
+#### `GET /api/v1/clanes/invitaciones/estudiante/{estudianteId}` · Rol: `ESTUDIANTE`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Consulta todas las invitaciones dirigidas a un estudiante.
+
+| Parámetro Ruta | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `estudianteId` | String | Sí | ID de estudiante registrado | Identificador del estudiante |
+
+```json
+[
+  {
+    "id": "INV-01",
+    "clanId": "CLAN-01",
+    "estudianteId": "e3171714-53a0-4558-af20-a61d983623d3",
+    "invitadoPorId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90",
+    "estado": "PENDIENTE",
+    "fecha": "2026-10-19T10:15:00"
+  }
+]
+```
 
 ---
 
-### 5.6 Módulo del Comedor Institucional (`/api/v1/comedor/menus`) (RF-15)
+### 5.6 Módulo de Nutrición e IA Gemini (`/api/v1/nutricion/comidas`)
 
-- `POST /api/v1/comedor/menus` (`ADMINISTRADOR`) $\rightarrow$ `MenuComedorResponseDTO` — 201 Created.
-- `GET /api/v1/comedor/menus/hoy` $\rightarrow$ `List<MenuComedorResponseDTO>` — 200 OK.
-- `GET /api/v1/comedor/menus` $\rightarrow$ `List<MenuComedorResponseDTO>` — 200 OK.
+#### `POST /api/v1/nutricion/comidas` · Rol: `ESTUDIANTE`, `ADMINISTRADOR` · Respuesta exitosa: `201 Created`
+Registra una comida (**RF-12**), otorga +5 puntos base y ejecuta la evaluación nutricional inteligente con Google Gemini 2.5 Flash Lite (+15 puntos adicionales si es balanceada) (**RF-13, RF-14**).
+
+| Campo | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `estudianteId` | String | Sí | ID de estudiante registrado | Identificador del comensal |
+| `tipo` | Enum `TipoComida` | Sí | `DESAYUNO · ALMUERZO · CENA · SNACK` | Tipo de servicio de alimentación |
+| `descripcion` | String | Sí | 3 – 500 caracteres | Descripción textual de los alimentos ingeridos |
+| `fechaHora` | LocalDateTime | No | Formato ISO-8601 (opcional) | Fecha y hora de consumo |
+
+- **Enumeraciones de Respuesta:**
+  - `EstadoEvaluacion`: `PENDIENTE · EVALUADA · FALLIDA`
+  - `CalificacionComida`: `EXCELENTE · BUENA · REGULAR · DEFICIENTE`
+
+```json
+{
+  "id": "a537e692-93fd-4771-bfaa-d97b3bd1e90b",
+  "estudianteId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90",
+  "tipo": "ALMUERZO",
+  "descripcion": "Pechuga a la plancha con quinoa, ensalada de espinaca y tomate, y agua",
+  "fechaHora": "2026-10-19T12:45:00",
+  "estado": "EVALUADA",
+  "balanceada": true,
+  "calificacion": "EXCELENTE",
+  "puntaje": 95,
+  "consejo": "Excelente ingesta de proteína magra y vegetales.",
+  "recomendaciones": [
+    "Mantener la hidratación constante con agua",
+    "Añadir frutos secos para grasas saludables"
+  ],
+  "puntosOtorgados": 20,
+  "aviso": null
+}
+```
+
+#### `POST /api/v1/nutricion/comidas/{id}/evaluar` · Rol: `ESTUDIANTE`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Reintenta la clasificación por IA de una comida que quedó en estado `PENDIENTE` por timeout o intermitencia de red externa.
+
+| Parámetro Ruta | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `id` | String | Sí | UUID de la comida | Identificador de la comida a revaluar |
+
+```json
+{
+  "id": "a537e692-93fd-4771-bfaa-d97b3bd1e90b",
+  "estudianteId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90",
+  "tipo": "ALMUERZO",
+  "descripcion": "Pechuga a la plancha con quinoa",
+  "fechaHora": "2026-10-19T12:45:00",
+  "estado": "EVALUADA",
+  "balanceada": true,
+  "calificacion": "EXCELENTE",
+  "puntaje": 95,
+  "consejo": "Excelente ingesta.",
+  "recomendaciones": [],
+  "puntosOtorgados": 20,
+  "aviso": null
+}
+```
+
+#### `GET /api/v1/nutricion/comidas/estudiante/{estudianteId}` · Rol: `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Consulta el historial de comidas registradas por un estudiante.
+
+| Parámetro Ruta | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `estudianteId` | String | Sí | ID de estudiante registrado | Identificador del estudiante |
+
+```json
+[
+  {
+    "id": "a537e692-93fd-4771-bfaa-d97b3bd1e90b",
+    "estudianteId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90",
+    "tipo": "ALMUERZO",
+    "descripcion": "Pechuga a la plancha con quinoa",
+    "fechaHora": "2026-10-19T12:45:00",
+    "estado": "EVALUADA",
+    "balanceada": true,
+    "calificacion": "EXCELENTE",
+    "puntaje": 95,
+    "consejo": "Excelente ingesta.",
+    "recomendaciones": [],
+    "puntosOtorgados": 20,
+    "aviso": null
+  }
+]
+```
 
 ---
 
-### 5.7 Módulo de Misiones Gamificadas (`/api/v1/misiones`)
+### 5.7 Módulo del Comedor Institucional (`/api/v1/comedor/menus`)
 
-- `POST /api/v1/misiones/diarias` (`ENTRENADOR`, `ADMINISTRADOR`) $\rightarrow$ `MisionResponseDTO` — 201 Created.
-- `POST /api/v1/misiones/semanales` (`ENTRENADOR`, `ADMINISTRADOR`) $\rightarrow$ `MisionResponseDTO` — 201 Created.
-- `POST /api/v1/misiones/{id}/completar` (`ESTUDIANTE`, `ADMINISTRADOR`) $\rightarrow$ `MisionResponseDTO` — 200 OK.
-- `POST /api/v1/misiones/{id}/cumplimiento` (`ESTUDIANTE`, `ADMINISTRADOR`) $\rightarrow$ `MisionResponseDTO` — 200 OK (**RF-18**). Registro formal de cumplimiento y evidencia deportiva.
-- `GET /api/v1/misiones/estudiante/{estudianteId}` $\rightarrow$ `List<MisionResponseDTO>` — 200 OK.
+#### `POST /api/v1/comedor/menus` · Rol: `ADMINISTRADOR` · Respuesta exitosa: `201 Created`
+Publica la oferta del menú saludable del comedor universitario para una fecha determinada (**RF-15**).
+
+| Campo | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `fecha` | LocalDate | Sí | Formato ISO `YYYY-MM-DD` | Fecha programada para servir el menú |
+| `tipo` | Enum `TipoComida` | Sí | `DESAYUNO · ALMUERZO · CENA · SNACK` | Tipo de servicio de comida |
+| `platos` | List<`PlatoMenuRequestDTO`> | Sí | Mínimo 1 plato en la lista | Lista de platos que conforman el menú |
+
+##### Objeto Anidado: `PlatoMenuRequestDTO`
+| Campo | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `nombre` | String | Sí | 1 – 120 caracteres | Nombre visible del plato |
+| `descripcion` | String | No | Máximo 300 caracteres | Ingredientes principales o acompañamientos |
+| `precio` | Integer | No | Entero $\ge 0$ (en COP) | Precio subsidiado del plato institucional |
+
+```json
+{
+  "id": "MENU-20261020-01",
+  "fecha": "2026-10-20",
+  "tipo": "ALMUERZO",
+  "platos": [
+    {
+      "id": "PLATO-01",
+      "nombre": "Bowl Fitness Proteico",
+      "descripcion": "Salmón a la plancha, arroz integral, aguacate y vegetales al vapor",
+      "precio": 14000
+    },
+    {
+      "id": "PLATO-02",
+      "nombre": "Jugo Verde Desintoxicante",
+      "descripcion": "Espinaca, manzana verde, pepino y jengibre sin azúcar añadida",
+      "precio": 3500
+    }
+  ]
+}
+```
+
+#### `GET /api/v1/comedor/menus/hoy` · Rol: `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Consulta los menús saludables programados para la fecha actual del sistema (**RF-15**). *(Sin cuerpo de solicitud)*.
+
+```json
+[
+  {
+    "id": "MENU-20261020-01",
+    "fecha": "2026-10-20",
+    "tipo": "ALMUERZO",
+    "platos": [
+      {
+        "id": "PLATO-01",
+        "nombre": "Bowl Fitness Proteico",
+        "descripcion": "Salmón a la plancha, arroz integral, aguacate y vegetales al vapor",
+        "precio": 14000
+      }
+    ]
+  }
+]
+```
+
+#### `GET /api/v1/comedor/menus` · Rol: `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Consulta el histórico completo de menús publicados por Bienestar. *(Sin cuerpo de solicitud)*.
 
 ---
 
-### 5.8 Módulo de Temporadas y Ligas (`/api/v1/temporadas`)
+### 5.8 Módulo de Misiones Gamificadas (`/api/v1/misiones`)
 
-- `POST /api/v1/temporadas` (`ADMINISTRADOR`) $\rightarrow$ `TemporadaResponseDTO` — 201 Created.
-- `GET /api/v1/temporadas/{id}` $\rightarrow$ `TemporadaResponseDTO` — 200 OK.
-- `GET /api/v1/temporadas/activa` $\rightarrow$ `TemporadaResponseDTO` — 200 OK.
-- `GET /api/v1/temporadas/{id}/ranking` $\rightarrow$ `List<RankingTemporadaResponseDTO>` — 200 OK.
+#### `POST /api/v1/misiones/diarias` · Rol: `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `201 Created`
+Crea una misión diaria con meta de sesión única para un estudiante mediante *Abstract Factory* (**RF-16**).
+
+| Campo | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `estudianteId` | String | Sí | ID de estudiante existente | Identificador del estudiante asignado |
+| `descripcion` | String | Sí | 5 – 255 caracteres | Reto deportivo a cumplir en la jornada |
+| `recompensa` | Integer | Sí | Entero $> 0$ | Puntos acreditados al cumplir la misión |
+
+```json
+{
+  "id": "MIS-DIA-01",
+  "descripcion": "Activación ECI Diaria: Completa al menos 30 minutos de actividad física hoy",
+  "recompensa": 50,
+  "completada": false,
+  "estudianteId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90"
+}
+```
+
+#### `POST /api/v1/misiones/semanales` · Rol: `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `201 Created`
+Crea una misión semanal con meta acumulativa de esfuerzo continuo (**RF-17**). *(Parámetros idénticos a `CrearMisionRequestDTO`)*.
+
+```json
+{
+  "id": "MIS-SEM-01",
+  "descripcion": "Reto Semanal de Constancia: Acumula 150 minutos de ejercicio antes del domingo",
+  "recompensa": 150,
+  "completada": false,
+  "estudianteId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90"
+}
+```
+
+#### `POST /api/v1/misiones/{id}/cumplimiento` · Rol: `ESTUDIANTE`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Registra el cumplimiento de una misión aportando evidencia o actividad física vinculada (**RF-18**).
+
+| Parámetro Ruta | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `id` | String | Sí | ID de misión asignada | Identificador único de la misión |
+
+| Campo | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `actividadId` | String | No | ID de actividad deportiva existente | Identificador opcional de la sesión física que cumple la misión |
+| `evidencia` | String | No | Texto descriptivo | Comentario explicativo del logro alcanzado |
+
+```json
+{
+  "id": "MIS-DIA-01",
+  "descripcion": "Activación ECI Diaria: Completa al menos 30 minutos de actividad física hoy",
+  "recompensa": 50,
+  "completada": true,
+  "estudianteId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90"
+}
+```
+
+#### `POST /api/v1/misiones/{id}/completar` · Rol: `ESTUDIANTE`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Marca la misión como completada y acredita los puntos de recompensa al estudiante y a la temporada activa (**RF-19**).
+
+| Parámetro Ruta | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `id` | String | Sí | ID de misión asignada | Identificador de la misión |
+
+```json
+{
+  "id": "MIS-DIA-01",
+  "descripcion": "Activación ECI Diaria: Completa al menos 30 minutos de actividad física hoy",
+  "recompensa": 50,
+  "completada": true,
+  "estudianteId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90"
+}
+```
+
+#### `GET /api/v1/misiones/estudiante/{estudianteId}` · Rol: `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Consulta el listado de misiones asignadas a un estudiante.
+
+| Parámetro Ruta | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `estudianteId` | String | Sí | ID de estudiante registrado | Identificador del estudiante |
+
+```json
+[
+  {
+    "id": "MIS-DIA-01",
+    "descripcion": "Activación ECI Diaria: Completa al menos 30 minutos de actividad física hoy",
+    "recompensa": 50,
+    "completada": true,
+    "estudianteId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90"
+  }
+]
+```
 
 ---
 
-### 5.9 Módulo de Asistencia al Gimnasio (`/api/v1/gimnasio/asistencias`) (RF-42)
+### 5.9 Módulo de Temporadas y Ligas (`/api/v1/temporadas`)
 
-- `POST /api/v1/gimnasio/asistencias` (`ENTRENADOR`, `ADMINISTRADOR`) $\rightarrow$ `AsistenciaGymResponseDTO` — 201 Created (+20 pts).
+#### `POST /api/v1/temporadas` · Rol: `ADMINISTRADOR` · Respuesta exitosa: `201 Created`
+Crea una nueva temporada semestral académica (**RF-22**).
+
+| Campo | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `nombre` | String | Sí | No vacío, 3 – 80 caracteres | Nombre oficial del ciclo de temporada |
+| `fechaInicio` | LocalDate | Sí | Formato `YYYY-MM-DD` | Fecha de apertura de la temporada |
+| `fechaFin` | LocalDate | Sí | Posterior a `fechaInicio` | Fecha de cierre y corte de calificaciones |
+
+```json
+{
+  "id": "e50e6451-01b8-45ef-ae95-26542c7688b0",
+  "nombre": "Temporada 2026-2: Batalla de Facultades",
+  "fechaInicio": "2026-08-01",
+  "fechaFin": "2026-11-30",
+  "estadoActivo": true
+}
+```
+
+#### `GET /api/v1/temporadas/{id}` · Rol: `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Consulta los datos de una temporada por su identificador.
+
+| Parámetro Ruta | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `id` | UUID | Sí | UUID de temporada registrado | Identificador único de la temporada |
+
+```json
+{
+  "id": "e50e6451-01b8-45ef-ae95-26542c7688b0",
+  "nombre": "Temporada 2026-2: Batalla de Facultades",
+  "fechaInicio": "2026-08-01",
+  "fechaFin": "2026-11-30",
+  "estadoActivo": true
+}
+```
+
+#### `GET /api/v1/temporadas/activa` · Rol: `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Obtiene los metadatos de la temporada vigente en curso (**RF-28**). *(Sin cuerpo de solicitud)*.
+
+```json
+{
+  "id": "e50e6451-01b8-45ef-ae95-26542c7688b0",
+  "nombre": "Temporada 2026-2: Batalla de Facultades",
+  "fechaInicio": "2026-08-01",
+  "fechaFin": "2026-11-30",
+  "estadoActivo": true
+}
+```
+
+#### `GET /api/v1/temporadas/{temporadaId}/ranking` · Rol: `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Consulta el escalafón competitivo y las divisiones de liga de los atletas (**RF-28**).
+
+| Parámetro Ruta | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `temporadaId` | UUID | Sí | UUID de temporada activa | Identificador de la temporada |
+
+- **Enumeración de Liga (`LigaEnum`):** `BRONCE · PLATA · ORO · DIAMANTE`
+
+```json
+[
+  {
+    "id": "1d86d634-b258-4098-99e2-d7b1aef59e8f",
+    "estudianteId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90",
+    "puntosAcumulados": 980,
+    "ligaActual": "DIAMANTE"
+  },
+  {
+    "id": "f51a42b1-5e8b-4977-87ef-3286dbfa8012",
+    "estudianteId": "e3171714-53a0-4558-af20-a61d983623d3",
+    "puntosAcumulados": 640,
+    "ligaActual": "ORO"
+  }
+]
+```
 
 ---
 
-### 5.10 Diagnóstico y Monitoreo Cloud (`/api/v1/health`)
+### 5.10 Módulo de Asistencia al Gimnasio (`/api/v1/gimnasio/asistencias`)
 
-- `GET /api/v1/health` (Público) $\rightarrow$ `"ECI FIT backend is running"` — 200 OK.
+#### `POST /api/v1/gimnasio/asistencias` · Rol: `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `201 Created`
+Registra y valida la presencia física del estudiante en el gimnasio del campus (**RF-42**). Otorga automáticamente +20 puntos de bonificación (**RF-11**) y los suma a la temporada activa (**RF-23**). Si ya existe una asistencia registrada para el estudiante en la fecha actual, retorna HTTP 409 Conflicto.
+
+| Campo | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `estudianteId` | String | Sí | ID de estudiante registrado | Identificador del estudiante que asiste |
+| `entrenadorId` | String | Sí | ID de entrenador autenticado | Identificador del instructor institucional que certifica la asistencia |
+
+```json
+{
+  "id": "ASIST-20261019-01",
+  "estudianteId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90",
+  "entrenadorId": "COACH-01",
+  "fechaHora": "2026-10-19T14:30:00",
+  "puntosOtorgados": 20
+}
+```
+
+---
+
+### 5.11 Diagnóstico y Monitoreo Cloud (`/api/v1/health`)
+
+#### `GET /api/v1/health` · Rol: Público (`PermitAll`) · Respuesta exitosa: `200 OK`
+Endpoint de liveness y readiness para los probes de orquestación de Azure App Service y balanceadores de carga. No exige cabecera `Authorization`. *(Sin cuerpo de solicitud)*.
+
+```text
+ECI FIT backend is running
+```
 
 ---
 
@@ -439,6 +1120,117 @@ sequenceDiagram
 
 ---
 
+### 7.4 Flujo D: Gobernanza de Clanes — Invitación, Validación de Cupo y Aceptación Transaccional (*RF-30, RF-31, RF-32*)
+
+Este flujo modela el ciclo de vida de membresía en un clan: envío de invitación formal por un miembro activo, validación de la regla de negocio de cupo máximo (máximo 5 integrantes, **RF-32**), y la posterior respuesta del estudiante invitado con afiliación atómica o rechazo.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Anfitrion as Miembro Emisor
+    actor Invitado as Estudiante Invitado
+    participant Filter as JwtAuthFilter
+    participant InvCtrl as InvitacionClanController
+    participant ClanSvc as ClanServiceImpl
+    participant ClanVal as ClanValidator
+    participant InvRepo as InvitacionClanRepository
+    participant EstRepo as EstudianteRepository
+    participant BD as PostgreSQL
+
+    note over Anfitrion,BD: Paso 1: Emisión de la Invitación al Clan
+    Anfitrion->>Filter: POST /api/v1/clanes/invitaciones [Bearer JWT]
+    Filter->>Filter: Validar token y rol (ROLE_ESTUDIANTE)
+    Filter->>InvCtrl: invitarEstudiante(InvitarClanRequestDTO)
+    InvCtrl->>ClanSvc: invitarEstudianteAClan(clanId, estudianteId, emisorId)
+    ClanSvc->>ClanVal: validarCupoDisponible(clanId)
+    alt Clan con cupo completo (5 miembros)
+        ClanVal-->>ClanSvc: ConflictoException("El clan ya cuenta con el cupo máximo de 5 miembros")
+        ClanSvc-->>InvCtrl: Propagar ConflictoException
+        InvCtrl-->>Anfitrion: 409 Conflict {"mensaje": "Cupo máximo alcanzado"}
+    else Cupo disponible y estudiante sin clan
+        ClanSvc->>InvRepo: save(InvitacionClanEntity[estado='PENDIENTE'])
+        InvRepo->>BD: INSERT INTO invitaciones_clan ...
+        ClanSvc-->>InvCtrl: InvitacionClanResponseDTO
+        InvCtrl-->>Anfitrion: 201 Created (InvitacionClanResponseDTO)
+    end
+
+    note over Invitado,BD: Paso 2: Resolución de la Invitación (Aceptar / Rechazar)
+    Invitado->>Filter: POST /api/v1/clanes/invitaciones/{id}/responder {aceptar: true}
+    Filter->>Filter: Validar token del estudiante invitado
+    Filter->>InvCtrl: responderInvitacion(id, ResponderInvitacionRequestDTO)
+    InvCtrl->>ClanSvc: responderInvitacion(id, aceptar=true)
+    ClanSvc->>InvRepo: findById(id)
+    alt Invitación no encontrada o ya resuelta
+        InvRepo-->>ClanSvc: Empty / Estado != PENDIENTE
+        ClanSvc-->>InvCtrl: RecursoNoEncontradoException / ConflictoException
+        InvCtrl-->>Invitado: 404 Not Found / 409 Conflict
+    else Invitación válida y confirmada
+        ClanSvc->>ClanVal: validarCupoDisponible(clanId)
+        ClanSvc->>InvRepo: actualizarEstado(id, 'ACEPTADA')
+        InvRepo->>BD: UPDATE invitaciones_clan SET estado='ACEPTADA' WHERE id=id
+        ClanSvc->>EstRepo: afiliarAClan(estudianteId, clanId)
+        EstRepo->>BD: UPDATE estudiantes SET clan_id=clanId WHERE id=estudianteId
+        ClanSvc-->>InvCtrl: InvitacionClanResponseDTO(estado='ACEPTADA')
+        InvCtrl-->>Invitado: 200 OK (Afiliación Exitosa al Clan)
+    end
+```
+
+**Explicación del Flujo:**
+1. **Control Perimetral:** `JwtAuthFilter` autentica al emisor y asegura que posea el rol `ROLE_ESTUDIANTE`.
+2. **Validación de Cupo:** `ClanValidator` audita la cardinalidad de la relación; si el clan ya registra 5 integrantes en la base de datos, interrumpe el flujo y el `GlobalExceptionHandler` genera un código **409 Conflict**, impidiendo sobrecupos.
+3. **Respuesta Atómica:** Al recibir la confirmación (`aceptar=true`), `ClanServiceImpl` ejecuta la actualización bajo `@Transactional(rollbackFor = Exception.class)`, garantizando que el cambio de estado de la invitación y la asignación del `clan_id` en `EstudianteEntity` ocurran en una única transacción ACID.
+
+---
+
+### 7.5 Flujo E: Confirmación de Asistencia al Gimnasio por Entrenador con Bonificación (*RF-42, RF-11, RF-23*)
+
+Este flujo modela la certificación presencial de actividad deportiva en el gimnasio del campus por parte de un entrenador institucional, con validación de rol restringido, control de unicidad diaria y bonificación multirrecurso.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Entrenador as Entrenador Institucional
+    participant Filter as JwtAuthFilter
+    participant GymCtrl as AsistenciaGymController
+    participant GymSvc as AsistenciaGymServiceImpl
+    participant GymVal as AsistenciaGymValidator
+    participant GymRepo as AsistenciaGymRepository
+    participant EstRepo as EstudianteRepository
+    participant TempSvc as TemporadaServiceImpl
+    participant BD as PostgreSQL
+
+    Entrenador->>Filter: POST /api/v1/gimnasio/asistencias {estudianteId, entrenadorId}
+    Filter->>Filter: Validar token y evaluar @PreAuthorize("hasAnyRole('ENTRENADOR', 'ADMINISTRADOR')")
+    alt Rol sin privilegios suficientes (ej. Estudiante)
+        Filter-->>Entrenador: 403 Forbidden {"mensaje": "Acceso denegado: permisos insuficientes"}
+    else Credencial autorizada
+        Filter->>GymCtrl: registrarAsistencia(AsistenciaGymRequestDTO)
+        GymCtrl->>GymSvc: registrarAsistencia(estudianteId, entrenadorId)
+        GymSvc->>GymVal: validarRegistroUnicoDiario(estudianteId, fechaActual)
+        alt Asistencia previa detectada en la misma fecha
+            GymVal-->>GymSvc: ConflictoException("El estudiante ya registró asistencia el día de hoy")
+            GymSvc-->>GymCtrl: Propagar ConflictoException
+            GymCtrl-->>Entrenador: 409 Conflict {"codigo": 409, "mensaje": "Asistencia duplicada"}
+        else Asistencia inédita en la jornada
+            GymSvc->>GymRepo: save(AsistenciaGymEntity[puntosOtorgados=20, fecha=CURRENT_DATE])
+            GymRepo->>BD: INSERT INTO asistencias_gym ...
+            GymSvc->>EstRepo: acreditarPuntos(estudianteId, 20)
+            EstRepo->>BD: UPDATE estudiantes SET puntos_acumulados = puntos + 20
+            GymSvc->>TempSvc: sumarPuntosTemporadaActiva(estudianteId, 20)
+            TempSvc->>BD: UPDATE rankings_temporada SET puntos = puntos + 20 WHERE estudiante_id=estudianteId
+            GymSvc-->>GymCtrl: AsistenciaGymResponseDTO(puntosOtorgados=20)
+            GymCtrl-->>Entrenador: 201 Created (Asistencia Confirmada)
+        end
+    end
+```
+
+**Explicación del Flujo:**
+1. **Control de Acceso RBAC:** El decorador `@PreAuthorize("hasAnyRole('ENTRENADOR', 'ADMINISTRADOR')")` rechaza en la capa web cualquier intento de suplantación si la petición proviene de un token de estudiante (retorna **403 Forbidden**).
+2. **Restricción de Integridad Única:** `AsistenciaGymValidator` verifica si ya existe una tupla `(estudiante_id, fecha)` en la tabla `asistencias_gym`. Si ya asistió, previene fraudes de puntos retornando **409 Conflict**.
+3. **Bonificación Multirrecurso:** Al ser válida, la asistencia acredita de manera atómica +20 puntos en la tabla `estudiantes` (**RF-11**) y replica el impacto inmediatamente sobre la tabla `rankings_temporada` de la temporada activa (**RF-23**).
+
+---
+
 ## 8. Despliegue y Seguridad
 
 ### 8.1 Topología en Azure Cloud y Entornos
@@ -509,26 +1301,15 @@ En estricto cumplimiento de la **Regla 3 de Deuda Técnica** del Sprint 4, el eq
 
 ---
 
-## 10. Bibliografía y Justificación de Patrones GoF
+## 10. Bibliografía
 
-### 10.1 Tabla de Patrones GoF y Arquitectónicos Implementados en el Código Real
-
-| Patrón GoF | Tipo | Clase / Paquete Concreto | Estado de Integración en el Sistema | Problema que Resuelve en ECI FIT |
-|---|---|---|:---:|---|
-| **Chain of Responsibility** | Comportamiento | `ActividadHandler`, `SanctionStatusHandler`, `DataIntegrityHandler`, `PhysiologicalLimitsHandler` (`co.edu.eci.dosw.ecifit.model.chain`) | **Activo en Flujo HTTP** | Pipeline desacoplado de anti-cheat al registrar entrenamientos. Interrumpe la transacción y lanza `ReglaDeNegocioException` si se violan umbrales fisiológicos. |
-| **Strategy** | Comportamiento | `RolStrategy`, `Tanque`, `Corredor`, `Estratega` (`co.edu.eci.dosw.ecifit.model.strategy`) | **Activo en Flujo HTTP** | Cálculo dinámico de bonificaciones de experiencia según arquetipo deportivo en `ActividadServiceImpl`, eliminando condicionales `switch`/`if-else` (Principio OCP). |
-| **Abstract Factory / Factory Method** | Creacional | `FabricaMisiones`, `FabricaMisionesEstandar`, `MisionDiaria`, `MisionSemanal` (`co.edu.eci.dosw.ecifit.model.factory`) | **Activo en Flujo HTTP** | Instanciación desacoplada de familias coherentes de misiones (diarias vs. semanales) en `MisionServiceImpl`, encapsulando la lógica creacional. |
-| **Adapter** | Estructural | `GeminiEvaluadorNutricional`, `IEvaluadorNutricional` (`co.edu.eci.dosw.ecifit.service.ia`) | **Activo en Flujo HTTP** | Adapta la API externa de Google Gemini 2.5 Flash Lite al contrato del dominio institucional, aislando cambios de versión del SDK o del proveedor de IA. |
-| **Data Transfer Object (DTO)** | Arquitectónico | Paquetes `dto.request` y `dto.response` con records inmutables y MapStruct (`mapper`) | **Activo en Flujo HTTP** | Aislamiento total de las 12 entidades relacionales JPA frente a la API pública, evitando recursión circular en Jackson y fuga de información sensible. |
-| **State** | Comportamiento | `EstadoTemporada`, `SemanaRegular`, `SemanaParciales` (`co.edu.eci.dosw.ecifit.model.state`) | **Modelo de Dominio** | Define las variaciones de reglas según el calendario académico (en semana de parciales se congela el ataque a torres); el servicio evalúa vigencia de temporada y delega la regla al modelo. |
-| **Observer** | Comportamiento | `TorreClan`, `GestorLigas`, `ActividadObserver` (`co.edu.eci.dosw.ecifit.model.observer`) | **Modelo de Dominio** | Desacopla la entidad `Actividad` de los efectos colaterales de daño a torres y ascensos de liga; en la capa de servicios las mutaciones de clanes se persisten transaccionalmente. |
-
-### 10.2 Referencias Bibliográficas
-1. Gamma, E., Helm, R., Johnson, R., & Vlissides, J. (1994). *Design Patterns: Elements of Reusable Object-Oriented Software*. Addison-Wesley.
-2. Evans, E. (2003). *Domain-Driven Design: Tackling Complexity in the Heart of Software*. Addison-Wesley Professional.
-3. Walls, C. (2022). *Spring in Action* (6th ed.). Manning Publications.
-4. Martin, R. C. (2017). *Clean Architecture: A Craftsman's Guide to Software Structure and Design*. Prentice Hall.
-5. Freeman, E., & Robson, E. (2020). *Head First Design Patterns* (2nd ed.). O'Reilly Media.
-6. Documentación Oficial de Spring Framework 6 y Spring Boot 3.5.x: https://docs.spring.io/spring-boot/
-7. Documentación Oficial de Google Gemini API (v1beta REST): https://ai.google.dev/api/rest
-8. Guía Oficial de DOSW — Sprint 4: Cierre, Documentación, Marketing y Feria de Proyectos. Escuela Colombiana de Ingeniería Julio Garavito (2026).
+1. **Oracle Corporation.** (2023). *Java Platform, Standard Edition Java SE 21 Development Kit Documentation*. Oracle Help Center. https://docs.oracle.com/en/java/javase/21/
+2. **Spring Authors & Broadcom.** (2024). *Spring Framework 6 Reference Documentation*. VMware Tanzu. https://docs.spring.io/spring-framework/reference/
+3. **Spring Boot Authors & Broadcom.** (2024). *Spring Boot 3.5 Reference Documentation*. VMware Tanzu. https://docs.spring.io/spring-boot/docs/current/reference/html/
+4. **The PostgreSQL Global Development Group.** (2024). *PostgreSQL 16.3 Documentation*. PostgreSQL.org. https://www.postgresql.org/docs/16/
+5. **Jones, M., Bradley, J., & Sakimura, N.** (2015). *JSON Web Token (JWT)* (RFC 7519). Internet Engineering Task Force (IETF). https://datatracker.ietf.org/doc/html/rfc7519
+6. **Google Cloud & Google AI.** (2024). *Gemini REST API Reference and Developer Guides (gemini-2.5-flash-lite)*. Google for Developers. https://ai.google.dev/api/rest
+7. **Docker Inc.** (2024). *Docker Documentation: Multi-stage builds and best practices*. Docker Docs. https://docs.docker.com/build/building/multi-stage/
+8. **Microsoft Azure.** (2024). *Azure App Service Linux Container Documentation*. Microsoft Learn. https://learn.microsoft.com/en-us/azure/app-service/
+9. **OpenAPI Initiative.** (2021). *OpenAPI Specification Version 3.0.3*. https://spec.openapis.org/oas/v3.0.3
+10. **Escuela Colombiana de Ingeniería Julio Garavito.** (2026). *Guía Oficial de DOSW — Sprint 4: Cierre Final, Documentación, Marketing y Feria de Proyectos*. Decanatura de Ingeniería de Sistemas.
