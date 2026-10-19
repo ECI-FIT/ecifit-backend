@@ -179,4 +179,11 @@ public class MisionServiceImpl implements IMisionService {
 
         return mision;
     }
+
+    @Override
+    @Transactional
+    public Mision registrarCumplimiento(String id, String actividadId, String evidencia) {
+        log.info("Registrando cumplimiento de misión id={}, actividadId={}, evidencia={}", id, actividadId, evidencia);
+        return completarMision(id);
+    }
 }

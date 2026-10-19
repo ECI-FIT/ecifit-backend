@@ -191,4 +191,47 @@ class EstudianteServiceImplTest {
         verify(estudianteRepository).findAll();
         verify(estudianteEntityMapper, times(2)).toDomain(any());
     }
+
+    @Test
+    @DisplayName("Debe crear personaje exitosamente para estudiante autenticado")
+    void debeCrearPersonajeExitosamente() {
+        // Arrange
+        String correo = "nuevo.estudiante@mail.escuelaing.edu.co";
+        String nombre = "Nuevo Estudiante";
+        String rol = "CORREDOR";
+        when(estudianteRepository.existsByCorreoInstitucional(correo)).thenReturn(false);
+        EstudianteEntity savedEntity = EstudianteEntity.builder()
+                .id("E-NEW")
+                .nombre(nombre)
+                .correoInstitucional(correo)
+                .rolActivo("CORREDOR")
+                .puntosAcumulados(0)
+                .build();
+        Estudiante domainEsperado = new Estudiante("E-NEW", nombre, correo, null);
+        when(estudianteEntityMapper.toEntity(any())).thenReturn(savedEntity);
+        when(estudianteRepository.save(any())).thenReturn(savedEntity);
+        when(estudianteEntityMapper.toDomain(savedEntity)).thenReturn(domainEsperado);
+
+        // Act
+        Estudiante resultado = estudianteService.crearPersonaje(correo, nombre, rol);
+
+        // Assert
+        assertNotNull(resultado);
+        assertEquals("E-NEW", resultado.getId());
+        verify(estudianteRepository).existsByCorreoInstitucional(correo);
+        verify(estudianteRepository).save(any());
+    }
+
+    @Test
+    @DisplayName("Debe lanzar ConflictoException al crear personaje si ya existe")
+    void debeLanzarConflictoAlCrearPersonajeSiYaExiste() {
+        // Arrange
+        String correo = "ya.existe@mail.escuelaing.edu.co";
+        when(estudianteRepository.existsByCorreoInstitucional(correo)).thenReturn(true);
+
+        // Act & Assert
+        assertThrows(ConflictoException.class, () ->
+                estudianteService.crearPersonaje(correo, "Nombre", "TANQUE"));
+        verify(estudianteRepository, never()).save(any());
+    }
 }

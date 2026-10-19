@@ -1,5 +1,6 @@
 package co.edu.eci.dosw.ecifit.service;
 
+import co.edu.eci.dosw.ecifit.exception.ConflictoException;
 import co.edu.eci.dosw.ecifit.exception.RecursoNoEncontradoException;
 import co.edu.eci.dosw.ecifit.mapper.EstudianteEntityMapper;
 import co.edu.eci.dosw.ecifit.model.Estudiante;
@@ -39,6 +40,18 @@ public class EstudianteServiceImpl implements IEstudianteService {
         log.info("Perfil de estudiante registrado exitosamente con ID asignado: {} y rol: {}", guardado.getId(), guardado.getRolActivo());
 
         return estudianteEntityMapper.toDomain(guardado);
+    }
+
+    @Override
+    @Transactional
+    public Estudiante crearPersonaje(String correoInstitucional, String nombre, String rolString) {
+        log.info("Creando personaje del estudiante para correo institucional: {}", correoInstitucional);
+        if (estudianteRepository.existsByCorreoInstitucional(correoInstitucional)) {
+            log.warn("El estudiante con correo {} ya tiene un personaje creado", correoInstitucional);
+            throw new ConflictoException("Ya existe un personaje asociado al correo: " + correoInstitucional);
+        }
+        Estudiante estudiante = new Estudiante(null, nombre, correoInstitucional, 0, null, null);
+        return crearEstudiante(estudiante, rolString);
     }
 
     @Override

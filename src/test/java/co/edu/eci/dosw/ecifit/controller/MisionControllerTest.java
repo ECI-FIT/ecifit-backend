@@ -151,4 +151,28 @@ class MisionControllerTest {
                 .andExpect(jsonPath("$.status").value(422))
                 .andExpect(jsonPath("$.mensaje").value("La misión ya se encuentra completada previamente"));
     }
+
+    @Test
+    @DisplayName("POST /api/v1/misiones/{id}/cumplimiento debe registrar cumplimiento con evidencia y retornar 200")
+    void debeRegistrarCumplimientoConEvidenciaYRetornar200() throws Exception {
+        // Arrange
+        String misionId = "M-200";
+        co.edu.eci.dosw.ecifit.dto.request.RegistrarCumplimientoMisionRequestDTO request =
+                new co.edu.eci.dosw.ecifit.dto.request.RegistrarCumplimientoMisionRequestDTO("ACT-01", "Sesión completada");
+        Mision mision = new MisionDiaria(misionId, "Meta 30 min", 50, 30);
+        mision.setEstudianteId("EST-1");
+        mision.setCompletada(true);
+        MisionResponseDTO responseDTO = new MisionResponseDTO(misionId, "Meta 30 min", 50, true, "EST-1");
+
+        when(misionService.registrarCumplimiento(misionId, "ACT-01", "Sesión completada")).thenReturn(mision);
+        when(misionMapper.toResponse(mision)).thenReturn(responseDTO);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/misiones/{id}/cumplimiento", misionId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(misionId))
+                .andExpect(jsonPath("$.completada").value(true));
+    }
 }

@@ -8,6 +8,8 @@ public interface IEstudianteService {
 
     Estudiante crearEstudiante(Estudiante estudiante, String rolString);
 
+    Estudiante crearPersonaje(String correoInstitucional, String nombre, String rolString);
+
     Estudiante obtenerPorId(String id);
 
     List<Estudiante> obtenerTodos();

@@ -210,6 +210,7 @@ Las credenciales inválidas devuelven 401 y el acceso con un rol sin permisos de
 | Autenticación | POST | `/api/v1/auth/login` | Sí | - |
 | Documentación | GET | `/swagger-ui/**`, `/v3/api-docs/**` | Sí | - |
 | Estudiantes | POST | `/api/v1/estudiantes` | No | ADMINISTRADOR |
+| Estudiantes | POST | `/api/v1/estudiantes/personaje` | No | ESTUDIANTE |
 | Estudiantes | GET | `/api/v1/estudiantes/{id}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
 | Actividades | POST | `/api/v1/actividades` | No | ESTUDIANTE |
 | Actividades | GET | `/api/v1/actividades/estudiante/{estudianteId}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
@@ -224,6 +225,7 @@ Las credenciales inválidas devuelven 401 y el acceso con un rol sin permisos de
 | Misiones | POST | `/api/v1/misiones/diarias` | No | ENTRENADOR, ADMINISTRADOR |
 | Misiones | POST | `/api/v1/misiones/semanales` | No | ENTRENADOR, ADMINISTRADOR |
 | Misiones | POST | `/api/v1/misiones/{id}/completar` | No | ESTUDIANTE, ADMINISTRADOR |
+| Misiones | POST | `/api/v1/misiones/{id}/cumplimiento` | No | ESTUDIANTE, ADMINISTRADOR |
 | Misiones | GET | `/api/v1/misiones/estudiante/{estudianteId}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
 | Temporadas | POST | `/api/v1/temporadas` | No | ADMINISTRADOR |
 | Temporadas | GET | `/api/v1/temporadas/{id}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
@@ -253,11 +255,12 @@ Referencia: `.env.example`.
 ### 1. Pruebas Unitarias y Cobertura JaCoCo
 Ejecutar `mvn clean test`. El reporte detallado de JaCoCo se genera en `target/site/jacoco/index.html`.
 
-- **Total de pruebas:** **319 pruebas**, **0 fallos**, **0 errores**, **0 omitidas**.
-- **Cobertura global de instrucciones:** **87.72%** (7.186 / 8.192 instrucciones).
-- **Cobertura en ramas:** **70.54%** (443 / 628 ramas).
-- **Cobertura en capa de servicios:** **96.36%** (2.303 / 2.390 instrucciones).
-- **Cobertura en validadores y anti-cheat:** **94.65%** en `validator` y **91.15%** en `chain`.
+- **Total de pruebas:** **329 pruebas**, **0 fallos**, **0 errores**, **0 omitidas**.
+- **Cobertura global de instrucciones:** **88.81%** (7.390 / 8.321 instrucciones).
+- **Cobertura en ramas:** **70.44%** (448 / 636 ramas).
+- **Cobertura en capa de servicios:** **95.59%** (2.340 / 2.448 instrucciones).
+- **Cobertura en validadores y anti-cheat:** **94.65%** en `validator` y **100%** en `chain`.
+- **Cobertura en controladores:** **81.57%** (447 / 548 instrucciones).
 
 ![mvn-test.png](docs/mvn-test.png)
 

@@ -326,4 +326,31 @@ class TemporadaServiceImplTest {
         verify(temporadaRepository, never()).findByEstadoActivoTrue();
         verify(rankingTemporadaRepository, never()).save(any());
     }
+
+    @Test
+    @DisplayName("sumarPuntosTemporadaActiva - ID alfanumerico resuelve UUID deterministico y guarda")
+    void sumarPuntosTemporadaActiva_idAlfanumerico_resuelveUUIDYGuarda() {
+        // Arrange
+        String estudianteId = "EST-01";
+        UUID uuidEsperado = UUID.nameUUIDFromBytes(estudianteId.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        TemporadaEntity activa = new TemporadaEntity();
+        activa.setId(temporadaId);
+        RankingTemporadaEntity guardado = new RankingTemporadaEntity();
+
+        when(temporadaRepository.findByEstadoActivoTrue()).thenReturn(Optional.of(activa));
+        when(rankingTemporadaRepository.findByEstudianteIdAndTemporadaId(uuidEsperado, temporadaId))
+                .thenReturn(Optional.empty());
+        when(rankingTemporadaEntityMapper.toEntity(any(RankingTemporada.class))).thenAnswer(inv -> {
+            RankingTemporada nuevo = inv.getArgument(0);
+            assertEquals(uuidEsperado, nuevo.getEstudianteId());
+            assertEquals(40, nuevo.getPuntosAcumulados());
+            return guardado;
+        });
+
+        // Act
+        service.sumarPuntosTemporadaActiva(estudianteId, 40);
+
+        // Assert
+        verify(rankingTemporadaRepository).save(guardado);
+    }
 }

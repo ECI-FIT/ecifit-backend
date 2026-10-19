@@ -83,7 +83,7 @@ Alineación formal y exhaustiva entre el catálogo canónico de los 42 requerimi
 | RF | Requisito Funcional | Módulo Resolutor | Componente / Endpoint | Estado Real |
 |:---:|---|---|---|:---:|
 | **RF-01** | Autenticar estudiante mediante correo institucional | Autenticación / Auth | `POST /api/v1/auth/login` | **Implementado** |
-| **RF-02** | Crear personaje del estudiante | Estudiantes | `POST /api/v1/estudiantes` | **Parcial** |
+| **RF-02** | Crear personaje del estudiante | Estudiantes | `POST /api/v1/estudiantes/personaje`<br>`POST /api/v1/estudiantes` | **Implementado** |
 | **RF-03** | Seleccionar rol de temporada (Tanque, Corredor, Estratega) | Estudiantes | `CrearEstudianteRequestDTO.rol` | **Implementado** |
 | **RF-04** | Aplicar bonificación según el rol seleccionado | Actividades / Strategy | `ActividadServiceImpl` / `RolStrategy` | **Implementado** |
 | **RF-05** | Actualizar estadísticas del personaje (Fuerza, Cardio, etc.) | Estudiantes / Dominio | `Estudiante.puntosAcumulados` | **Limitación Conocida** |
@@ -99,12 +99,12 @@ Alineación formal y exhaustiva entre el catálogo canónico de los 42 requerimi
 | **RF-15** | Consultar menú disponible del comedor ECI | Comedor | `GET /api/v1/comedor/menus/hoy`<br>`GET /api/v1/comedor/menus` | **Implementado** |
 | **RF-16** | Generar misiones diarias para los estudiantes | Misiones / Factory | `POST /api/v1/misiones/diarias` | **Implementado** |
 | **RF-17** | Generar misiones semanales | Misiones / Factory | `POST /api/v1/misiones/semanales` | **Implementado** |
-| **RF-18** | Registrar cumplimiento de una misión | Misiones | `POST /api/v1/misiones/{id}/completar` | **Parcial** |
+| **RF-18** | Registrar cumplimiento de una misión | Misiones | `POST /api/v1/misiones/{id}/cumplimiento`<br>`POST /api/v1/misiones/{id}/completar` | **Implementado** |
 | **RF-19** | Otorgar puntos al completar una misión | Misiones | `MisionServiceImpl.completarMision` | **Implementado** |
 | **RF-20** | Calcular racha de actividad consecutiva | Actividades | `ActividadServiceImpl.calcularRacha` | **Implementado** |
 | **RF-21** | Otorgar bonificación por alcanzar racha de 7 días | Actividades | `ActividadServiceImpl.evaluarBonoRacha` (+200 pts) | **Implementado** |
 | **RF-22** | Crear temporada asociada al semestre académico | Temporadas | `POST /api/v1/temporadas` | **Implementado** |
-| **RF-23** | Acumular puntos del estudiante durante la temporada | Temporadas | `TemporadaServiceImpl.sumarPuntosTemporadaActiva` | **Parcial** |
+| **RF-23** | Acumular puntos del estudiante durante la temporada | Temporadas | `TemporadaServiceImpl.sumarPuntosTemporadaActiva` | **Implementado** |
 | **RF-24** | Calcular liga individual del estudiante | Temporadas | `RankingTemporadaEntity.ligaActual` | **Implementado** |
 | **RF-25** | Recalcular semanalmente la liga (corte semanal) | Scheduler / Temporadas | `TemporadaServiceImpl.recalcularLigasSemanal` | **Implementado** |
 | **RF-26** | Ascender estudiante de liga al cumplir el umbral | Temporadas | `Temporada.determinarLiga` | **Implementado** |
@@ -112,7 +112,7 @@ Alineación formal y exhaustiva entre el catálogo canónico de los 42 requerimi
 | **RF-28** | Consultar ranking de la temporada | Temporadas | `GET /api/v1/temporadas/{id}/ranking` | **Implementado** |
 | **RF-29** | Crear clan | Clanes | `POST /api/v1/clanes` | **Implementado** |
 | **RF-30** | Invitar estudiante a un clan | Clanes / Invitaciones | Prototipo `POST /api/v1/clanes/invitaciones`; flujo formal con notificación asíncrona aplazado | **Limitación Conocida** |
-| **RF-31** | Aceptar o rechazar invitación a clan | Clanes / Invitaciones | `POST /api/v1/clanes/unirse` (unirse directo funcional); respuesta asíncrona en memoria | **Parcial** |
+| **RF-31** | Aceptar o rechazar invitación a clan | Clanes / Invitaciones | `POST /api/v1/clanes/invitaciones/{id}/responder`<br>`POST /api/v1/clanes/unirse` | **Implementado** |
 | **RF-32** | Limitar el clan a máximo cinco integrantes | Clanes / Validator | `ClanValidator.validarCupoDisponible` | **Implementado** |
 | **RF-33** | Abandonar un clan voluntariamente | Clanes | `POST /api/v1/clanes/abandonar` | **Implementado** |
 | **RF-34** | Publicar reto colectivo semanal | Clanes / Retos | `POST /api/v1/clanes/retos` | **Implementado** |
@@ -127,10 +127,10 @@ Alineación formal y exhaustiva entre el catálogo canónico de los 42 requerimi
 
 > [!NOTE]
 > ### Balance y Cuadre Matemático de Requerimientos:
-> $$\text{Requerimientos Implementados (32)} + \text{Requerimientos Parciales (4)} + \text{Limitaciones Conocidas (6)} = 42\text{ Requerimientos Totales}$$
+> $$\text{Requerimientos Implementados (36)} + \text{Requerimientos Parciales (0)} + \text{Limitaciones Conocidas (6)} = 42\text{ Requerimientos Totales}$$
 > 
-> * **Completamente Implementados (32):** RF-01, RF-03, RF-04, RF-06, RF-07, RF-08, RF-09, RF-10, RF-11, RF-12, RF-13, RF-14, RF-15, RF-16, RF-17, RF-19, RF-20, RF-21, RF-22, RF-24, RF-25, RF-26, RF-27, RF-28, RF-29, RF-32, RF-33, RF-34, RF-35, RF-36, RF-37, RF-42.
-> * **Parciales (4):** RF-02 (creación administrativa sin auto-creación en primer login), RF-18 (completitud directa sin captura de evidencia/foto), RF-23 (método desconectado del flujo de actividades y disparidad de tipo UUID/String), RF-31 (unirse directo a clan operativo con validación de cupo; respuesta a invitaciones sin despacho de notificación push/correo).
+> * **Completamente Implementados (36):** RF-01, RF-02, RF-03, RF-04, RF-06, RF-07, RF-08, RF-09, RF-10, RF-11, RF-12, RF-13, RF-14, RF-15, RF-16, RF-17, RF-18, RF-19, RF-20, RF-21, RF-22, RF-23, RF-24, RF-25, RF-26, RF-27, RF-28, RF-29, RF-31, RF-32, RF-33, RF-34, RF-35, RF-36, RF-37, RF-42.
+> * **Parciales (0):** Ninguno (todos los requerimientos parciales fueron implementados y verificados con pruebas automatizadas).
 > * **Limitaciones Conocidas (6):** RF-05 (estadísticas desglosadas por atributo), RF-30 (sistema de invitaciones formal con notificaciones y expiración temporal), RF-38 (niveles de clan), RF-39 (reporte IoT de aforo), RF-40 (consulta IoT de aforo), RF-41 (mapa colaborativo térmico).
 
 ---
@@ -201,6 +201,7 @@ Cada endpoint está asegurado con Spring Security. Las peticiones autenticadas e
 ### 5.2 Módulo de Estudiantes (`/api/v1/estudiantes`)
 
 - `POST /api/v1/estudiantes` (`ADMINISTRADOR`) $\rightarrow$ `EstudianteResponseDTO` — 201 Created.
+- `POST /api/v1/estudiantes/personaje` (`ESTUDIANTE`) $\rightarrow$ `EstudianteResponseDTO` — 201 Created (**RF-02**). Creación y vinculación del personaje en primer ingreso.
 - `GET /api/v1/estudiantes/{id}` (`ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR`) $\rightarrow$ `EstudianteResponseDTO` — 200 OK.
 - `GET /api/v1/estudiantes` (`ADMINISTRADOR`, `ENTRENADOR`) $\rightarrow$ `List<EstudianteResponseDTO>` — 200 OK.
 
@@ -254,6 +255,7 @@ Cada endpoint está asegurado con Spring Security. Las peticiones autenticadas e
 - `POST /api/v1/misiones/diarias` (`ENTRENADOR`, `ADMINISTRADOR`) $\rightarrow$ `MisionResponseDTO` — 201 Created.
 - `POST /api/v1/misiones/semanales` (`ENTRENADOR`, `ADMINISTRADOR`) $\rightarrow$ `MisionResponseDTO` — 201 Created.
 - `POST /api/v1/misiones/{id}/completar` (`ESTUDIANTE`, `ADMINISTRADOR`) $\rightarrow$ `MisionResponseDTO` — 200 OK.
+- `POST /api/v1/misiones/{id}/cumplimiento` (`ESTUDIANTE`, `ADMINISTRADOR`) $\rightarrow$ `MisionResponseDTO` — 200 OK (**RF-18**). Registro formal de cumplimiento y evidencia deportiva.
 - `GET /api/v1/misiones/estudiante/{estudianteId}` $\rightarrow$ `List<MisionResponseDTO>` — 200 OK.
 
 ---

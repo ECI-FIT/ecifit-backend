@@ -60,4 +60,16 @@ public class MisionController implements MisionApi {
     public ResponseEntity<MisionResponseDTO> completar(@PathVariable String id) {
         return ResponseEntity.ok(misionMapper.toResponse(misionService.completarMision(id)));
     }
+
+    @Override
+    @PostMapping("/{id}/cumplimiento")
+    @PreAuthorize("hasAnyRole('ESTUDIANTE', 'ADMINISTRADOR')")
+    public ResponseEntity<MisionResponseDTO> registrarCumplimiento(
+            @PathVariable String id,
+            @RequestBody(required = false) co.edu.eci.dosw.ecifit.dto.request.RegistrarCumplimientoMisionRequestDTO dto) {
+        String actividadId = (dto != null) ? dto.actividadId() : null;
+        String evidencia = (dto != null) ? dto.evidencia() : null;
+        Mision mision = misionService.registrarCumplimiento(id, actividadId, evidencia);
+        return ResponseEntity.ok(misionMapper.toResponse(mision));
+    }
 }

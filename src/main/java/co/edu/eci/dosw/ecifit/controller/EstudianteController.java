@@ -39,6 +39,18 @@ public class EstudianteController implements EstudianteApi {
     }
 
     @Override
+    @PostMapping("/personaje")
+    @PreAuthorize("hasRole('ESTUDIANTE')")
+    public ResponseEntity<EstudianteResponseDTO> crearPersonajeEstudiante(
+            @Valid @RequestBody co.edu.eci.dosw.ecifit.dto.request.CrearPersonajeRequestDTO dto,
+            org.springframework.security.core.Authentication auth) {
+        String correo = (auth != null) ? auth.getName() : null;
+        Estudiante creado = estudianteService.crearPersonaje(correo, dto.nombre(), dto.rol());
+        EstudianteResponseDTO response = estudianteMapper.toResponse(creado);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @Override
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ESTUDIANTE', 'ENTRENADOR', 'ADMINISTRADOR')")
     public ResponseEntity<EstudianteResponseDTO> obtenerPorId(@PathVariable String id) {
