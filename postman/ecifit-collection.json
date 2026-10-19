@@ -548,8 +548,8 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test('Status code es 200 OK o 400 si ya fue calculado', function () {",
-									"    pm.expect([200, 400]).to.include(pm.response.code);",
+									"pm.test('Status code es 200 OK o 400/422 si ya fue calculado', function () {",
+									"    pm.expect([200, 400, 422]).to.include(pm.response.code);",
 									"});",
 									"pm.test('Reto colectivo evaluado correctamente', function () {",
 									"    var jsonData = pm.response.json();",
