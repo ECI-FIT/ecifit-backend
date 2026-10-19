@@ -9,6 +9,7 @@ import co.edu.eci.dosw.ecifit.validator.IClanValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -23,6 +24,7 @@ public class ClanServiceImpl implements IClanService {
     private final IClanValidator validator;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Clan crear(Clan clan) {
         log.info("Creando clan: nombre={}", clan.getNombre());
         validator.validarNombreUnico(clan.getNombre());
@@ -35,6 +37,7 @@ public class ClanServiceImpl implements IClanService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Clan unirse(String clanId, String estudianteId) {
         log.info("Estudiante {} intentando unirse al clan {}", estudianteId, clanId);
         Clan clan = obtenerPorId(clanId);
@@ -49,6 +52,7 @@ public class ClanServiceImpl implements IClanService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Clan obtenerPorId(String id) {
         ClanEntity entity = clanRepository.findById(id)
                 .orElseThrow(() -> {
@@ -59,6 +63,7 @@ public class ClanServiceImpl implements IClanService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Clan> obtenerTodos() {
         return clanRepository.findAll().stream()
                 .map(entityMapper::toDomain)
@@ -66,6 +71,7 @@ public class ClanServiceImpl implements IClanService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Clan atacarTorreRival(String clanId, int dano) {
         Clan clan = obtenerPorId(clanId);
         clan.recibirDano(dano);
