@@ -1,0 +1,566 @@
+{
+	"info": {
+		"_postman_id": "c1f729b4-358b-4a5d-b03a-ecifitbackend2026",
+		"name": "ECI FIT Backend - Suite de Pruebas de Funcionamiento (CP-01 a CP-10)",
+		"description": "Colección oficial de pruebas de caja negra y flujos de integración para la API ECI FIT (Sprint 4 - Feria de Proyectos DOSW).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "jwtTokenAdmin",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "jwtTokenEstudiante",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "jwtTokenEntrenador",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "01 - Autenticación y Seguridad",
+			"item": [
+				{
+					"name": "CP-01: Login Exitoso Administrador (200 OK)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 200 OK', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Retorna token JWT y rol ADMINISTRADOR', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.token).to.not.be.empty;",
+									"    pm.expect(jsonData.rol).to.eql('ROLE_ADMINISTRADOR');",
+									"    pm.collectionVariables.set('jwtTokenAdmin', jsonData.token);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@mail.escuelaing.edu.co\",\n    \"password\": \"Admin123*\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "CP-01B: Login Exitoso Estudiante (200 OK)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 200 OK', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Retorna token JWT de Estudiante', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.token).to.not.be.empty;",
+									"    pm.collectionVariables.set('jwtTokenEstudiante', jsonData.token);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"estudiante@mail.escuelaing.edu.co\",\n    \"password\": \"Estudiante123*\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "CP-01C: Login Exitoso Entrenador (200 OK)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 200 OK', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Retorna token JWT de Entrenador', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.token).to.not.be.empty;",
+									"    pm.collectionVariables.set('jwtTokenEntrenador', jsonData.token);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"entrenador@mail.escuelaing.edu.co\",\n    \"password\": \"Entrenador123*\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "CP-02: Login con Credenciales Inválidas (401 Unauthorized)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 401 Unauthorized', function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"pm.test('Retorna ErrorResponseDTO estándar', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(401);",
+									"    pm.expect(jsonData.mensaje).to.include('Credenciales');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@mail.escuelaing.edu.co\",\n    \"password\": \"ClaveIncorrecta*\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "login"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "02 - Estudiantes y Control de Roles (RBAC)",
+			"item": [
+				{
+					"name": "CP-03: Crear Estudiante con Rol Administrador (201 Created)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 201 Created', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test('Estudiante creado con ID y Rol correcto', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.id).to.not.be.empty;",
+									"    pm.expect(jsonData.rol).to.eql('TANQUE');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtTokenAdmin}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"EST-PRUEBA-99\",\n    \"nombre\": \"Camilo Vargas\",\n    \"correoInstitucional\": \"camilo.vargas@mail.escuelaing.edu.co\",\n    \"rol\": \"TANQUE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/estudiantes",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "estudiantes"]
+						}
+					}
+				},
+				{
+					"name": "CP-04: Crear Estudiante con Rol Sin Permisos (403 Forbidden)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 403 Forbidden', function () {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Retorna mensaje de acceso denegado en ErrorResponseDTO', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(403);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtTokenEstudiante}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"EST-ILLEGAL\",\n    \"nombre\": \"Intruso\",\n    \"correoInstitucional\": \"intruso@mail.escuelaing.edu.co\",\n    \"rol\": \"CORREDOR\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/estudiantes",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "estudiantes"]
+						}
+					}
+				},
+				{
+					"name": "CP-04B: Consultar Todos los Estudiantes (200 OK)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 200 OK', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Retorna lista de estudiantes registrados', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    pm.expect(jsonData.length).to.be.above(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtTokenAdmin}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/estudiantes",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "estudiantes"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "03 - Actividades Físicas y Anti-Cheat",
+			"item": [
+				{
+					"name": "CP-05: Registrar Actividad Válida (201 Created)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 201 Created', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test('Calcula puntos ponderados por rol', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.puntosOtorgados).to.be.above(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtTokenEstudiante}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"estudianteId\": \"EST-01\",\n    \"tipo\": \"CARDIO\",\n    \"duracionMinutos\": 35,\n    \"intensidad\": 8\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/actividades",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "actividades"]
+						}
+					}
+				},
+				{
+					"name": "CP-06: Registrar Actividad con Duración Inválida (422 Unprocessable)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 422 Unprocessable Entity', function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"pm.test('Validador de dominio rechaza la actividad', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(422);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtTokenEstudiante}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"estudianteId\": \"EST-01\",\n    \"tipo\": \"CARDIO\",\n    \"duracionMinutos\": 4,\n    \"intensidad\": 8\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/actividades",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "actividades"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "04 - Clanes y Gamificación",
+			"item": [
+				{
+					"name": "CP-07: Unirse a Clan Exitosamente (200 OK)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 200 OK', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Estudiante agregado a la lista de miembros', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.miembrosIds).to.include('EST-03');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtTokenEstudiante}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"clanId\": \"CLAN-01\",\n    \"estudianteId\": \"EST-03\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/clanes/unirse",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "clanes", "unirse"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "05 - Asistencia al Gimnasio (RF-42)",
+			"item": [
+				{
+					"name": "CP-08: Confirmar Asistencia con Rol Entrenador (201 Created)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 201 Created o 409 si ya asistió hoy', function () {",
+									"    pm.expect([201, 409]).to.include(pm.response.code);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtTokenEntrenador}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"estudianteId\": \"EST-02\",\n    \"entrenadorId\": \"ENT-01\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/gimnasio/asistencias",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "gimnasio", "asistencias"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "06 - Temporadas y Salud del Servicio",
+			"item": [
+				{
+					"name": "CP-09: Consultar Temporada Activa (200 OK)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 200 OK', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Temporada activa coincide con semillero', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.nombre).to.eql('2026-2');",
+									"    pm.expect(jsonData.estadoActivo).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtTokenEstudiante}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/temporadas/activa",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "temporadas", "activa"]
+						}
+					}
+				},
+				{
+					"name": "CP-10: Health Check Público de Azure / Docker (200 OK)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code es 200 OK sin autenticación', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Retorna mensaje de disponibilidad', function () {",
+									"    pm.expect(pm.response.text()).to.include('ECI FIT');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "health"]
+						}
+					}
+				}
+			]
+		}
+	]
+}

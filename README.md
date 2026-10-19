@@ -124,7 +124,8 @@ El núcleo de **ECI FIT** aplica principios de *Clean Architecture* apoyados en 
 
 ### 5. Chain of Responsibility (Patrón de Comportamiento)
 * **Problema:** El sistema requiere un motor *Anti-Cheat* robusto para los registros de actividad. Validar integridad de datos, límites físicos humanos (ej. velocidad/distancia irreales) y estado de penalización en un solo bloque de código dificulta su mantenimiento.
-* **Implementación:** Construimos un *Pipeline de Validación*. La petición de actividad atraviesa una cadena de eslabones independientes (`DataIntegrityHandler` -> `AntiCheatHandler` -> `BanStatusHandler`). Esto permite inyectar nuevas reglas antifraude a futuro sin alterar los validadores existentes.
+* **Implementación:** Construimos un *Pipeline de Validación*. La petición de actividad atraviesa una cadena de eslabones independientes (`DataIntegrityHandler` -> `PhysiologicalLimitsHandler` -> `SanctionStatusHandler`). Esto permite inyectar nuevas reglas antifraude a futuro sin alterar los validadores existentes.
+* **Ubicación:** `co.edu.eci.dosw.ecifit.model.chain`
 
 ### Resumen de patrones
 
@@ -134,7 +135,9 @@ El núcleo de **ECI FIT** aplica principios de *Clean Architecture* apoyados en 
 | Observer | Registrar una actividad dispara varios efectos (ligas y torre del clan) sin acoplar los módulos. | `ActividadObserver`, `GestorLigas`, `TorreClan` | Diagrama de clases |
 | State | Las reglas cambian según el calendario académico (semana regular o de parciales). | `EstadoTemporada`, `SemanaRegular`, `SemanaParciales` | Diagrama de clases |
 | Abstract Factory | La creación de misiones no debe acoplarse a la lógica de negocio. | `FabricaMisiones`, `FabricaMisionesEstandar`, `Mision`, `MisionDiaria`, `MisionSemanal` | Diagrama de clases |
-| Chain of Responsibility | Validar integridad, anti-cheat y penalizaciones de una actividad sin concentrar todo en un solo bloque. | <!-- Daniel V: clases cuando se implemente --> | Diagrama de clases |
+| Chain of Responsibility | Validar integridad, anti-cheat y penalizaciones de una actividad sin concentrar todo en un solo bloque. | `ActividadHandler`, `DataIntegrityHandler`, `PhysiologicalLimitsHandler`, `SanctionStatusHandler` | Diagrama de clases |
+
+> 📘 **Documento de Arquitectura (HLD Backend):** Para consultar diagramas de secuencia, matriz RBAC y mapeo de errores detallados, consultar [docs/arquitectura-hld.md](docs/arquitectura-hld.md).
 
 ## Diagramas
 ### 1. Diagrama de clases
