@@ -20,7 +20,7 @@ import java.util.UUID;
 
 /**
  * Inicializador de datos de demostración y precarga para stand y feria de proyectos DOSW.
- * Siembra de forma atómica estudiantes, clanes, temporadas, rankings, misiones y actividades.
+ * Siembra de forma atómica estudiantes, clanes, retos colectivos, temporadas, rankings, misiones y actividades.
  */
 @Slf4j
 @Component
@@ -30,6 +30,7 @@ public class DemoDataSeeder implements CommandLineRunner {
     private final UsuarioRepository usuarioRepository;
     private final EstudianteRepository estudianteRepository;
     private final ClanRepository clanRepository;
+    private final RetoClanRepository retoClanRepository;
     private final TemporadaRepository temporadaRepository;
     private final RankingTemporadaRepository rankingTemporadaRepository;
     private final MisionRepository misionRepository;
@@ -94,7 +95,34 @@ public class DemoDataSeeder implements CommandLineRunner {
 
             clanRepository.saveAll(List.of(c1, c2));
 
-            // 3. Temporada Activa
+            // 3. Retos de clan de demostración (RF-34 y RF-36)
+            RetoClanEntity reto1 = RetoClanEntity.builder()
+                    .id("RETO-DEMO-01")
+                    .clanId("CLAN-01")
+                    .descripcion("Acumular 600 puntos colectivos en actividades de fuerza")
+                    .objetivoPuntos(600)
+                    .progresoActual(770)
+                    .recompensa(200)
+                    .fechaInicio(LocalDate.now().minusDays(3))
+                    .fechaFin(LocalDate.now().plusDays(4))
+                    .completado(false)
+                    .build();
+
+            RetoClanEntity reto2 = RetoClanEntity.builder()
+                    .id("RETO-DEMO-02")
+                    .clanId("CLAN-02")
+                    .descripcion("Alcanzar 500 puntos en retos de resistencia cardiovascular")
+                    .objetivoPuntos(500)
+                    .progresoActual(210)
+                    .recompensa(150)
+                    .fechaInicio(LocalDate.now().minusDays(2))
+                    .fechaFin(LocalDate.now().plusDays(5))
+                    .completado(false)
+                    .build();
+
+            retoClanRepository.saveAll(List.of(reto1, reto2));
+
+            // 4. Temporada Activa
             TemporadaEntity temporada = TemporadaEntity.builder()
                     .nombre("2026-2")
                     .fechaInicio(LocalDate.now().minusWeeks(4))
@@ -103,7 +131,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                     .build();
             temporada = temporadaRepository.save(temporada);
 
-            // 4. Rankings de la Temporada
+            // 5. Rankings de la Temporada
             RankingTemporadaEntity r1 = RankingTemporadaEntity.builder()
                     .estudianteId(UUID.randomUUID())
                     .temporada(temporada)
@@ -127,7 +155,7 @@ public class DemoDataSeeder implements CommandLineRunner {
 
             rankingTemporadaRepository.saveAll(List.of(r1, r2, r3));
 
-            // 5. Misiones de Demostración
+            // 6. Misiones de Demostración
             MisionEntity m1 = new MisionEntity();
             m1.setId("MIS-01");
             m1.setDescripcion("Completar 30 minutos de Cardio a intensidad media");
@@ -154,7 +182,7 @@ public class DemoDataSeeder implements CommandLineRunner {
 
             misionRepository.saveAll(List.of(m1, m2, m3));
 
-            // 6. Actividades registradas en historial
+            // 7. Actividades registradas en historial
             ActividadEntity a1 = ActividadEntity.builder()
                     .id("ACT-DEMO-01")
                     .tipo("CARDIO")
@@ -187,7 +215,7 @@ public class DemoDataSeeder implements CommandLineRunner {
 
             actividadRepository.saveAll(List.of(a1, a2, a3));
 
-            log.info("Datos de negocio inicializados exitosamente (Estudiantes, Clanes, Temporada, Rankings, Misiones y Actividades).");
+            log.info("Datos de negocio inicializados exitosamente (Estudiantes, Clanes, Retos de Clan, Temporada, Rankings, Misiones y Actividades).");
         }
     }
 
