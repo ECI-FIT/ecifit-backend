@@ -62,7 +62,7 @@ class ClanControllerTest {
         // Arrange
         CrearClanRequestDTO request = new CrearClanRequestDTO("Guerreros", "E1");
         Clan clan = new Clan("C1", "Guerreros");
-        ClanResponseDTO responseDTO = new ClanResponseDTO("C1", "Guerreros", 5000, 0, 1);
+        ClanResponseDTO responseDTO = new ClanResponseDTO("C1", "Guerreros", 5000, 0, 1, "E1");
 
         when(clanMapper.toDomain(any(CrearClanRequestDTO.class))).thenReturn(clan);
         when(clanService.crear(any(Clan.class))).thenReturn(clan);
@@ -85,7 +85,7 @@ class ClanControllerTest {
         // Arrange
         UnirseClanRequestDTO request = new UnirseClanRequestDTO("E2", "C1");
         Clan clan = new Clan("C1", "Guerreros");
-        ClanResponseDTO responseDTO = new ClanResponseDTO("C1", "Guerreros", 5000, 0, 2);
+        ClanResponseDTO responseDTO = new ClanResponseDTO("C1", "Guerreros", 5000, 0, 2, "E1");
 
         when(clanService.unirse("C1", "E2")).thenReturn(clan);
         when(clanMapper.toResponse(clan)).thenReturn(responseDTO);
@@ -107,7 +107,7 @@ class ClanControllerTest {
         // Arrange
         AbandonarClanRequestDTO request = new AbandonarClanRequestDTO("E2", "C1");
         Clan clan = new Clan("C1", "Guerreros");
-        ClanResponseDTO responseDTO = new ClanResponseDTO("C1", "Guerreros", 5000, 0, 1);
+        ClanResponseDTO responseDTO = new ClanResponseDTO("C1", "Guerreros", 5000, 0, 1, "E1");
 
         when(clanService.abandonar("C1", "E2")).thenReturn(clan);
         when(clanMapper.toResponse(clan)).thenReturn(responseDTO);
@@ -129,7 +129,7 @@ class ClanControllerTest {
         // Arrange
         String clanId = "C1";
         Clan clan = new Clan(clanId, "Guerreros");
-        ClanResponseDTO responseDTO = new ClanResponseDTO(clanId, "Guerreros", 5000, 100, 3);
+        ClanResponseDTO responseDTO = new ClanResponseDTO(clanId, "Guerreros", 5000, 100, 3, "E1");
 
         when(clanService.obtenerPorId(clanId)).thenReturn(clan);
         when(clanMapper.toResponse(clan)).thenReturn(responseDTO);
@@ -148,7 +148,7 @@ class ClanControllerTest {
     void debeObtenerTodosLosClanes() throws Exception {
         // Arrange
         Clan clan = new Clan("C1", "Guerreros");
-        ClanResponseDTO responseDTO = new ClanResponseDTO("C1", "Guerreros", 5000, 100, 3);
+        ClanResponseDTO responseDTO = new ClanResponseDTO("C1", "Guerreros", 5000, 100, 3, "E1");
 
         when(clanService.obtenerTodos()).thenReturn(List.of(clan));
         when(clanMapper.toResponse(clan)).thenReturn(responseDTO);
