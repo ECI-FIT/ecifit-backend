@@ -7,4 +7,6 @@ public interface IClanValidator {
     void validarNombreUnico(String nombre);
 
     void validarCupoDisponible(Clan clan);
+
+    void validarEstudianteSinClan(String estudianteId);
 }
