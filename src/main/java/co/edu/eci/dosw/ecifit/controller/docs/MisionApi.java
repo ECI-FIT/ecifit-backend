@@ -48,4 +48,17 @@ public interface MisionApi {
     })
     ResponseEntity<MisionResponseDTO> completar(
             @Parameter(description = "Id de la misión") String id);
+
+    @Operation(summary = "Registrar cumplimiento de una misión con evidencia o actividad (RF-18)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Cumplimiento de misión registrado exitosamente"),
+            @ApiResponse(responseCode = "400", description = "Solicitud inválida"),
+            @ApiResponse(responseCode = "404", description = "Misión no encontrada"),
+            @ApiResponse(responseCode = "409", description = "La misión ya fue completada"),
+            @ApiResponse(responseCode = "422", description = "Criterios no alcanzados")
+    })
+    ResponseEntity<MisionResponseDTO> registrarCumplimiento(
+            @Parameter(description = "Id de la misión") String id,
+            @Valid @org.springframework.web.bind.annotation.RequestBody(required = false)
+            co.edu.eci.dosw.ecifit.dto.request.RegistrarCumplimientoMisionRequestDTO dto);
 }

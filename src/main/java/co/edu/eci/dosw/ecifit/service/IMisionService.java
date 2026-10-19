@@ -22,5 +22,7 @@ public interface IMisionService {
 
     Mision completarMision(String id);
 
+    Mision registrarCumplimiento(String id, String actividadId, String evidencia);
+
     List<Mision> obtenerPorEstudiante(String estudianteId);
 }

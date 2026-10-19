@@ -124,13 +124,13 @@ public class TemporadaServiceImpl implements ITemporadaService {
             log.warn("No se sumaron puntos al ranking: no existe una temporada activa");
             return;
         }
-        UUID idEstudiante;
+        UUID parsedId;
         try {
-            idEstudiante = UUID.fromString(estudianteId);
+            parsedId = UUID.fromString(estudianteId);
         } catch (IllegalArgumentException e) {
-            log.warn("No se sumaron puntos al ranking: ID de estudiante inválido {}", estudianteId);
-            return;
+            parsedId = UUID.nameUUIDFromBytes(estudianteId.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         }
+        final UUID idEstudiante = parsedId;
 
         TemporadaEntity temporadaActiva = activa.get();
         RankingTemporada ranking = rankingTemporadaRepository

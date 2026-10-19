@@ -30,6 +30,21 @@ public interface EstudianteApi {
     })
     ResponseEntity<EstudianteResponseDTO> crearEstudiante(@Valid @RequestBody CrearEstudianteRequestDTO dto);
 
+    @Operation(summary = "Crear personaje del estudiante autenticado (RF-02)", description = "Permite a un estudiante en su primer ingreso crear su personaje asociándolo a su cuenta institucional")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Personaje creado exitosamente",
+                    content = @Content(schema = @Schema(implementation = EstudianteResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
+                    content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class))),
+            @ApiResponse(responseCode = "409", description = "El estudiante ya cuenta con un personaje registrado",
+                    content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class))),
+            @ApiResponse(responseCode = "422", description = "Rol de personaje no válido",
+                    content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
+    })
+    ResponseEntity<EstudianteResponseDTO> crearPersonajeEstudiante(
+            @Valid @RequestBody co.edu.eci.dosw.ecifit.dto.request.CrearPersonajeRequestDTO dto,
+            org.springframework.security.core.Authentication auth);
+
     @Operation(summary = "Obtener un estudiante por ID", description = "Consulta los detalles y puntaje acumulado de un estudiante")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Estudiante encontrado",
@@ -38,4 +53,13 @@ public interface EstudianteApi {
                     content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
     ResponseEntity<EstudianteResponseDTO> obtenerPorId(@PathVariable String id);
+
+    @Operation(summary = "Consultar todos los estudiantes", description = "Recupera la lista completa de estudiantes registrados en la plataforma")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista de estudiantes obtenida exitosamente",
+                    content = @Content(schema = @Schema(implementation = EstudianteResponseDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Acceso denegado: permisos insuficientes",
+                    content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
+    })
+    ResponseEntity<java.util.List<EstudianteResponseDTO>> obtenerTodos();
 }

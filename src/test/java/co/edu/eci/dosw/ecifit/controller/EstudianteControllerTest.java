@@ -104,4 +104,56 @@ class EstudianteControllerTest {
                 .andExpect(jsonPath("$.id").value("E1"))
                 .andExpect(jsonPath("$.nombre").value("Carlos Mendoza"));
     }
+
+    @Test
+    @DisplayName("GET /api/v1/estudiantes debe retornar 200 OK y la lista de estudiantes")
+    void debeObtenerTodosLosEstudiantesYRetornar200() throws Exception {
+        // Arrange
+        Estudiante estudiante = new Estudiante("E1", "Carlos Mendoza", "carlos.mendoza@mail.escuelaing.edu.co", new Tanque());
+        EstudianteResponseDTO responseDTO = new EstudianteResponseDTO(
+                "E1",
+                "Carlos Mendoza",
+                "carlos.mendoza@mail.escuelaing.edu.co",
+                100,
+                "TANQUE",
+                null
+        );
+
+        when(estudianteService.obtenerTodos()).thenReturn(java.util.List.of(estudiante));
+        when(estudianteMapper.toResponseList(java.util.List.of(estudiante))).thenReturn(java.util.List.of(responseDTO));
+
+        // Act
+        var resultado = mockMvc.perform(get("/api/v1/estudiantes"));
+
+        // Assert
+        resultado.andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value("E1"))
+                .andExpect(jsonPath("$[0].nombre").value("Carlos Mendoza"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/estudiantes/personaje debe retornar 201 Created al crear personaje")
+    void debeCrearPersonajeEstudianteYRetornar201() throws Exception {
+        // Arrange
+        co.edu.eci.dosw.ecifit.dto.request.CrearPersonajeRequestDTO request =
+                new co.edu.eci.dosw.ecifit.dto.request.CrearPersonajeRequestDTO("Mi Personaje", "CORREDOR");
+        Estudiante creado = new Estudiante("E-NEW", "Mi Personaje", "estudiante@mail.escuelaing.edu.co", null);
+        EstudianteResponseDTO responseDTO = new EstudianteResponseDTO(
+                "E-NEW", "Mi Personaje", "estudiante@mail.escuelaing.edu.co", 0, "CORREDOR", null);
+
+        when(estudianteService.crearPersonaje(any(), eq("Mi Personaje"), eq("CORREDOR")))
+                .thenReturn(creado);
+        when(estudianteMapper.toResponse(creado)).thenReturn(responseDTO);
+
+        // Act
+        var resultado = mockMvc.perform(post("/api/v1/estudiantes/personaje")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)));
+
+        // Assert
+        resultado.andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value("E-NEW"))
+                .andExpect(jsonPath("$.nombre").value("Mi Personaje"))
+                .andExpect(jsonPath("$.rolActivo").value("CORREDOR"));
+    }
 }

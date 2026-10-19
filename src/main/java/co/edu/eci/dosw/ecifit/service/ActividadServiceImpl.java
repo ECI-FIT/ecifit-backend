@@ -32,7 +32,7 @@ public class ActividadServiceImpl implements IActividadService {
     private final ITemporadaService temporadaService;
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Actividad registrarActividad(Actividad actividad, String estudianteId) {
         log.info("Iniciando registro de actividad física para el estudiante con ID: {}", estudianteId);
 

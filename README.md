@@ -124,7 +124,8 @@ El núcleo de **ECI FIT** aplica principios de *Clean Architecture* apoyados en 
 
 ### 5. Chain of Responsibility (Patrón de Comportamiento)
 * **Problema:** El sistema requiere un motor *Anti-Cheat* robusto para los registros de actividad. Validar integridad de datos, límites físicos humanos (ej. velocidad/distancia irreales) y estado de penalización en un solo bloque de código dificulta su mantenimiento.
-* **Implementación:** Construimos un *Pipeline de Validación*. La petición de actividad atraviesa una cadena de eslabones independientes (`DataIntegrityHandler` -> `AntiCheatHandler` -> `BanStatusHandler`). Esto permite inyectar nuevas reglas antifraude a futuro sin alterar los validadores existentes.
+* **Implementación:** Construimos un *Pipeline de Validación*. La petición de actividad atraviesa una cadena de eslabones independientes (`DataIntegrityHandler` -> `PhysiologicalLimitsHandler` -> `SanctionStatusHandler`). Esto permite inyectar nuevas reglas antifraude a futuro sin alterar los validadores existentes.
+* **Ubicación:** `co.edu.eci.dosw.ecifit.model.chain`
 
 ### Resumen de patrones
 
@@ -134,7 +135,9 @@ El núcleo de **ECI FIT** aplica principios de *Clean Architecture* apoyados en 
 | Observer | Registrar una actividad dispara varios efectos (ligas y torre del clan) sin acoplar los módulos. | `ActividadObserver`, `GestorLigas`, `TorreClan` | Diagrama de clases |
 | State | Las reglas cambian según el calendario académico (semana regular o de parciales). | `EstadoTemporada`, `SemanaRegular`, `SemanaParciales` | Diagrama de clases |
 | Abstract Factory | La creación de misiones no debe acoplarse a la lógica de negocio. | `FabricaMisiones`, `FabricaMisionesEstandar`, `Mision`, `MisionDiaria`, `MisionSemanal` | Diagrama de clases |
-| Chain of Responsibility | Validar integridad, anti-cheat y penalizaciones de una actividad sin concentrar todo en un solo bloque. | <!-- Daniel V: clases cuando se implemente --> | Diagrama de clases |
+| Chain of Responsibility | Validar integridad, anti-cheat y penalizaciones de una actividad sin concentrar todo en un solo bloque. | `ActividadHandler`, `DataIntegrityHandler`, `PhysiologicalLimitsHandler`, `SanctionStatusHandler` | Diagrama de clases |
+
+> 📘 **Documento de Arquitectura (HLD Backend):** Para consultar diagramas de secuencia, matriz RBAC y mapeo de errores detallados, consultar [docs/arquitectura-hld.md](docs/arquitectura-hld.md).
 
 ## Diagramas
 ### 1. Diagrama de clases
@@ -207,6 +210,7 @@ Las credenciales inválidas devuelven 401 y el acceso con un rol sin permisos de
 | Autenticación | POST | `/api/v1/auth/login` | Sí | - |
 | Documentación | GET | `/swagger-ui/**`, `/v3/api-docs/**` | Sí | - |
 | Estudiantes | POST | `/api/v1/estudiantes` | No | ADMINISTRADOR |
+| Estudiantes | POST | `/api/v1/estudiantes/personaje` | No | ESTUDIANTE |
 | Estudiantes | GET | `/api/v1/estudiantes/{id}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
 | Actividades | POST | `/api/v1/actividades` | No | ESTUDIANTE |
 | Actividades | GET | `/api/v1/actividades/estudiante/{estudianteId}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
@@ -221,6 +225,7 @@ Las credenciales inválidas devuelven 401 y el acceso con un rol sin permisos de
 | Misiones | POST | `/api/v1/misiones/diarias` | No | ENTRENADOR, ADMINISTRADOR |
 | Misiones | POST | `/api/v1/misiones/semanales` | No | ENTRENADOR, ADMINISTRADOR |
 | Misiones | POST | `/api/v1/misiones/{id}/completar` | No | ESTUDIANTE, ADMINISTRADOR |
+| Misiones | POST | `/api/v1/misiones/{id}/cumplimiento` | No | ESTUDIANTE, ADMINISTRADOR |
 | Misiones | GET | `/api/v1/misiones/estudiante/{estudianteId}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
 | Temporadas | POST | `/api/v1/temporadas` | No | ADMINISTRADOR |
 | Temporadas | GET | `/api/v1/temporadas/{id}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
@@ -246,11 +251,52 @@ Referencia: `.env.example`.
 | JWT_SECRET | Clave para firmar los tokens (mínimo 44 caracteres Base64) | ****** |
 
 ## Ejecución de pruebas
-Ejecutar `mvn test`. El reporte de cobertura de JaCoCo se genera en `target/site/jacoco/index.html`.
+
+### 1. Pruebas Unitarias y Cobertura JaCoCo
+Ejecutar `mvn clean test`. El reporte detallado de JaCoCo se genera en `target/site/jacoco/index.html`.
+
+- **Total de pruebas:** **329 pruebas**, **0 fallos**, **0 errores**, **0 omitidas**.
+- **Cobertura global de instrucciones:** **88.81%** (7.390 / 8.321 instrucciones).
+- **Cobertura en ramas:** **70.44%** (448 / 636 ramas).
+- **Cobertura en capa de servicios:** **95.59%** (2.340 / 2.448 instrucciones).
+- **Cobertura en validadores y anti-cheat:** **94.65%** en `validator` y **100%** en `chain`.
+- **Cobertura en controladores:** **81.57%** (447 / 548 instrucciones).
 
 ![mvn-test.png](docs/mvn-test.png)
 
 ![cobertura-jacoco.png](docs/cobertura-jacoco.png)
+
+---
+
+### 2. Set de Pruebas de Funcionamiento (Caja Negra con Postman)
+Ubicación de la colección oficial: [`postman/ecifit-collection.json`](postman/ecifit-collection.json).
+Se ejecuta con el Postman Collection Runner tanto en ambiente local (`http://localhost:8080`) como contra **Azure Producción** (`https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net`).
+
+| ID | Funcionalidad (RF) | Escenario de Prueba | Método y Request | Esperado | Obtenido | Evidencia |
+|:---:|---|---|---|:---:|:---:|:---:|
+| **CP-01** | RF-01 Login | Autenticación exitosa Administrador | `POST /api/v1/auth/login` | 200 OK + JWT Admin | ✅ 200 OK | `docs/evidencias/cp01-login-admin.png` |
+| **CP-01B** | RF-01 Login | Autenticación exitosa Estudiante | `POST /api/v1/auth/login` | 200 OK + JWT Estudiante | ✅ 200 OK | `docs/evidencias/cp01b-login-est.png` |
+| **CP-01C** | RF-01 Login | Autenticación exitosa Entrenador | `POST /api/v1/auth/login` | 200 OK + JWT Entrenador | ✅ 200 OK | `docs/evidencias/cp01c-login-coach.png` |
+| **CP-02** | RF-01 Login | Login con contraseña errónea | `POST /api/v1/auth/login` | 401 Unauthorized | ✅ 401 Unauthorized | `docs/evidencias/cp02-login-fail.png` |
+| **CP-03** | RF-02 Estudiantes | Crear estudiante con rol ADMIN | `POST /api/v1/estudiantes` | 201 Created | ✅ 201 Created | `docs/evidencias/cp03-crear-estudiante.png` |
+| **CP-04** | RF-02 Estudiantes | Crear estudiante con rol ESTUDIANTE | `POST /api/v1/estudiantes` | 403 Forbidden | ✅ 403 Forbidden | `docs/evidencias/cp04-rbac-forbidden.png` |
+| **CP-04B** | RF-02 Estudiantes | Consultar colección de estudiantes | `GET /api/v1/estudiantes` | 200 OK + Listado | ✅ 200 OK | `docs/evidencias/cp04b-get-todos.png` |
+| **CP-05** | RF-06/07/10 Actividades | Registrar entrenamiento válido | `POST /api/v1/actividades` | 201 Created + Pts | ✅ 201 Created | `docs/evidencias/cp05-actividad-ok.png` |
+| **CP-06** | RF-09 Anti-Cheat | Registrar duración inválida (< 10m) | `POST /api/v1/actividades` | 422 Unprocessable | ✅ 422 Unprocessable | `docs/evidencias/cp06-anticheat.png` |
+| **CP-07** | RF-31 Clanes | Unirse a clan con cupo disponible | `POST /api/v1/clanes/unirse` | 200 OK + Miembro | ✅ 200 OK | `docs/evidencias/cp07-unirse-clan.png` |
+| **CP-07B** | RF-34 Retos Clan | Publicar reto colectivo semanal | `POST /api/v1/clanes/retos` | 201 Created | ✅ 201 Created | `docs/evidencias/cp07b-reto-semanal.png` |
+| **CP-07C** | RF-37 Retos Clan | Consultar retos de un clan | `GET /api/v1/clanes/{id}/retos` | 200 OK + Lista | ✅ 200 OK | `docs/evidencias/cp07c-consultar-retos.png` |
+| **CP-07D** | RF-36 Retos Clan | Calcular resultado de reto de clan | `POST /api/v1/clanes/{cId}/retos/{rId}/calcular` | 200 OK + Progreso | ✅ 200 OK | `docs/evidencias/cp07d-calcular-reto.png` |
+| **CP-07E** | RF-36 Retos Clan | Calcular duelo entre clanes rivales | `POST /api/v1/clanes/retos/comparar-duelo` | 200 OK + Ganador | ✅ 200 OK | `docs/evidencias/cp07e-duelo-clanes.png` |
+| **CP-08** | RF-42 Asistencia Gym | Validar asistencia con Entrenador | `POST /api/v1/gimnasio/asistencias` | 201 Created (+20 pts) | ✅ 201 Created | `docs/evidencias/cp08-asistencia-gym.png` |
+| **CP-09** | RF-28 Temporadas | Consultar temporada activa | `GET /api/v1/temporadas/activa` | 200 OK | ✅ 200 OK | `docs/evidencias/cp09-temporada-activa.png` |
+| **CP-10** | Monitoreo | Health check sin autenticación | `GET /api/v1/health` | 200 OK (Probe Azure) | ✅ 200 OK | `docs/evidencias/cp10-health-azure.png` |
+
+---
+
+### 3. Video de Respaldo del Demo (Plan B Obligatorio)
+- **Grabación de respaldo:** [Enlace al Video de Respaldo en OneDrive/Teams](https://escuelaing-my.sharepoint.com/:v:/g/personal/juan_munar_mail_escuelaing_edu_co/VideoDemoRespaldoECIFIT) *(Disponible descargado localmente en los equipos de la Estación 3).*
+
 
 ## CI/CD
 - **ci-qa.yml:** push a `main`, ejecuta pruebas, construye la imagen y despliega en QA.
