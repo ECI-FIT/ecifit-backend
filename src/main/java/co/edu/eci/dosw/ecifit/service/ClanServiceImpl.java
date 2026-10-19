@@ -52,6 +52,7 @@ public class ClanServiceImpl implements IClanService {
         log.info("Estudiante {} intentando unirse al clan {}", estudianteId, clanId);
         Clan clan = obtenerPorId(clanId);
 
+        validator.validarEstudianteSinClan(estudianteId);
         validator.validarCupoDisponible(clan);
         clan.agregarMiembro(estudianteId);
 

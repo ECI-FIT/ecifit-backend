@@ -29,4 +29,11 @@ public class ClanValidator implements IClanValidator {
                     + LIMITE_MIEMBROS + " miembros");
         }
     }
+
+    @Override
+    public void validarEstudianteSinClan(String estudianteId) {
+        if (clanRepository.perteneceAAlgunClan(estudianteId)) {
+            throw new ConflictoException("El estudiante ya pertenece a un clan");
+        }
+    }
 }

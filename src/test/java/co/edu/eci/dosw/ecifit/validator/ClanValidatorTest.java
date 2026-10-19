@@ -74,4 +74,24 @@ class ClanValidatorTest {
         assertThrows(ReglaDeNegocioException.class,
                 () -> validator.validarCupoDisponible(clan));
     }
+
+    @Test
+    @DisplayName("validarEstudianteSinClan - estudiante sin clan no lanza excepción")
+    void validarEstudianteSinClan_sinClan_noLanzaExcepcion() {
+        // Arrange
+        when(clanRepository.perteneceAAlgunClan("E1")).thenReturn(false);
+
+        // Act & Assert
+        assertDoesNotThrow(() -> validator.validarEstudianteSinClan("E1"));
+    }
+
+    @Test
+    @DisplayName("validarEstudianteSinClan - estudiante con clan lanza ConflictoException")
+    void validarEstudianteSinClan_conClan_lanzaConflicto() {
+        // Arrange
+        when(clanRepository.perteneceAAlgunClan("E1")).thenReturn(true);
+
+        // Act & Assert
+        assertThrows(ConflictoException.class, () -> validator.validarEstudianteSinClan("E1"));
+    }
 }

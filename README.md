@@ -216,6 +216,9 @@ Las credenciales inválidas devuelven 401 y el acceso con un rol sin permisos de
 | Clanes | POST | `/api/v1/clanes` | No | ESTUDIANTE, ADMINISTRADOR |
 | Clanes | POST | `/api/v1/clanes/unirse` | No | ESTUDIANTE |
 | Clanes | POST | `/api/v1/clanes/abandonar` | No | ESTUDIANTE |
+| Clanes | POST | `/api/v1/clanes/invitaciones` | No | ESTUDIANTE |
+| Clanes | POST | `/api/v1/clanes/invitaciones/{id}/responder` | No | ESTUDIANTE |
+| Clanes | GET | `/api/v1/clanes/invitaciones/estudiante/{estudianteId}` | No | ESTUDIANTE, ADMINISTRADOR |
 | Clanes | GET | `/api/v1/clanes` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
 | Clanes | GET | `/api/v1/clanes/{id}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
 | Misiones | POST | `/api/v1/misiones/diarias` | No | ENTRENADOR, ADMINISTRADOR |
