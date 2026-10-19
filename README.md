@@ -253,10 +253,11 @@ Referencia: `.env.example`.
 ### 1. Pruebas Unitarias y Cobertura JaCoCo
 Ejecutar `mvn clean test`. El reporte detallado de JaCoCo se genera en `target/site/jacoco/index.html`.
 
-- **Total de pruebas:** **307 pruebas**, **0 fallos**, **0 errores**, **0 omitidas**.
-- **Cobertura global de instrucciones:** **88.36%** (6.967 / 7.885 instrucciones).
-- **Cobertura en capa de servicios:** **96.09%**.
-- **Cobertura en validadores y anti-cheat:** **94.54%**.
+- **Total de pruebas:** **319 pruebas**, **0 fallos**, **0 errores**, **0 omitidas**.
+- **Cobertura global de instrucciones:** **87.72%** (7.186 / 8.192 instrucciones).
+- **Cobertura en ramas:** **70.54%** (443 / 628 ramas).
+- **Cobertura en capa de servicios:** **96.36%** (2.303 / 2.390 instrucciones).
+- **Cobertura en validadores y anti-cheat:** **94.65%** en `validator` y **91.15%** en `chain`.
 
 ![mvn-test.png](docs/mvn-test.png)
 

@@ -36,7 +36,7 @@ flowchart TD
     end
 
     subgraph Externos["Sistemas Externos y Almacenamiento"]
-        Postgres[("PostgreSQL 16\n(Persistencia Relacional ACID - 13 Tablas)")]
+        Postgres[("PostgreSQL 16\n(Persistencia Relacional ACID - 12 Tablas)")]
         GeminiAPI["Google Gemini 2.5 Flash Lite API\n(Evaluación Nutricional Asistida)"]
         AzureCloud["Azure App Service\n(Container Runtime Linux)"]
     end
@@ -111,8 +111,8 @@ Alineación formal y exhaustiva entre el catálogo canónico de los 42 requerimi
 | **RF-27** | Descender estudiante de liga cuando corresponda | Temporadas | `Temporada.determinarLiga` | **Implementado** |
 | **RF-28** | Consultar ranking de la temporada | Temporadas | `GET /api/v1/temporadas/{id}/ranking` | **Implementado** |
 | **RF-29** | Crear clan | Clanes | `POST /api/v1/clanes` | **Implementado** |
-| **RF-30** | Invitar estudiante a un clan | Clanes / Invitaciones | `POST /api/v1/clanes/invitaciones` | **Implementado** |
-| **RF-31** | Aceptar o rechazar invitación a clan | Clanes / Invitaciones | `POST /api/v1/clanes/invitaciones/{id}/responder`<br>`POST /api/v1/clanes/unirse` | **Implementado** |
+| **RF-30** | Invitar estudiante a un clan | Clanes / Invitaciones | Prototipo `POST /api/v1/clanes/invitaciones`; flujo formal con notificación asíncrona aplazado | **Limitación Conocida** |
+| **RF-31** | Aceptar o rechazar invitación a clan | Clanes / Invitaciones | `POST /api/v1/clanes/unirse` (unirse directo funcional); respuesta asíncrona en memoria | **Parcial** |
 | **RF-32** | Limitar el clan a máximo cinco integrantes | Clanes / Validator | `ClanValidator.validarCupoDisponible` | **Implementado** |
 | **RF-33** | Abandonar un clan voluntariamente | Clanes | `POST /api/v1/clanes/abandonar` | **Implementado** |
 | **RF-34** | Publicar reto colectivo semanal | Clanes / Retos | `POST /api/v1/clanes/retos` | **Implementado** |
@@ -127,11 +127,11 @@ Alineación formal y exhaustiva entre el catálogo canónico de los 42 requerimi
 
 > [!NOTE]
 > ### Balance y Cuadre Matemático de Requerimientos:
-> $$\text{Requerimientos Implementados (34)} + \text{Requerimientos Parciales (3)} + \text{Limitaciones Conocidas (5)} = 42\text{ Requerimientos Totales}$$
+> $$\text{Requerimientos Implementados (32)} + \text{Requerimientos Parciales (4)} + \text{Limitaciones Conocidas (6)} = 42\text{ Requerimientos Totales}$$
 > 
-> * **Completamente Implementados (34):** RF-01, RF-03, RF-04, RF-06, RF-07, RF-08, RF-09, RF-10, RF-11, RF-12, RF-13, RF-14, RF-15, RF-16, RF-17, RF-19, RF-20, RF-21, RF-22, RF-24, RF-25, RF-26, RF-27, RF-28, RF-29, RF-30, RF-31, RF-32, RF-33, RF-34, RF-35, RF-36, RF-37, RF-42.
-> * **Parciales (3):** RF-02 (creación administrativa sin auto-creación en primer login), RF-18 (completitud directa sin captura de evidencia/foto), RF-23 (método desconectado del flujo de actividades y disparidad de tipo UUID/String).
-> * **Limitaciones Conocidas (5):** RF-05 (estadísticas desglosadas por atributo), RF-38 (niveles de clan), RF-39 (reporte IoT de aforo), RF-40 (consulta IoT de aforo), RF-41 (mapa colaborativo térmico).
+> * **Completamente Implementados (32):** RF-01, RF-03, RF-04, RF-06, RF-07, RF-08, RF-09, RF-10, RF-11, RF-12, RF-13, RF-14, RF-15, RF-16, RF-17, RF-19, RF-20, RF-21, RF-22, RF-24, RF-25, RF-26, RF-27, RF-28, RF-29, RF-32, RF-33, RF-34, RF-35, RF-36, RF-37, RF-42.
+> * **Parciales (4):** RF-02 (creación administrativa sin auto-creación en primer login), RF-18 (completitud directa sin captura de evidencia/foto), RF-23 (método desconectado del flujo de actividades y disparidad de tipo UUID/String), RF-31 (unirse directo a clan operativo con validación de cupo; respuesta a invitaciones sin despacho de notificación push/correo).
+> * **Limitaciones Conocidas (6):** RF-05 (estadísticas desglosadas por atributo), RF-30 (sistema de invitaciones formal con notificaciones y expiración temporal), RF-38 (niveles de clan), RF-39 (reporte IoT de aforo), RF-40 (consulta IoT de aforo), RF-41 (mapa colaborativo térmico).
 
 ---
 
@@ -142,24 +142,23 @@ Alineación formal y exhaustiva entre el catálogo canónico de los 42 requerimi
 > Los diagramas estructurales del sistema han sido elaborados en draw.io y Lucidchart bajo la paleta institucional de DOSW, fondo blanco puro `#FFFFFF`, tipografía sin serifa legible y exportados en resolución vectorial SVG o PNG de alta densidad (2x).
 
 ### 4.1 Modelo Entidad-Relación de Base de Datos (ERD)
-Representación de las **13 tablas relacionales** en PostgreSQL 16 normalizadas en Tercera Forma Normal (3FN), con llaves primarias, llaves foráneas e índices únicos:
+Representación de las **12 tablas relacionales** en PostgreSQL 16 normalizadas en Tercera Forma Normal (3FN), con llaves primarias, llaves foráneas e índices únicos:
 
 ![Modelo entidad-relación](diagramas/modelo-er.png)
 
-#### Entidades y Tablas JPA del Esquema Relacional (13 Tablas):
+#### Entidades y Tablas JPA del Esquema Relacional (12 Tablas):
 1. **`usuarios` (`UsuarioEntity`):** Credenciales de autenticación (`email` UNIQUE, `password` BCrypt Hash, `rol`, `activo`).
 2. **`estudiantes` (`EstudianteEntity`):** Perfil del jugador (`correo_institucional` UNIQUE, `rol_activo`, `puntos_acumulados`, `clan_id` FK nullable).
 3. **`clanes` (`ClanEntity`):** Información de agrupaciones (`nombre` UNIQUE, `salud_torre`, `puntos_totales`, `lider_id`).
-4. **`invitaciones_clan` (`InvitacionClanEntity`):** Sistema de invitaciones de clanes (`clan_id` FK hacia `clanes.id`, `estudiante_id` FK, `invitado_por_id`, `estado` [PENDIENTE, ACEPTADA, RECHAZADA], `fecha`).
-5. **`retos_clan` (`RetoClanEntity`):** Retos colectivos semanales (`clan_id` FK hacia `clanes.id`, `objetivo_puntos`, `progreso_actual`, `recompensa`, `completado`).
-6. **`actividades` (`ActividadEntity`):** Historial deportivo (`estudiante_id` FK, `tipo`, `duracion_minutos`, `intensidad`, `puntos_otorgados`, `fecha`).
-7. **`comidas` (`ComidaEntity`):** Registros nutricionales (`estudiante_id` FK, `tipo_comida`, `estado_evaluacion`, `balanceada`, `justificacion_ia`, `recomendacion_ia`, `puntos_otorgados`).
-8. **`menus_comedor` (`MenuComedorEntity`):** Menú diario institucional (`fecha`, `tipo_comida`).
-9. **`platos_menu` (`PlatoMenuEntity`):** Ítems del menú (`menu_id` FK hacia `menus_comedor.id`, `nombre`, `categoria`, `calorias_aproximadas`).
-10. **`misiones` (`MisionEntity`):** Retos individuales (`estudiante_id` FK, `descripcion`, `recompensa`, `tipo`, `completada`).
-11. **`temporadas` (`TemporadaEntity`):** Periodos semestrales (`nombre`, `fecha_inicio`, `fecha_fin`, `estado_activo`).
-12. **`rankings_temporada` (`RankingTemporadaEntity`):** Posiciones competitivas (`temporada_id` FK, `estudiante_id` FK, `puntos_acumulados`, `liga_actual`, restricción `UNIQUE(temporada_id, estudiante_id)`).
-13. **`asistencias_gym` (`AsistenciaGymEntity`):** Registro de visitas (`estudiante_id` FK, `entrenador_id`, `fecha`, restricción `UNIQUE(estudiante_id, fecha)`).
+4. **`retos_clan` (`RetoClanEntity`):** Retos colectivos semanales (`clan_id` FK hacia `clanes.id`, `objetivo_puntos`, `progreso_actual`, `recompensa`, `completado`).
+5. **`actividades` (`ActividadEntity`):** Historial deportivo (`estudiante_id` FK, `tipo`, `duracion_minutos`, `intensidad`, `puntos_otorgados`, `fecha`).
+6. **`comidas` (`ComidaEntity`):** Registros nutricionales (`estudiante_id` FK, `tipo_comida`, `estado_evaluacion`, `balanceada`, `justificacion_ia`, `recomendacion_ia`, `puntos_otorgados`).
+7. **`menus_comedor` (`MenuComedorEntity`):** Menú diario institucional (`fecha`, `tipo_comida`).
+8. **`platos_menu` (`PlatoMenuEntity`):** Ítems del menú (`menu_id` FK hacia `menus_comedor.id`, `nombre`, `categoria`, `calorias_aproximadas`).
+9. **`misiones` (`MisionEntity`):** Retos individuales (`estudiante_id` FK, `descripcion`, `recompensa`, `tipo`, `completada`).
+10. **`temporadas` (`TemporadaEntity`):** Periodos semestrales (`nombre`, `fecha_inicio`, `fecha_fin`, `estado_activo`).
+11. **`rankings_temporada` (`RankingTemporadaEntity`):** Posiciones competitivas (`temporada_id` FK, `estudiante_id` FK, `puntos_acumulados`, `liga_actual`, restricción `UNIQUE(temporada_id, estudiante_id)`).
+12. **`asistencias_gym` (`AsistenciaGymEntity`):** Registro de visitas (`estudiante_id` FK, `entrenador_id`, `fecha`, restricción `UNIQUE(estudiante_id, fecha)`).
 
 ---
 
@@ -461,7 +460,7 @@ flowchart LR
     end
 
     subgraph DataTier["Base de Datos"]
-        AzurePG[("PostgreSQL 16\nSSL/TLS Activo - 13 Tablas")]
+        AzurePG[("PostgreSQL 16\nSSL/TLS Activo - 12 Tablas")]
     end
 
     WebFront -->|"HTTPS / REST"| AppProd
@@ -485,21 +484,24 @@ flowchart LR
 
 ## 9. Limitaciones Conocidas (Deuda Técnica Declarada)
 
-En estricto cumplimiento de la **Regla 3 de Deuda Técnica** del Sprint 4, el equipo declara con transparencia técnica y madurez ingenieril las **5 limitaciones conocidas** que no formaron parte del alcance de entrega de este corte:
+En estricto cumplimiento de la **Regla 3 de Deuda Técnica** del Sprint 4, el equipo declara con transparencia técnica y madurez ingenieril las **6 limitaciones conocidas** que no formaron parte del alcance de entrega de este corte:
 
 1. **RF-05 — Desglose de Estadísticas por Atributo Físico:**
    - *Impacto:* La entidad `Estudiante` y la tabla `estudiantes` almacenan `puntosAcumulados` de forma global y consolidada, pero no dividen el rendimiento en 4 columnas separadas (Fuerza, Cardio, Flexibilidad y Nutrición).
    - *Mitigación / Solución Futura:* Creación de una entidad `EstadisticaAtleta` vinculada 1:1 con `Estudiante` que discrimine el puntaje por cada disciplina deportiva.
-2. **RF-38 — Escalamiento Jerárquico de Nivel de Clanes:**
+2. **RF-30 — Flujo Completo de Invitaciones a Clanes con Notificación y Expiración:**
+   - *Impacto:* La vinculación de estudiantes al clan se garantiza de forma directa y atómica (`POST /api/v1/clanes/unirse`). El flujo formal asíncrono de invitaciones con ciclo de vida, notificaciones push/correo y caducidad temporal (TTL) fue pospuesto para la fase de cliente móvil.
+   - *Mitigación / Solución Futura:* Integración de mensajería push (Firebase Cloud Messaging) o WebSockets, complementado con un job Quartz/Spring Scheduler que expire invitaciones tras 48 horas de inactividad.
+3. **RF-38 — Escalamiento Jerárquico de Nivel de Clanes:**
    - *Impacto:* Los clanes acumulan puntos colectivos y salud de torre en guerras de campus, pero no poseen un árbol de habilidades o niveles desbloqueables (ej. Clan Nivel 1 a 10).
    - *Mitigación / Solución Futura:* Extensión del modelo `Clan` con experiencia grupal acumulada y multiplicadores defensivos progresivos sobre la torre.
-3. **RF-39 — Reporte de Ocupación y Aforo del Gimnasio con Sensores IoT:**
+4. **RF-39 — Reporte de Ocupación y Aforo del Gimnasio con Sensores IoT:**
    - *Impacto:* El reporte de ocupación del gimnasio requiere infraestructura física de torniquetes inteligentes o cámaras con visión artificial que exceden el alcance del backend software del MVP.
    - *Mitigación / Solución Futura:* Integración de un broker MQTT / WebSockets y persistencia temporal en Redis para transmitir telemetría de presencia sin saturar PostgreSQL.
-4. **RF-40 — Consulta de Aforo en Tiempo Real del Gimnasio:**
+5. **RF-40 — Consulta de Aforo en Tiempo Real del Gimnasio:**
    - *Impacto:* Al no existir sensores de presencia instalados, no se expone endpoint de consulta de ocupación en vivo.
    - *Mitigación / Solución Futura:* Endpoint `GET /api/v1/gimnasio/aforo` conectado a Redis para consulta con latencia menor a 15 ms.
-5. **RF-41 — Mapa Colaborativo Térmico de Zonas del Gimnasio:**
+6. **RF-41 — Mapa Colaborativo Térmico de Zonas del Gimnasio:**
    - *Impacto:* La representación visual de zonas (mancuernas, máquinas, cardio) requiere telemetría de balizas BLE o reportes de usuarios por micro-zonas.
    - *Mitigación / Solución Futura:* Servicio espacial en PostgreSQL (PostGIS) o matriz de calor matricial por estaciones de entrenamiento.
 
@@ -515,7 +517,7 @@ En estricto cumplimiento de la **Regla 3 de Deuda Técnica** del Sprint 4, el eq
 | **Strategy** | Comportamiento | `RolStrategy`, `Tanque`, `Corredor`, `Estratega` (`co.edu.eci.dosw.ecifit.model.strategy`) | **Activo en Flujo HTTP** | Cálculo dinámico de bonificaciones de experiencia según arquetipo deportivo en `ActividadServiceImpl`, eliminando condicionales `switch`/`if-else` (Principio OCP). |
 | **Abstract Factory / Factory Method** | Creacional | `FabricaMisiones`, `FabricaMisionesEstandar`, `MisionDiaria`, `MisionSemanal` (`co.edu.eci.dosw.ecifit.model.factory`) | **Activo en Flujo HTTP** | Instanciación desacoplada de familias coherentes de misiones (diarias vs. semanales) en `MisionServiceImpl`, encapsulando la lógica creacional. |
 | **Adapter** | Estructural | `GeminiEvaluadorNutricional`, `IEvaluadorNutricional` (`co.edu.eci.dosw.ecifit.service.ia`) | **Activo en Flujo HTTP** | Adapta la API externa de Google Gemini 2.5 Flash Lite al contrato del dominio institucional, aislando cambios de versión del SDK o del proveedor de IA. |
-| **Data Transfer Object (DTO)** | Arquitectónico | Paquetes `dto.request` y `dto.response` con records inmutables y MapStruct (`mapper`) | **Activo en Flujo HTTP** | Aislamiento total de las 13 entidades relacionales JPA frente a la API pública, evitando recursión circular en Jackson y fuga de información sensible. |
+| **Data Transfer Object (DTO)** | Arquitectónico | Paquetes `dto.request` y `dto.response` con records inmutables y MapStruct (`mapper`) | **Activo en Flujo HTTP** | Aislamiento total de las 12 entidades relacionales JPA frente a la API pública, evitando recursión circular en Jackson y fuga de información sensible. |
 | **State** | Comportamiento | `EstadoTemporada`, `SemanaRegular`, `SemanaParciales` (`co.edu.eci.dosw.ecifit.model.state`) | **Modelo de Dominio** | Define las variaciones de reglas según el calendario académico (en semana de parciales se congela el ataque a torres); el servicio evalúa vigencia de temporada y delega la regla al modelo. |
 | **Observer** | Comportamiento | `TorreClan`, `GestorLigas`, `ActividadObserver` (`co.edu.eci.dosw.ecifit.model.observer`) | **Modelo de Dominio** | Desacopla la entidad `Actividad` de los efectos colaterales de daño a torres y ascensos de liga; en la capa de servicios las mutaciones de clanes se persisten transaccionalmente. |
 
