@@ -23,32 +23,7 @@ Sus responsabilidades esenciales abarcan:
 
 El siguiente diagrama delimita las fronteras del backend con los actores del campus y los subsistemas externos:
 
-```mermaid
-flowchart TD
-    subgraph Actores["Comunidad Universitaria"]
-        Estudiante["Estudiante / Jugador\n(Web & Mobile App)"]
-        Entrenador["Entrenador Institucional\n(Gestión Gym & Misiones)"]
-        Admin["Administrador del Sistema\n(Bienestar & Configuración)"]
-    end
-
-    subgraph Frontera["Frontera del Sistema: ECI FIT"]
-        Backend["ECI FIT Backend\n(Spring Boot 3.5.16 / Java 21 LTS)\n[API REST Stateless + JWT]"]
-    end
-
-    subgraph Externos["Sistemas Externos y Almacenamiento"]
-        Postgres[("PostgreSQL 16\n(Persistencia Relacional ACID - 12 Tablas)")]
-        GeminiAPI["Google Gemini 2.5 Flash Lite API\n(Evaluación Nutricional Asistida)"]
-        AzureCloud["Azure App Service\n(Container Runtime Linux)"]
-    end
-
-    Estudiante -->|"Registra actividades, comidas, retos, invitaciones\n[HTTPS / REST / JWT]"| Backend
-    Entrenador -->|"Valida asistencias gym, publica retos\n[HTTPS / REST / JWT]"| Backend
-    Admin -->|"Configura temporadas, estudiantes, menús\n[HTTPS / REST / JWT]"| Backend
-
-    Backend -->|"Persistencia transaccional\n[JDBC / Pool HikariCP]"| Postgres
-    Backend -->|"Clasificación nutricional y consejos\n[HTTP REST JSON]"| GeminiAPI
-    Backend -.->|"Hospedaje de contenedores\n[Docker Multi-Stage]"| AzureCloud
-```
+![Diagrama de contexto C4](diagramas/contexto-c4.png)
 
 ---
 
