@@ -19,35 +19,21 @@ public class SecurityDataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (usuarioRepository.count() == 0) {
-            log.info("Inicializando datos de prueba para seguridad en BD...");
+        crearUsuarioSiNoExiste("admin@mail.escuelaing.edu.co", "Admin123*", Rol.ADMINISTRADOR);
+        crearUsuarioSiNoExiste("estudiante@mail.escuelaing.edu.co", "Estudiante123*", Rol.ESTUDIANTE);
+        crearUsuarioSiNoExiste("entrenador@mail.escuelaing.edu.co", "Entrenador123*", Rol.ENTRENADOR);
+    }
 
-            UsuarioEntity admin = UsuarioEntity.builder()
-                    .email("admin@mail.escuelaing.edu.co")
-                    .password(passwordEncoder.encode("Admin123*"))
-                    .rol(Rol.ADMINISTRADOR)
+    private void crearUsuarioSiNoExiste(String email, String rawPassword, Rol rol) {
+        if (!usuarioRepository.existsByEmail(email)) {
+            UsuarioEntity usuario = UsuarioEntity.builder()
+                    .email(email)
+                    .password(passwordEncoder.encode(rawPassword))
+                    .rol(rol)
                     .activo(true)
                     .build();
-
-            UsuarioEntity estudiante = UsuarioEntity.builder()
-                    .email("estudiante@mail.escuelaing.edu.co")
-                    .password(passwordEncoder.encode("Estudiante123*"))
-                    .rol(Rol.ESTUDIANTE)
-                    .activo(true)
-                    .build();
-
-            UsuarioEntity entrenador = UsuarioEntity.builder()
-                    .email("entrenador@mail.escuelaing.edu.co")
-                    .password(passwordEncoder.encode("Entrenador123*"))
-                    .rol(Rol.ENTRENADOR)
-                    .activo(true)
-                    .build();
-
-            usuarioRepository.save(admin);
-            usuarioRepository.save(estudiante);
-            usuarioRepository.save(entrenador);
-
-            log.info("Usuarios de prueba creados exitosamente: admin, estudiante y entrenador");
+            usuarioRepository.save(usuario);
+            log.info("Usuario de seguridad sembrado: {}", email);
         }
     }
 }
