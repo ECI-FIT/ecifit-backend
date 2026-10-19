@@ -58,10 +58,10 @@ ECI FIT Backend es el servidor de la plataforma de gamificación deportiva de la
 | RF-27 | Bajar de liga | Corte automático de los lunes | Implementado |
 | RF-28 | Consultar ranking de la temporada | Temporadas | Implementado |
 | RF-29 | Crear clan | Clanes | Implementado |
-| RF-30 | Invitar a un clan | — | No implementado |
-| RF-31 | Aceptar o rechazar invitación | Clanes | Parcial: el estudiante se une directamente |
+| RF-30 | Invitar a un clan | Invitaciones a clanes | Implementado |
+| RF-31 | Aceptar o rechazar invitación | Invitaciones a clanes | Implementado |
 | RF-32 | Máximo 5 integrantes por clan | Clanes | Implementado |
-| RF-33 | Abandonar un clan | — | No implementado |
+| RF-33 | Abandonar un clan | Clanes | Implementado |
 | RF-34 | Publicar reto semanal de clanes | — | No implementado |
 | RF-35 | Acumular progreso del clan | Clanes | Parcial: existe la lógica pero no se puede usar desde la API |
 | RF-36 | Calcular resultado del reto entre clanes | — | No implementado |
@@ -73,6 +73,7 @@ ECI FIT Backend es el servidor de la plataforma de gamificación deportiva de la
 | RF-42 | Confirmar asistencia al gimnasio (entrenador) | Asistencia al gimnasio | Implementado |
 
 **Resumen:** 27 implementados, 6 parciales y 9 no implementados.
+
 
 ## 4. Diagramas arquitectónicos
 

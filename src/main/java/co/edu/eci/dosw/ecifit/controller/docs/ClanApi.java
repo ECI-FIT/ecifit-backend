@@ -1,5 +1,6 @@
 package co.edu.eci.dosw.ecifit.controller.docs;
 
+import co.edu.eci.dosw.ecifit.dto.request.AbandonarClanRequestDTO;
 import co.edu.eci.dosw.ecifit.dto.request.CrearClanRequestDTO;
 import co.edu.eci.dosw.ecifit.dto.request.UnirseClanRequestDTO;
 import co.edu.eci.dosw.ecifit.dto.response.ClanResponseDTO;
@@ -31,6 +32,14 @@ public interface ClanApi {
             @ApiResponse(responseCode = "422", description = "El clan ya alcanzo el limite de miembros")
     })
     ResponseEntity<ClanResponseDTO> unirse(@Valid UnirseClanRequestDTO dto);
+
+    @Operation(summary = "Abandonar un clan")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Estudiante retirado del clan; si era el líder, el siguiente miembro toma el liderazgo"),
+            @ApiResponse(responseCode = "404", description = "Clan no encontrado"),
+            @ApiResponse(responseCode = "422", description = "El estudiante no pertenece al clan")
+    })
+    ResponseEntity<ClanResponseDTO> abandonar(@Valid AbandonarClanRequestDTO dto);
 
     @Operation(summary = "Obtener un clan por id")
     @ApiResponses({
