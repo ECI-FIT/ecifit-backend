@@ -251,4 +251,79 @@ class TemporadaServiceImplTest {
         verify(rankingTemporadaRepository, never()).findByTemporadaId(any());
         verify(rankingTemporadaRepository, never()).saveAll(any());
     }
+
+    @Test
+    @DisplayName("sumarPuntosTemporadaActiva - ranking existente suma los puntos y guarda")
+    void sumarPuntosTemporadaActiva_rankingExistente_sumaPuntos() {
+        // Arrange
+        UUID estudianteId = UUID.randomUUID();
+        TemporadaEntity activa = new TemporadaEntity();
+        activa.setId(temporadaId);
+        RankingTemporadaEntity rankingEntity = new RankingTemporadaEntity();
+        RankingTemporada ranking = new RankingTemporada();
+        ranking.setPuntosAcumulados(100);
+
+        when(temporadaRepository.findByEstadoActivoTrue()).thenReturn(Optional.of(activa));
+        when(rankingTemporadaRepository.findByEstudianteIdAndTemporadaId(estudianteId, temporadaId))
+                .thenReturn(Optional.of(rankingEntity));
+        when(rankingTemporadaEntityMapper.toDomain(rankingEntity)).thenReturn(ranking);
+        when(rankingTemporadaEntityMapper.toEntity(ranking)).thenReturn(rankingEntity);
+
+        // Act
+        service.sumarPuntosTemporadaActiva(estudianteId.toString(), 50);
+
+        // Assert
+        assertEquals(150, ranking.getPuntosAcumulados());
+        verify(rankingTemporadaRepository).save(rankingEntity);
+    }
+
+    @Test
+    @DisplayName("sumarPuntosTemporadaActiva - sin ranking previo crea uno con los puntos")
+    void sumarPuntosTemporadaActiva_sinRanking_creaRanking() {
+        // Arrange
+        UUID estudianteId = UUID.randomUUID();
+        TemporadaEntity activa = new TemporadaEntity();
+        activa.setId(temporadaId);
+        RankingTemporadaEntity guardado = new RankingTemporadaEntity();
+
+        when(temporadaRepository.findByEstadoActivoTrue()).thenReturn(Optional.of(activa));
+        when(rankingTemporadaRepository.findByEstudianteIdAndTemporadaId(estudianteId, temporadaId))
+                .thenReturn(Optional.empty());
+        when(rankingTemporadaEntityMapper.toEntity(any(RankingTemporada.class))).thenAnswer(inv -> {
+            RankingTemporada nuevo = inv.getArgument(0);
+            assertEquals(estudianteId, nuevo.getEstudianteId());
+            assertEquals(30, nuevo.getPuntosAcumulados());
+            return guardado;
+        });
+
+        // Act
+        service.sumarPuntosTemporadaActiva(estudianteId.toString(), 30);
+
+        // Assert
+        verify(rankingTemporadaRepository).save(guardado);
+    }
+
+    @Test
+    @DisplayName("sumarPuntosTemporadaActiva - sin temporada activa no guarda nada")
+    void sumarPuntosTemporadaActiva_sinTemporadaActiva_noGuarda() {
+        // Arrange
+        when(temporadaRepository.findByEstadoActivoTrue()).thenReturn(Optional.empty());
+
+        // Act
+        service.sumarPuntosTemporadaActiva(UUID.randomUUID().toString(), 50);
+
+        // Assert
+        verify(rankingTemporadaRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("sumarPuntosTemporadaActiva - puntos en cero no consulta la temporada")
+    void sumarPuntosTemporadaActiva_puntosCero_noHaceNada() {
+        // Act
+        service.sumarPuntosTemporadaActiva(UUID.randomUUID().toString(), 0);
+
+        // Assert
+        verify(temporadaRepository, never()).findByEstadoActivoTrue();
+        verify(rankingTemporadaRepository, never()).save(any());
+    }
 }

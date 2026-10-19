@@ -39,6 +39,8 @@ class AsistenciaGymServiceImplTest {
     private AsistenciaGymEntityMapper asistenciaGymEntityMapper;
     @Mock
     private IAsistenciaGymValidator asistenciaGymValidator;
+    @Mock
+    private ITemporadaService temporadaService;
     @InjectMocks
     private AsistenciaGymServiceImpl service;
 

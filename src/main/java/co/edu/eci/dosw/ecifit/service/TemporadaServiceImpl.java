@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -110,5 +111,41 @@ public class TemporadaServiceImpl implements ITemporadaService {
 
         log.info("Recálculo semanal completado para temporada {}: {} rankings procesados",
                 temporadaActiva.getId(), rankings.size());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void sumarPuntosTemporadaActiva(String estudianteId, int puntos) {
+        if (puntos <= 0) {
+            return;
+        }
+        Optional<TemporadaEntity> activa = temporadaRepository.findByEstadoActivoTrue();
+        if (activa.isEmpty()) {
+            log.warn("No se sumaron puntos al ranking: no existe una temporada activa");
+            return;
+        }
+        UUID idEstudiante;
+        try {
+            idEstudiante = UUID.fromString(estudianteId);
+        } catch (IllegalArgumentException e) {
+            log.warn("No se sumaron puntos al ranking: ID de estudiante inválido {}", estudianteId);
+            return;
+        }
+
+        TemporadaEntity temporadaActiva = activa.get();
+        RankingTemporada ranking = rankingTemporadaRepository
+                .findByEstudianteIdAndTemporadaId(idEstudiante, temporadaActiva.getId())
+                .map(rankingTemporadaEntityMapper::toDomain)
+                .orElseGet(() -> {
+                    RankingTemporada nuevo = new RankingTemporada();
+                    nuevo.setEstudianteId(idEstudiante);
+                    nuevo.setTemporada(temporadaEntityMapper.toDomain(temporadaActiva));
+                    return nuevo;
+                });
+
+        ranking.agregarPuntos(puntos);
+        rankingTemporadaRepository.save(rankingTemporadaEntityMapper.toEntity(ranking));
+        log.info("Se sumaron {} puntos al ranking del estudiante {} en la temporada {}",
+                puntos, estudianteId, temporadaActiva.getId());
     }
 }

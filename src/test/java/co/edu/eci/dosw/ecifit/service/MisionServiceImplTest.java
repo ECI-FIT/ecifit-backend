@@ -45,6 +45,8 @@ class MisionServiceImplTest {
     private IMisionValidator validator;
     @Mock
     private FabricaMisiones fabricaMisiones;
+    @Mock
+    private ITemporadaService temporadaService;
     @InjectMocks
     private MisionServiceImpl service;
 

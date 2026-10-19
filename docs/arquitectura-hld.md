@@ -51,7 +51,7 @@ ECI FIT Backend es el servidor de la plataforma de gamificación deportiva de la
 | RF-20 | Calcular racha de días con actividad | Registro de actividades | Implementado |
 | RF-21 | Dar bono por racha de 7 días | Registro de actividades | Implementado |
 | RF-22 | Crear temporada del semestre | Temporadas | Implementado |
-| RF-23 | Sumar puntos a la temporada | Temporadas | Parcial: las actividades no suman al ranking |
+| RF-23 | Sumar puntos a la temporada | Actividades, misiones y gimnasio | Implementado |
 | RF-24 | Calcular la liga del estudiante | Temporadas | Implementado |
 | RF-25 | Recalcular ligas cada semana | Corte automático de los lunes | Implementado |
 | RF-26 | Subir de liga | Temporadas | Implementado |

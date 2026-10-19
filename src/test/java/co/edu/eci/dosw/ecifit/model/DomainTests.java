@@ -168,20 +168,24 @@ class DomainTests {
             GestorLigas gestorLigas = new GestorLigas();
             Estudiante e = new Estudiante("E1", "Ana Gomez", "ana.gomez@mail.escuelaing.edu.co", new Corredor());
 
-            assertEquals(GestorLigas.NivelLiga.BRONCE, gestorLigas.obtenerLigaEstudiante(e));
+            assertEquals(LigaEnum.BRONCE, gestorLigas.obtenerLigaEstudiante(e));
 
-            // Notificar 600 puntos -> Ascenso a Plata
-            gestorLigas.onActividadRegistrada(600, e);
-            assertEquals(GestorLigas.NivelLiga.PLATA, gestorLigas.obtenerLigaEstudiante(e));
-            assertEquals(600, gestorLigas.getRankingTotal().get(e));
+            // Notificar 1200 puntos -> Ascenso a Plata
+            gestorLigas.onActividadRegistrada(1200, e);
+            assertEquals(LigaEnum.PLATA, gestorLigas.obtenerLigaEstudiante(e));
+            assertEquals(1200, gestorLigas.getRankingTotal().get(e));
 
-            // Notificar 1000 puntos más (total 1600) -> Ascenso a Oro
+            // Notificar 1000 puntos más (total 2200) -> Ascenso a Oro
             gestorLigas.onActividadRegistrada(1000, e);
-            assertEquals(GestorLigas.NivelLiga.ORO, gestorLigas.obtenerLigaEstudiante(e));
+            assertEquals(LigaEnum.ORO, gestorLigas.obtenerLigaEstudiante(e));
 
-            // Notificar 1500 puntos más (total 3100) -> Ascenso a Diamante
-            gestorLigas.onActividadRegistrada(1500, e);
-            assertEquals(GestorLigas.NivelLiga.DIAMANTE, gestorLigas.obtenerLigaEstudiante(e));
+            // Notificar 1000 puntos más (total 3200) -> Ascenso a Platino
+            gestorLigas.onActividadRegistrada(1000, e);
+            assertEquals(LigaEnum.PLATINO, gestorLigas.obtenerLigaEstudiante(e));
+
+            // Notificar 1000 puntos más (total 4200) -> Ascenso a Diamante
+            gestorLigas.onActividadRegistrada(1000, e);
+            assertEquals(LigaEnum.DIAMANTE, gestorLigas.obtenerLigaEstudiante(e));
         }
 
         @Test
