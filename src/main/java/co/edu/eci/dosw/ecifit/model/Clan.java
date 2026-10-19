@@ -1,5 +1,7 @@
 package co.edu.eci.dosw.ecifit.model;
 
+import co.edu.eci.dosw.ecifit.exception.ReglaDeNegocioException;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -48,6 +50,19 @@ public class Clan {
         if (!miembrosIds.contains(estudianteId)) {
             miembrosIds.add(estudianteId);
         }
+    }
+
+    /**
+     * Retira a un estudiante del clan. Si sale el líder, el siguiente miembro pasa a serlo.
+     */
+    public void removerMiembro(String estudianteId) {
+        if (!miembrosIds.remove(estudianteId)) {
+            throw new ReglaDeNegocioException("El estudiante no pertenece al clan '" + nombre + "'");
+        }
+    }
+
+    public String getLiderId() {
+        return miembrosIds.isEmpty() ? null : miembrosIds.get(0);
     }
 
     /**

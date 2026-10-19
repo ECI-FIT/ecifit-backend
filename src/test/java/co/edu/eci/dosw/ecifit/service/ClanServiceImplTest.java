@@ -508,6 +508,71 @@ class ClanServiceImplTest {
         verify(clanRepository, never()).save(any());
     }
 
+    // ==========================================
+    // PRUEBAS PARA RF-33: ABANDONAR CLAN
+    // ==========================================
+
+    @Test
+    @DisplayName("abandonar - el líder sale y el siguiente miembro toma el liderazgo")
+    void abandonar_liderSale_reasignaLiderazgo() {
+        // Arrange
+        Clan clan = new Clan("C1", "Guerreros ECI");
+        clan.agregarMiembro("E1");
+        clan.agregarMiembro("E2");
+        ClanEntity entidad = new ClanEntity();
+        entidad.setId("C1");
+
+        when(clanRepository.findById("C1")).thenReturn(Optional.of(entidad));
+        when(entityMapper.toDomain(entidad)).thenReturn(clan);
+        when(entityMapper.toEntity(clan)).thenReturn(entidad);
+        when(clanRepository.save(entidad)).thenReturn(entidad);
+
+        // Act
+        service.abandonar("C1", "E1");
+
+        // Assert
+        assertEquals(1, clan.getCantidadMiembros());
+        assertEquals("E2", clan.getLiderId());
+        verify(clanRepository).save(entidad);
+    }
+
+    @Test
+    @DisplayName("abandonar - el último miembro sale y el clan se elimina")
+    void abandonar_ultimoMiembro_eliminaClan() {
+        // Arrange
+        Clan clan = new Clan("C1", "Guerreros ECI");
+        clan.agregarMiembro("E1");
+        ClanEntity entidad = new ClanEntity();
+        entidad.setId("C1");
+
+        when(clanRepository.findById("C1")).thenReturn(Optional.of(entidad));
+        when(entityMapper.toDomain(entidad)).thenReturn(clan);
+
+        // Act
+        Clan resultado = service.abandonar("C1", "E1");
+
+        // Assert
+        assertEquals(0, resultado.getCantidadMiembros());
+        verify(clanRepository).deleteById("C1");
+    }
+
+    @Test
+    @DisplayName("abandonar - estudiante que no pertenece al clan lanza ReglaDeNegocioException")
+    void abandonar_noEsMiembro_lanzaReglaDeNegocio() {
+        // Arrange
+        Clan clan = new Clan("C1", "Guerreros ECI");
+        clan.agregarMiembro("E1");
+        ClanEntity entidad = new ClanEntity();
+        entidad.setId("C1");
+
+        when(clanRepository.findById("C1")).thenReturn(Optional.of(entidad));
+        when(entityMapper.toDomain(entidad)).thenReturn(clan);
+
+        // Act & Assert
+        assertThrows(ReglaDeNegocioException.class, () -> service.abandonar("C1", "E99"));
+        verify(clanRepository, never()).save(any());
+    }
+
     @Test
     @DisplayName("obtenerRetosPorClan - clan existente retorna lista de retos mapeados")
     void obtenerRetosPorClan_clanExistente_retornaLista() {

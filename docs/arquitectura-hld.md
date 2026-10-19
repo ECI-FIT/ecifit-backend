@@ -39,6 +39,7 @@ La arquitectura técnica se sustenta en componentes estables con soporte empresa
 
 | Tecnología | Versión | Rol Arquitectónico | Justificación de Selección |
 |---|---|---|---|
+<<<<<<< HEAD
 | **Java** | 21 LTS | Lenguaje principal de backend | Rendimiento superior de JVM, Records para DTOs inmutables, Pattern Matching y Virtual Threads. |
 | **Spring Boot** | 3.5.16 | Framework de infraestructura | Estándar de la industria para APIs REST; gestión de dependencias (IoC/DI) y soporte transaccional nativo. |
 | **Spring Security** | 6.x | Perímetro de seguridad y RBAC | Manejo declarativo de autorización mediante `@PreAuthorize` e integración con filtros web de bajo nivel. |
@@ -55,6 +56,52 @@ La arquitectura técnica se sustenta en componentes estables con soporte empresa
 | **Azure App Service** | Linux Container | Despliegue en la nube | Plataforma administrada de alta disponibilidad con balanceo de carga, monitoreo y logs centralizados. |
 
 ---
+=======
+| RF-01 | Iniciar sesión con correo institucional | Inicio de sesión | Implementado |
+| RF-02 | Crear el personaje del estudiante | Registro de estudiantes | Parcial: lo crea el administrador, no el estudiante |
+| RF-03 | Elegir rol de temporada (Tanque, Corredor, Estratega) | Registro de estudiantes | Implementado |
+| RF-04 | Dar bonificación según el rol | Registro de actividades | Implementado |
+| RF-05 | Actualizar estadísticas del personaje | — | No implementado |
+| RF-06 | Registrar sesión de fuerza | Registro de actividades | Implementado |
+| RF-07 | Registrar actividad cardiovascular | Registro de actividades | Implementado |
+| RF-08 | Registrar sesión de flexibilidad | Registro de actividades | Implementado |
+| RF-09 | Exigir una duración mínima (10 min) | Registro de actividades | Implementado |
+| RF-10 | Dar puntos por actividad válida | Registro de actividades | Implementado |
+| RF-11 | Dar puntos extra por ir al gimnasio | Asistencia al gimnasio | Implementado |
+| RF-12 | Registrar comida consumida | — | No implementado |
+| RF-13 | Clasificar comida balanceada | — | No implementado |
+| RF-14 | Dar puntos por registro nutricional | — | No implementado |
+| RF-15 | Consultar menú del comedor | — | No implementado |
+| RF-16 | Generar misiones diarias | Misiones | Implementado |
+| RF-17 | Generar misiones semanales | Misiones | Implementado |
+| RF-18 | Registrar que se cumplió una misión | Misiones | Parcial: no pide evidencia |
+| RF-19 | Dar puntos al completar una misión | Misiones | Implementado |
+| RF-20 | Calcular racha de días con actividad | Registro de actividades | Implementado |
+| RF-21 | Dar bono por racha de 7 días | Registro de actividades | Implementado |
+| RF-22 | Crear temporada del semestre | Temporadas | Implementado |
+| RF-23 | Sumar puntos a la temporada | Actividades, misiones y gimnasio | Implementado |
+| RF-24 | Calcular la liga del estudiante | Temporadas | Implementado |
+| RF-25 | Recalcular ligas cada semana | Corte automático de los lunes | Implementado |
+| RF-26 | Subir de liga | Temporadas | Implementado |
+| RF-27 | Bajar de liga | Corte automático de los lunes | Implementado |
+| RF-28 | Consultar ranking de la temporada | Temporadas | Implementado |
+| RF-29 | Crear clan | Clanes | Implementado |
+| RF-30 | Invitar a un clan | — | No implementado |
+| RF-31 | Aceptar o rechazar invitación | Clanes | Parcial: el estudiante se une directamente |
+| RF-32 | Máximo 5 integrantes por clan | Clanes | Implementado |
+| RF-33 | Abandonar un clan | Clanes | Implementado |
+| RF-34 | Publicar reto semanal de clanes | — | No implementado |
+| RF-35 | Acumular progreso del clan | Clanes | Parcial: existe la lógica pero no se puede usar desde la API |
+| RF-36 | Calcular resultado del reto entre clanes | — | No implementado |
+| RF-37 | Publicar resultados de clanes | Clanes | Parcial: muestra los clanes, no el resultado del reto |
+| RF-38 | Subir o bajar de nivel a un clan | — | No implementado |
+| RF-39 | Reportar ocupación del gimnasio | — | No implementado |
+| RF-40 | Consultar ocupación del gimnasio | — | No implementado |
+| RF-41 | Mapa de ocupación del gimnasio | — | No implementado |
+| RF-42 | Confirmar asistencia al gimnasio (entrenador) | Asistencia al gimnasio | Implementado |
+
+**Resumen:** 25 implementados, 5 parciales y 12 no implementados.
+>>>>>>> origin/feature/clanes-invitaciones
 
 ## 3. Matriz de Trazabilidad de Requisitos Funcionales (RF-01 a RF-42)
 

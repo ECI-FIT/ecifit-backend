@@ -1,6 +1,7 @@
 package co.edu.eci.dosw.ecifit.controller;
 
 import co.edu.eci.dosw.ecifit.controller.docs.ClanApi;
+import co.edu.eci.dosw.ecifit.dto.request.AbandonarClanRequestDTO;
 import co.edu.eci.dosw.ecifit.dto.request.CompararRetoClanesRequestDTO;
 import co.edu.eci.dosw.ecifit.dto.request.CrearClanRequestDTO;
 import co.edu.eci.dosw.ecifit.dto.request.PublicarRetoClanRequestDTO;
@@ -50,6 +51,14 @@ public class ClanController implements ClanApi {
     @PreAuthorize("hasRole('ESTUDIANTE')")
     public ResponseEntity<ClanResponseDTO> unirse(@RequestBody @Valid UnirseClanRequestDTO dto) {
         Clan actualizado = clanService.unirse(dto.clanId(), dto.estudianteId());
+        return ResponseEntity.ok(clanMapper.toResponse(actualizado));
+    }
+
+    @Override
+    @PostMapping("/abandonar")
+    @PreAuthorize("hasRole('ESTUDIANTE')")
+    public ResponseEntity<ClanResponseDTO> abandonar(@RequestBody @Valid AbandonarClanRequestDTO dto) {
+        Clan actualizado = clanService.abandonar(dto.clanId(), dto.estudianteId());
         return ResponseEntity.ok(clanMapper.toResponse(actualizado));
     }
 

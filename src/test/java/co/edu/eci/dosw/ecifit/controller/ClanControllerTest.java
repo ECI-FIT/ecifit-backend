@@ -1,5 +1,6 @@
 package co.edu.eci.dosw.ecifit.controller;
 
+import co.edu.eci.dosw.ecifit.dto.request.AbandonarClanRequestDTO;
 import co.edu.eci.dosw.ecifit.dto.request.CompararRetoClanesRequestDTO;
 import co.edu.eci.dosw.ecifit.dto.request.CrearClanRequestDTO;
 import co.edu.eci.dosw.ecifit.dto.request.PublicarRetoClanRequestDTO;
@@ -98,6 +99,28 @@ class ClanControllerTest {
         resultado.andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("C1"))
                 .andExpect(jsonPath("$.cantidadMiembros").value(2));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/clanes/abandonar debe retornar 200 OK cuando el estudiante abandona")
+    void debeAbandonarClanYRetornar200() throws Exception {
+        // Arrange
+        AbandonarClanRequestDTO request = new AbandonarClanRequestDTO("E2", "C1");
+        Clan clan = new Clan("C1", "Guerreros");
+        ClanResponseDTO responseDTO = new ClanResponseDTO("C1", "Guerreros", 5000, 0, 1);
+
+        when(clanService.abandonar("C1", "E2")).thenReturn(clan);
+        when(clanMapper.toResponse(clan)).thenReturn(responseDTO);
+
+        // Act
+        var resultado = mockMvc.perform(post("/api/v1/clanes/abandonar")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)));
+
+        // Assert
+        resultado.andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("C1"))
+                .andExpect(jsonPath("$.cantidadMiembros").value(1));
     }
 
     @Test
