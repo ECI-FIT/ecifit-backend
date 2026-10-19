@@ -39,10 +39,10 @@ public class DemoDataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (estudianteRepository.count() == 0) {
-            log.info("Inicializando semillero de datos de negocio para la Feria de Proyectos DOSW...");
+        log.info("Verificando e inicializando semillero de datos de negocio para la Feria de Proyectos DOSW...");
 
-            // 1. Estudiantes de demostración
+        // 1. Estudiantes de demostración
+        if (!estudianteRepository.existsById("EST-01")) {
             EstudianteEntity e1 = EstudianteEntity.builder()
                     .id("EST-01")
                     .nombre("Laura Torres")
@@ -52,7 +52,11 @@ public class DemoDataSeeder implements CommandLineRunner {
                     .clanId("CLAN-01")
                     .fechaUltimoBonoRacha(LocalDate.now().minusDays(2))
                     .build();
+            estudianteRepository.save(e1);
+            crearUsuarioSiNoExiste("laura.torres@mail.escuelaing.edu.co", "Estudiante123*", Rol.ESTUDIANTE);
+        }
 
+        if (!estudianteRepository.existsById("EST-02")) {
             EstudianteEntity e2 = EstudianteEntity.builder()
                     .id("EST-02")
                     .nombre("Santiago Ruiz")
@@ -61,41 +65,46 @@ public class DemoDataSeeder implements CommandLineRunner {
                     .puntosAcumulados(320)
                     .clanId("CLAN-01")
                     .build();
+            estudianteRepository.save(e2);
+            crearUsuarioSiNoExiste("santiago.ruiz@mail.escuelaing.edu.co", "Estudiante123*", Rol.ESTUDIANTE);
+        }
 
+        if (!estudianteRepository.existsById("EST-03")) {
             EstudianteEntity e3 = EstudianteEntity.builder()
                     .id("EST-03")
                     .nombre("Juan Perez")
                     .correoInstitucional("juan.perez@mail.escuelaing.edu.co")
                     .rolActivo("ESTRATEGA")
                     .puntosAcumulados(210)
-                    .clanId("CLAN-02")
+                    .clanId(null)
                     .build();
-
-            estudianteRepository.saveAll(List.of(e1, e2, e3));
-
-            // Credenciales de autenticación asociadas para login en Stand
-            crearUsuarioSiNoExiste("laura.torres@mail.escuelaing.edu.co", "Estudiante123*", Rol.ESTUDIANTE);
-            crearUsuarioSiNoExiste("santiago.ruiz@mail.escuelaing.edu.co", "Estudiante123*", Rol.ESTUDIANTE);
+            estudianteRepository.save(e3);
             crearUsuarioSiNoExiste("juan.perez@mail.escuelaing.edu.co", "Estudiante123*", Rol.ESTUDIANTE);
+        }
 
-            // 2. Clanes de demostración
+        // 2. Clanes de demostración
+        if (!clanRepository.existsById("CLAN-01")) {
             ClanEntity c1 = new ClanEntity();
             c1.setId("CLAN-01");
             c1.setNombre("Guerreros ECI");
             c1.setSaludTorre(1000);
             c1.setPuntosTotales(770);
             c1.setMiembrosIds(new ArrayList<>(List.of("EST-01", "EST-02")));
+            clanRepository.save(c1);
+        }
 
+        if (!clanRepository.existsById("CLAN-02")) {
             ClanEntity c2 = new ClanEntity();
             c2.setId("CLAN-02");
             c2.setNombre("Titanes Gym");
             c2.setSaludTorre(850);
             c2.setPuntosTotales(210);
-            c2.setMiembrosIds(new ArrayList<>(List.of("EST-03")));
+            c2.setMiembrosIds(new ArrayList<>());
+            clanRepository.save(c2);
+        }
 
-            clanRepository.saveAll(List.of(c1, c2));
-
-            // 3. Retos de clan de demostración (RF-34 y RF-36)
+        // 3. Retos de clan de demostración (RF-34 y RF-36)
+        if (!retoClanRepository.existsById("RETO-DEMO-01")) {
             RetoClanEntity reto1 = RetoClanEntity.builder()
                     .id("RETO-DEMO-01")
                     .clanId("CLAN-01")
@@ -107,7 +116,10 @@ public class DemoDataSeeder implements CommandLineRunner {
                     .fechaFin(LocalDate.now().plusDays(4))
                     .completado(false)
                     .build();
+            retoClanRepository.save(reto1);
+        }
 
+        if (!retoClanRepository.existsById("RETO-DEMO-02")) {
             RetoClanEntity reto2 = RetoClanEntity.builder()
                     .id("RETO-DEMO-02")
                     .clanId("CLAN-02")
@@ -119,10 +131,11 @@ public class DemoDataSeeder implements CommandLineRunner {
                     .fechaFin(LocalDate.now().plusDays(5))
                     .completado(false)
                     .build();
+            retoClanRepository.save(reto2);
+        }
 
-            retoClanRepository.saveAll(List.of(reto1, reto2));
-
-            // 4. Temporada Activa
+        // 4. Temporada Activa
+        if (temporadaRepository.findByEstadoActivoTrue().isEmpty()) {
             TemporadaEntity temporada = TemporadaEntity.builder()
                     .nombre("2026-2")
                     .fechaInicio(LocalDate.now().minusWeeks(4))
@@ -154,8 +167,10 @@ public class DemoDataSeeder implements CommandLineRunner {
                     .build();
 
             rankingTemporadaRepository.saveAll(List.of(r1, r2, r3));
+        }
 
-            // 6. Misiones de Demostración
+        // 6. Misiones de Demostración
+        if (!misionRepository.existsById("MIS-01")) {
             MisionEntity m1 = new MisionEntity();
             m1.setId("MIS-01");
             m1.setDescripcion("Completar 30 minutos de Cardio a intensidad media");
@@ -181,8 +196,10 @@ public class DemoDataSeeder implements CommandLineRunner {
             m3.setEstudianteId("EST-02");
 
             misionRepository.saveAll(List.of(m1, m2, m3));
+        }
 
-            // 7. Actividades registradas en historial
+        // 7. Actividades registradas en historial
+        if (!actividadRepository.existsById("ACT-DEMO-01")) {
             ActividadEntity a1 = ActividadEntity.builder()
                     .id("ACT-DEMO-01")
                     .tipo("CARDIO")
@@ -214,9 +231,9 @@ public class DemoDataSeeder implements CommandLineRunner {
                     .build();
 
             actividadRepository.saveAll(List.of(a1, a2, a3));
-
-            log.info("Datos de negocio inicializados exitosamente (Estudiantes, Clanes, Retos de Clan, Temporada, Rankings, Misiones y Actividades).");
         }
+
+        log.info("Datos de negocio inicializados exitosamente (Estudiantes, Clanes, Retos de Clan, Temporada, Rankings, Misiones y Actividades).");
     }
 
     private void crearUsuarioSiNoExiste(String email, String rawPassword, Rol rol) {
