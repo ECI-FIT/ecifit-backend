@@ -38,4 +38,13 @@ public interface EstudianteApi {
                     content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
     })
     ResponseEntity<EstudianteResponseDTO> obtenerPorId(@PathVariable String id);
+
+    @Operation(summary = "Consultar todos los estudiantes", description = "Recupera la lista completa de estudiantes registrados en la plataforma")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista de estudiantes obtenida exitosamente",
+                    content = @Content(schema = @Schema(implementation = EstudianteResponseDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Acceso denegado: permisos insuficientes",
+                    content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
+    })
+    ResponseEntity<java.util.List<EstudianteResponseDTO>> obtenerTodos();
 }

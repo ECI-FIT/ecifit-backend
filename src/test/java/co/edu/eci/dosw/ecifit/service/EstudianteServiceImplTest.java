@@ -15,6 +15,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -135,5 +137,58 @@ class EstudianteServiceImplTest {
         assertEquals("Santiago Ruiz", resultado.getNombre());
         assertEquals(150, resultado.getPuntosAcumulados());
         verify(estudianteRepository).findById(idExistente);
+    }
+
+    @Test
+    @DisplayName("Debe retornar lista vacía cuando no existen estudiantes registrados")
+    void obtenerTodos_sinRegistros_retornaListaVacia() {
+        // Arrange
+        when(estudianteRepository.findAll()).thenReturn(Collections.emptyList());
+
+        // Act
+        List<Estudiante> resultado = estudianteService.obtenerTodos();
+
+        // Assert
+        assertNotNull(resultado);
+        assertTrue(resultado.isEmpty());
+        verify(estudianteRepository).findAll();
+        verify(estudianteEntityMapper, never()).toDomain(any());
+    }
+
+    @Test
+    @DisplayName("Debe retornar lista de estudiantes cuando existen registros en base de datos")
+    void obtenerTodos_conRegistros_retornaListaEstudiantes() {
+        // Arrange
+        EstudianteEntity entity1 = EstudianteEntity.builder()
+                .id("E1")
+                .nombre("Santiago Ruiz")
+                .correoInstitucional("santiago.ruiz@mail.escuelaing.edu.co")
+                .puntosAcumulados(150)
+                .rolActivo("TANQUE")
+                .build();
+        EstudianteEntity entity2 = EstudianteEntity.builder()
+                .id("E2")
+                .nombre("Laura Torres")
+                .correoInstitucional("laura.torres@mail.escuelaing.edu.co")
+                .puntosAcumulados(200)
+                .rolActivo("CORREDOR")
+                .build();
+        Estudiante est1 = new Estudiante("E1", "Santiago Ruiz", "santiago.ruiz@mail.escuelaing.edu.co", 150, new Tanque(), null);
+        Estudiante est2 = new Estudiante("E2", "Laura Torres", "laura.torres@mail.escuelaing.edu.co", 200, null, null);
+
+        when(estudianteRepository.findAll()).thenReturn(List.of(entity1, entity2));
+        when(estudianteEntityMapper.toDomain(entity1)).thenReturn(est1);
+        when(estudianteEntityMapper.toDomain(entity2)).thenReturn(est2);
+
+        // Act
+        List<Estudiante> resultado = estudianteService.obtenerTodos();
+
+        // Assert
+        assertNotNull(resultado);
+        assertEquals(2, resultado.size());
+        assertEquals("E1", resultado.get(0).getId());
+        assertEquals("E2", resultado.get(1).getId());
+        verify(estudianteRepository).findAll();
+        verify(estudianteEntityMapper, times(2)).toDomain(any());
     }
 }

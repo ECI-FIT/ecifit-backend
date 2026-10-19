@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/estudiantes")
 @RequiredArgsConstructor
@@ -42,5 +44,13 @@ public class EstudianteController implements EstudianteApi {
     public ResponseEntity<EstudianteResponseDTO> obtenerPorId(@PathVariable String id) {
         Estudiante estudiante = estudianteService.obtenerPorId(id);
         return ResponseEntity.ok(estudianteMapper.toResponse(estudiante));
+    }
+
+    @Override
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ENTRENADOR')")
+    public ResponseEntity<List<EstudianteResponseDTO>> obtenerTodos() {
+        List<Estudiante> estudiantes = estudianteService.obtenerTodos();
+        return ResponseEntity.ok(estudianteMapper.toResponseList(estudiantes));
     }
 }

@@ -54,4 +54,16 @@ public class EstudianteServiceImpl implements IEstudianteService {
 
         return estudianteEntityMapper.toDomain(entity);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<Estudiante> obtenerTodos() {
+        log.info("Consultando todos los estudiantes registrados");
+        java.util.List<EstudianteEntity> entidades = estudianteRepository.findAll();
+        java.util.List<Estudiante> estudiantes = entidades.stream()
+                .map(estudianteEntityMapper::toDomain)
+                .toList();
+        log.info("Total de estudiantes encontrados: {}", estudiantes.size());
+        return estudiantes;
+    }
 }
