@@ -24,7 +24,6 @@ import java.util.UUID;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class DemoDataSeeder implements CommandLineRunner {
 
     private final UsuarioRepository usuarioRepository;
@@ -36,6 +35,26 @@ public class DemoDataSeeder implements CommandLineRunner {
     private final MisionRepository misionRepository;
     private final ActividadRepository actividadRepository;
     private final PasswordEncoder passwordEncoder;
+
+    public DemoDataSeeder(UsuarioRepository usuarioRepository,
+                          EstudianteRepository estudianteRepository,
+                          ClanRepository clanRepository,
+                          RetoClanRepository retoClanRepository,
+                          TemporadaRepository temporadaRepository,
+                          RankingTemporadaRepository rankingTemporadaRepository,
+                          MisionRepository misionRepository,
+                          ActividadRepository actividadRepository,
+                          PasswordEncoder passwordEncoder) {
+        this.usuarioRepository = usuarioRepository;
+        this.estudianteRepository = estudianteRepository;
+        this.clanRepository = clanRepository;
+        this.retoClanRepository = retoClanRepository;
+        this.temporadaRepository = temporadaRepository;
+        this.rankingTemporadaRepository = rankingTemporadaRepository;
+        this.misionRepository = misionRepository;
+        this.actividadRepository = actividadRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Override
     public void run(String... args) {

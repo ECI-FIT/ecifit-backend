@@ -41,6 +41,6 @@ public interface EstudianteMapper {
 
     @Named("rolToString")
     default String rolToString(RolTemporada rol) {
-        return (rol != null) ? rol.getNombreRol() : null;
+        return (rol != null) ? rol.getNombreRol().toUpperCase() : null;
     }
 }

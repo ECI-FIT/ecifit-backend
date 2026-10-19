@@ -215,7 +215,7 @@
 									"    if (pm.response.code === 201) {",
 									"        var jsonData = pm.response.json();",
 									"        pm.expect(jsonData.id).to.not.be.empty;",
-									"        pm.expect(jsonData.rolActivo || jsonData.rol).to.eql('TANQUE');",
+									"        pm.expect((jsonData.rolActivo || jsonData.rol || '').toUpperCase()).to.eql('TANQUE');",
 									"    }",
 									"});"
 								],
