@@ -17,4 +17,6 @@ public interface ITemporadaService {
     List<RankingTemporada> obtenerRankingGeneral(UUID temporadaId);
 
     void recalcularLigasSemanal();
+
+    void sumarPuntosTemporadaActiva(String estudianteId, int puntos);
 }

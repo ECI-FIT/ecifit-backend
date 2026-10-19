@@ -48,6 +48,8 @@ class ActividadServiceImplTest {
     @Mock
     private IActividadValidator actividadValidator;
 
+    @Mock
+    private ITemporadaService temporadaService;
     @InjectMocks
     private ActividadServiceImpl actividadService;
 

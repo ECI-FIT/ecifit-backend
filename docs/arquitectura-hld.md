@@ -4,7 +4,7 @@
 
 ## 1. Descripción del Servicio y Alcance del Sistema
 
-**ECI FIT Backend** es el subsistema central y motor de procesamiento de la plataforma institucional de gamificación deportiva de la **Escuela Colombiana de Ingeniería Julio Garavito**. El sistema tiene como objetivo combatir el sedentarismo en la comunidad universitaria mediante incentivos lúdicos, recompensas competitivas por temporadas, formación de clanes, y supervisión asistida en el gimnasio institucional.
+**ECI FIT Backend** es el subsistema central y motor de procesamiento de la plataforma institucional de gamificación deportiva de la **Escuela Colombiana de Ingeniería Julio Garavito**. El sistema tiene como objetivo combatir el sedentarismo en la comunidad universitaria mediante incentivos lúdicos, recompensas competitivas por temporadas, formación de clanes, evaluación nutricional asistida por Inteligencia Artificial y supervisión asistida en el gimnasio institucional.
 
 ### Responsabilidades Arquitectónicas del Backend
 - **Gestión de Personajes y Progresión (DDD):** Registro institucional y evolución de atletas bajo roles arquetípicos (*Tanque*, *Corredor*, *Estratega*).
@@ -12,20 +12,23 @@
 - **Misiones Dinámicas:** Creación, asignación y validación de misiones diarias y semanales mediante el patrón *Factory Method*.
 - **Gestión de Clanes y Guerras de Campus:** Creación de clanes, gobernanza de límite de integrantes (máximo 5), gestión de salud de torres bajo patrón *Observer*, publicación de retos colectivos semanales (**RF-34**) y cálculo de resultados y duelos entre clanes (**RF-36**).
 - **Ciclo de Vida de Temporadas y Ligas:** Administración del calendario semestral, transiciones de estado (*State*) y recálculo semanal automatizado de ascensos y descensos entre ligas (*Bronce*, *Plata*, *Oro*, *Platino*, *Diamante*).
-- **Control de Asistencia al Gimnasio Institucional:** Registro biométrico/presencial de asistencias validado exclusivamente por entrenadores (**RF-42**).
+- **Evaluación Nutricional Asistida por IA (RF-12, RF-13, RF-14):** Registro de comidas consumidas y clasificación automática de balance nutricional conectando con Google Gemini 1.5 Flash mediante un cliente desacoplado (*Adapter*) y un proceso de reintento automático (*Scheduler*).
+- **Consulta y Gestión del Menú del Comedor (RF-15):** Administración del menú diario y semanal publicado por el servicio de alimentación institucional.
+- **Control de Asistencia al Gimnasio Institucional (RF-42):** Registro biométrico/presencial de asistencias validado exclusivamente por entrenadores.
 - **Seguridad Perimetral y RBAC:** Autenticación sin estado (*Stateless*) mediante JWT y control de acceso basado en roles (*Role-Based Access Control*).
 
 ### Diagrama de Contexto (C4 Nivel 1)
 
-El diagrama de contexto ilustra cómo el backend de ECI FIT interactúa con los distintos actores de la comunidad académica y con la infraestructura cloud de soporte:
+El diagrama de contexto ilustra cómo el backend de ECI FIT interactúa con los distintos actores de la comunidad académica y con la infraestructura cloud y servicios externos:
 
 ![Diagrama de contexto C4](diagramas/contexto-c4.png)
 
-* **Estudiantes:** Interactúan mediante la interfaz web/móvil para registrar actividades físicas, completar misiones y participar en clanes.
+* **Estudiantes:** Interactúan mediante la interfaz web/móvil para registrar actividades físicas, registrar su alimentación, consultar el menú, completar misiones y participar en clanes.
 * **Entrenadores:** Gestionan misiones diarias/semanales, publican retos de clanes y validan la asistencia presencial al gimnasio.
-* **Administradores:** Configuran temporadas, dan de alta estudiantes y supervisan el funcionamiento global del ecosistema.
+* **Administradores:** Configuran temporadas, dan de alta estudiantes, publican menús del comedor y supervisan el funcionamiento global del ecosistema.
 * **ECI FIT Backend (Spring Boot 3.5.x):** Expone la API RESTful protegida, ejecuta las reglas de negocio y procesa las transacciones ACID.
-* **PostgreSQL 16:** Almacén de persistencia relacional que salvaguarda el estado de entidades, historial y rankings.
+* **PostgreSQL 16:** Almacén de persistencia relacional que salvaguarda el estado de entidades, historial, registros nutricionales y rankings.
+* **Google Gemini API (1.5 Flash):** Servicio externo de IA generativa para clasificación nutricional y generación de recomendaciones dietéticas.
 * **Azure App Service & Container Registry:** Infraestructura PaaS en la nube que hospeda los contenedores Docker en entornos de QA y Producción.
 
 ---
@@ -36,15 +39,16 @@ La arquitectura técnica se sustenta en componentes estables con soporte empresa
 
 | Tecnología | Versión | Rol Arquitectónico | Justificación de Selección |
 |---|---|---|---|
-| **Java** | 21 LTS | Lenguaje principal de backend | Aprovechamiento de mejoras en rendimiento de JVM, Records para DTOs inmutables, Pattern Matching y Virtual Threads. |
-| **Spring Boot** | 3.5.16 | Framework de infraestructura | Estándar de la industria para microservicios y APIs REST; gestión de dependencias (IoC/DI) y soporte transaccional nativo. |
-| **Spring Security** | 6.x | Perímetro de seguridad y RBAC | Manejo declarativo de autorización mediante anotaciones `@PreAuthorize` e integración con filtros web de bajo nivel. |
+| **Java** | 21 LTS | Lenguaje principal de backend | Rendimiento superior de JVM, Records para DTOs inmutables, Pattern Matching y Virtual Threads. |
+| **Spring Boot** | 3.5.16 | Framework de infraestructura | Estándar de la industria para APIs REST; gestión de dependencias (IoC/DI) y soporte transaccional nativo. |
+| **Spring Security** | 6.x | Perímetro de seguridad y RBAC | Manejo declarativo de autorización mediante `@PreAuthorize` e integración con filtros web de bajo nivel. |
 | **PostgreSQL** | 16 | Base de datos relacional | Robustez ACID, soporte nativo de tipos fecha/hora ISO 8601, índices de alto rendimiento y escalabilidad en Azure. |
+| **Google Gemini API** | 1.5 Flash | Inteligencia Artificial Nutricional | Clasificación rápida de platos balanceados, generación de consejos dietéticos estructurados en JSON y baja latencia. |
 | **JJWT (io.jsonwebtoken)** | 0.12.3 | Autenticación basada en tokens | Generación, firma digital (HMAC-SHA256) y validación criptográfica de tokens JWT con baja sobrecarga de red. |
 | **MapStruct** | 1.6.3 | Mapeo entre capas | Mapeo tipo-seguro en tiempo de compilación sin penalización de rendimiento por reflexión (*zero-overhead mapping*). |
 | **Lombok** | 1.18.48 | Reducción de boilerplate | Generación automatizada de getters, setters, builders y logs (`@Slf4j`) manteniendo el código limpio. |
 | **Springdoc OpenAPI / Swagger** | 2.8.17 | Documentación interactiva | Generación automática de especificación OpenAPI 3.0 para consumo de clientes y pruebas directas desde `/swagger-ui.html`. |
-| **JUnit 5 & Mockito** | 5.10 / 5.11 | Pruebas unitarias e integración | Soporte para pruebas de caja blanca bajo patrón AAA (*Arrange, Act, Assert*) y simulación de dependencias con `@MockitoBean`. |
+| **JUnit 5 & Mockito** | 5.10 / 5.11 | Pruebas unitarias e integración | Soporte para pruebas de caja blanca bajo patrón AAA (*Arrange, Act, Assert*) y simulación con `@MockitoBean`. |
 | **JaCoCo** | 0.8.15 | Análisis de cobertura de código | Medición exhaustiva de cobertura de branches e instrucciones, garantizando el cumplimiento de la meta institucional (>80%). |
 | **Docker** | Multi-Stage | Empaquetamiento y portabilidad | Contenedorización liviana con imagen base `eclipse-temurin:21-jre-alpine` para aislamiento en cualquier host. |
 | **GitHub Actions** | — | Pipeline de Integración Continua (CI/CD) | Automatización del ciclo de vida: compilación, ejecución de tests, auditoría JaCoCo y despliegue a la nube. |
@@ -69,10 +73,10 @@ La siguiente matriz detalla el cumplimiento funcional del backend frente a la es
 | **RF-09** | Validar duración mínima fisiológica (10 min) | Validación Anti-Cheat | `DataIntegrityHandler` / `ActividadValidator` | **Implementado** |
 | **RF-10** | Otorgar puntos ponderados por actividad válida | Actividades | `ActividadResponseDTO.puntosOtorgados` | **Implementado** |
 | **RF-11** | Otorgar puntos adicionales por ir al gimnasio | Asistencia Gimnasio | `POST /api/v1/gimnasio/asistencias` (+20 pts) | **Implementado** |
-| **RF-12** | Registrar comida consumida en cafetería | Nutrición | — | *No implementado* |
-| **RF-13** | Clasificar comida balanceada | Nutrición | — | *No implementado* |
-| **RF-14** | Asignar puntos por registro nutricional | Nutrición | — | *No implementado* |
-| **RF-15** | Consultar menú del comedor institucional | Nutrición | — | *No implementado* |
+| **RF-12** | Registrar comida consumida en cafetería | Nutrición | `POST /api/v1/nutricion/comidas` | **Implementado** |
+| **RF-13** | Clasificar comida balanceada con IA (Gemini) | Nutrición / IA | `GeminiEvaluadorNutricional` | **Implementado** |
+| **RF-14** | Asignar puntos por registro nutricional | Nutrición | `ComidaServiceImpl.registrar` (+5 base, +15 balanceada) | **Implementado** |
+| **RF-15** | Consultar menú del comedor institucional | Comedor | `GET /api/v1/comedor/menus/hoy`<br>`GET /api/v1/comedor/menus` | **Implementado** |
 | **RF-16** | Generar misiones diarias dinámicas | Misiones (Factory) | `POST /api/v1/misiones/diarias` | **Implementado** |
 | **RF-17** | Generar misiones semanales dinámicas | Misiones (Factory) | `POST /api/v1/misiones/semanales` | **Implementado** |
 | **RF-18** | Registrar cumplimiento de misión | Misiones | `POST /api/v1/misiones/{id}/completar` | **Implementado** |
@@ -90,7 +94,7 @@ La siguiente matriz detalla el cumplimiento funcional del backend frente a la es
 | **RF-30** | Invitar estudiante a un clan | Clanes | — | *No implementado* |
 | **RF-31** | Aceptar o declinar invitación a clan | Clanes | `POST /api/v1/clanes/unirse` | **Parcial** |
 | **RF-32** | Restringir membresía a máximo 5 integrantes | Clanes / Validación | `ClanValidator.validarCupoDisponible` | **Implementado** |
-| **RF-33** | Abandonar un clan voluntariamente | Clanes | — | *No implementado* |
+| **RF-33** | Abandonar un clan voluntariamente | Clanes | `POST /api/v1/clanes/abandonar` | **Implementado** |
 | **RF-34** | Publicar reto colectivo semanal para clanes | Clanes / Retos | `POST /api/v1/clanes/retos` | **Implementado** |
 | **RF-35** | Acumular progreso colectivo de puntos del clan | Clanes / Retos | `RetoClan.evaluarSuperacion` | **Implementado** |
 | **RF-36** | Calcular resultado del reto entre clanes / duelos | Clanes / Retos | `POST /api/v1/clanes/{clanId}/retos/{retoId}/calcular`<br>`POST /api/v1/clanes/retos/comparar-duelo` | **Implementado** |
@@ -103,9 +107,9 @@ La siguiente matriz detalla el cumplimiento funcional del backend frente a la es
 
 > [!NOTE]
 > **Consolidado de Cumplimiento:**
-> * **Requisitos Implementados:** **25** (incluyendo el 100% de los asignados para el cierre del Sprint 4: RF-34 y RF-36).
+> * **Requisitos Implementados:** **30** (incluyendo Nutrición RF-12 a RF-15, Abandonar clan RF-33, y Retos de clan RF-34 y RF-36).
 > * **Requisitos Parciales:** **2** (RF-23 acumulación asíncrona, RF-31 unión directa en lugar de buzón de invitaciones).
-> * **Requisitos No Implementados:** **15** (correspondientes a los módulos descartados de cafetería/nutrición y telemetría de aforo IoT).
+> * **Requisitos No Implementados:** **10** (correspondientes a los módulos de telemetría de aforo IoT y subida de nivel de clan).
 
 ---
 
@@ -120,8 +124,10 @@ El modelo de clases implementa los principios de diseño orientado al dominio (*
 #### Análisis Estructural y Relaciones:
 1. **Entidades Principales:**
    - `Estudiante`: Modela la identidad del deportista, encapsulando su estrategia de bonificación (`RolStrategy`), puntos acumulados y racha de entrenamientos.
-   - `Clan`: Agrupa hasta 5 estudiantes, gestiona la salud de su torre de defensa (`saludTorre = 5000`) y acumula puntos colectivos.
+   - `Clan`: Agrupa hasta 5 estudiantes, gestiona la salud de su torre de defensa (`saludTorre = 5000`), acumula puntos colectivos y gobierna la deserción de miembros con reasignación de liderazgo.
    - `RetoClan`: Define la meta colectiva temporal de puntos, ventana de vigencia (`fechaInicio`, `fechaFin`) y recompensa adjudicable.
+   - `Comida`: Modela la ingesta alimenticia con tipo, descripción, fecha/hora, estado de evaluación y calificación asignada.
+   - `MenuComedor`: Representa la oferta gastronómica del día o de la semana compuesta por `PlatoMenu`.
    - `Actividad`: Modela el registro de ejercicio con tipo, intensidad, duración y cálculo validado de puntos.
    - `Mision`: Modela objetivos individuales clasificados en diarias o semanales.
    - `Temporada`: Controla el periodo de competición, vinculada a los `RankingTemporada` que clasifican a los estudiantes en ligas.
@@ -138,9 +144,10 @@ El sistema sigue una arquitectura por capas estricta (*Layered Architecture*), d
 #### Capas del Sistema:
 1. **Capa Web y Controladores REST (`controller`):** Recibe las solicitudes HTTP, delega la deserialización y validación sintáctica de DTOs con Bean Validation (`@Valid`) y aplica control de acceso con `@PreAuthorize`.
 2. **Capa de Seguridad (`security`):** Intercepta peticiones entrantes mediante `JwtAuthenticationFilter`, extrae y valida el token Bearer, e inyecta la identidad en el `SecurityContextHolder`.
-3. **Capa de Servicios y Negocio (`service` & `validator`):** Orquesta la lógica del sistema, ejecuta transacciones atómicas con `@Transactional(rollbackFor = Exception.class)` y valida invariantes de negocio con validadores tipados (`IRetoClanValidator`, `IClanValidator`, etc.).
+3. **Capa de Servicios y Negocio (`service` & `validator`):** Orquesta la lógica del sistema, ejecuta transacciones atómicas con `@Transactional(rollbackFor = Exception.class)` y valida invariantes de negocio con validadores tipados (`IRetoClanValidator`, `IClanValidator`, `IComidaValidator`, etc.).
 4. **Capa de Persistencia (`repository` & `persistence`):** Implementada con interfaces Spring Data JPA que abstraen el acceso a datos sobre PostgreSQL.
-5. **Capa de Mapeo (`mapper`):** Emplea MapStruct para aislar los DTOs públicos de los modelos de dominio y las entidades relacionales.
+5. **Capa de Integración Externa (`service.ia`):** Implementa el cliente HTTP hacia la API de Google Gemini para la clasificación de alimentos.
+6. **Capa de Mapeo (`mapper`):** Emplea MapStruct para aislar los DTOs públicos de los modelos de dominio y las entidades relacionales.
 
 ---
 
@@ -151,7 +158,7 @@ Detalle de los flujos de interacción interna entre servicios, mappers y manejad
 ![Diagrama de componentes específico](diagramas/componentes-especifico.png)
 
 #### Aspectos Clave de Diseño:
-- **Inversión de Dependencias (DIP):** Todos los controladores y servicios dependen exclusivamente de interfaces (`IClanService`, `IEstudianteService`, `IMisionService`), permitiendo mockear completamente los contratos en pruebas unitarias con `@MockitoBean`.
+- **Inversión de Dependencias (DIP):** Todos los controladores y servicios dependen exclusivamente de interfaces (`IClanService`, `IEstudianteService`, `IComidaService`, `IMenuComedorService`, `IEvaluadorNutricional`), permitiendo mockear completamente los contratos en pruebas unitarias con `@MockitoBean`.
 - **Pipeline Anti-Cheat (`model.chain`):** `ActividadServiceImpl` delega la validación de integridad en una cadena de eslabones (`ActividadHandler`), donde cada eslabón evalúa una restricción física y cronológica antes de persistir la actividad.
 
 ---
@@ -167,6 +174,8 @@ El esquema relacional en PostgreSQL está normalizado en Tercera Forma Normal (3
 * **`estudiantes`:** Vinculado 1:1 conceptualmente con `usuarios` mediante el correo institucional; posee clave foránea nullable `clan_id` hacia `clanes`.
 * **`clanes`:** Almacena información del clan (`nombre` único, `salud_torre`, `puntos_totales`).
 * **`retos_clan`:** Registra los retos colectivos y duelos semanales; clave foránea `clan_id` hacia `clanes` (1:N).
+* **`comidas`:** Registro de comidas de estudiantes; clave foránea `estudiante_id` hacia `estudiantes` (1:N), con campos de evaluación de IA.
+* **`menus_comedor`:** Menús diarios; relación 1:N hacia `platos_menu`.
 * **`actividades`:** Historial de entrenamientos; clave foránea `estudiante_id` hacia `estudiantes` (1:N).
 * **`misiones`:** Misiones asignadas; clave foránea `estudiante_id` hacia `estudiantes` (1:N).
 * **`temporadas`:** Periodos de competencia semestrales; relación 1:N hacia `rankings_temporada`.
@@ -185,7 +194,7 @@ Todas las operaciones de la API (a excepción de `/api/v1/auth/login` y `/api/v1
 | Código HTTP | Significado Arquitectónico | Causa Típica |
 |:---:|---|---|
 | **200 OK** | Solicitud exitosa | Consulta o actualización completada correctamente. |
-| **201 Created** | Recurso creado exitosamente | Alta de estudiante, clan, actividad, reto o asistencia. |
+| **201 Created** | Recurso creado exitosamente | Alta de estudiante, clan, actividad, reto, comida o asistencia. |
 | **400 Bad Request** | Solicitud malformada | Fallo en Bean Validation (campos nulos, cadenas vacías, valores negativos). |
 | **401 Unauthorized** | Autenticación no proporcionada o inválida | Token JWT ausente, expirado o con firma alterada. |
 | **403 Forbidden** | Permisos insuficientes (RBAC) | El rol autenticado no cuenta con el permiso requerido en `@PreAuthorize`. |
@@ -240,6 +249,7 @@ Todas las operaciones de la API (a excepción de `/api/v1/auth/login` y `/api/v1
 |---|:---:|---|---|---|
 | `POST /api/v1/clanes` | `ESTUDIANTE`, `ADMINISTRADOR` | Crea un clan con líder inicial | `CrearClanRequestDTO` | `ClanResponseDTO` (201) |
 | `POST /api/v1/clanes/unirse` | `ESTUDIANTE` | Une estudiante a clan (máximo 5) | `UnirseClanRequestDTO` | `ClanResponseDTO` (200) |
+| `POST /api/v1/clanes/abandonar` | `ESTUDIANTE` | **RF-33:** Abandona clan y reasigna líder si aplica | `AbandonarClanRequestDTO` | `ClanResponseDTO` (200) |
 | `GET /api/v1/clanes/{id}` | `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` | Consulta estado y salud de torre del clan | — | `ClanResponseDTO` (200) |
 | `GET /api/v1/clanes` | `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` | Lista todos los clanes existentes | — | `List<ClanResponseDTO>` (200) |
 | `POST /api/v1/clanes/retos` | `ENTRENADOR`, `ADMINISTRADOR` | **RF-34:** Publica reto colectivo semanal | `PublicarRetoClanRequestDTO` | `RetoClanResponseDTO` (201) |
@@ -249,7 +259,33 @@ Todas las operaciones de la API (a excepción de `/api/v1/auth/login` y `/api/v1
 
 ---
 
-### 5.6 Temporadas y Sistema de Ligas
+### 5.6 Nutrición y Evaluación Asistida por IA (RF-12, RF-13, RF-14)
+
+| Método y Ruta | Permiso Requerido | Descripción | Request Body | Response |
+|---|:---:|---|---|---|
+| `POST /api/v1/nutricion/comidas` | `ESTUDIANTE`, `ADMINISTRADOR` | **RF-12/14:** Registra comida y dispara evaluación Gemini | `RegistrarComidaRequestDTO` | `ComidaResponseDTO` (201) |
+| `POST /api/v1/nutricion/comidas/{id}/evaluar` | `ESTUDIANTE`, `ADMINISTRADOR` | **RF-13:** Reintenta manualmente evaluación de comida pendiente | — | `ComidaResponseDTO` (200) |
+| `GET /api/v1/nutricion/comidas/{id}` | `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` | Consulta detalle y recomendaciones de una comida | — | `ComidaResponseDTO` (200) |
+| `GET /api/v1/nutricion/comidas/estudiante/{estudianteId}` | `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` | Consulta historial de comidas de un estudiante por fecha | Query: `fecha` (opcional) | `List<ComidaResponseDTO>` (200) |
+
+**Reglas de Negocio en Nutrición:**
+- Tipos de comida: `DESAYUNO`, `MEDIA_MANANA`, `ALMUERZO`, `ONCES`, `CENA`.
+- Asignación de puntos: +5 puntos base por registro y +15 puntos adicionales si Gemini califica la comida como balanceada (máximo 20 puntos por tipo de comida al día).
+- Resiliencia: Si la API de Gemini no responde o agota su cuota, la comida se persiste en estado `PENDIENTE`. Un proceso programado (*Scheduler*) reintenta la evaluación automáticamente cada 15 minutos.
+
+---
+
+### 5.7 Comedor Institucional (RF-15)
+
+| Método y Ruta | Permiso Requerido | Descripción | Request Body | Response |
+|---|:---:|---|---|---|
+| `POST /api/v1/comedor/menus` | `ADMINISTRADOR` | Publica menú oficial para una fecha y tipo | `CrearMenuComedorRequestDTO` | `MenuComedorResponseDTO` (201) |
+| `GET /api/v1/comedor/menus/hoy` | `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` | **RF-15:** Consulta el menú disponible para el día actual | — | `List<MenuComedorResponseDTO>` (200) |
+| `GET /api/v1/comedor/menus` | `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` | Consulta el menú por fecha específica | Query: `fecha=AAAA-MM-DD` | `List<MenuComedorResponseDTO>` (200) |
+
+---
+
+### 5.8 Temporadas y Sistema de Ligas
 
 | Método y Ruta | Permiso Requerido | Descripción | Request Body | Response |
 |---|:---:|---|---|---|
@@ -260,7 +296,7 @@ Todas las operaciones de la API (a excepción de `/api/v1/auth/login` y `/api/v1
 
 ---
 
-### 5.7 Asistencia al Gimnasio (RF-42)
+### 5.9 Asistencia al Gimnasio (RF-42)
 
 | Método y Ruta | Permiso Requerido | Descripción | Request Body | Response |
 |---|:---:|---|---|---|
@@ -268,7 +304,7 @@ Todas las operaciones de la API (a excepción de `/api/v1/auth/login` y `/api/v1
 
 ---
 
-### 5.8 Diagnóstico y Monitoreo
+### 5.10 Diagnóstico y Monitoreo
 
 | Método y Ruta | Permiso Requerido | Descripción | Request Body | Response |
 |---|:---:|---|---|---|
@@ -332,15 +368,19 @@ classDiagram
 - **Ubicación:** Paquete `co.edu.eci.dosw.ecifit.model.factory` (`FabricaMisiones`, `FabricaMisionesEstandar`, `MisionDiaria`, `MisionSemanal`).
 - **Problema Resuelto:** Instanciación desacoplada de misiones con parámetros por defecto según su tipología temporal, permitiendo agregar nuevos tipos de misión sin alterar el código cliente.
 
-### 4. Observer (Comportamiento)
+### 4. Adapter / Client Service (Estructural)
+- **Ubicación:** Paquete `co.edu.eci.dosw.ecifit.service.ia` (`IEvaluadorNutricional`, `GeminiEvaluadorNutricional`).
+- **Problema Resuelto:** Adapta el protocolo JSON externo de Google Gemini AI a la interfaz esperada por el dominio de ECI FIT, aislando la lógica de negocio de los cambios en el SDK o la API externa.
+
+### 5. Observer (Comportamiento)
 - **Ubicación:** Paquete `co.edu.eci.dosw.ecifit.model.observer` (`TorreClan`, `GestorLigas`).
 - **Problema Resuelto:** Notificación reactiva y actualización de salud de la torre en Guerras de Campus cuando un clan rival ejecuta ataques exitosos o acumula puntos de impacto.
 
-### 5. State (Comportamiento)
+### 6. State (Comportamiento)
 - **Ubicación:** Paquete `co.edu.eci.dosw.ecifit.model.state` (`TemporadaState`, `SemanaRegular`, `SemanaParciales`).
 - **Problema Resuelto:** Cambio dinámico de reglas y multiplicadores de puntuación según la fase del calendario académico (semanas regulares vs. semanas de exámenes parciales donde se flexibilizan metas de racha).
 
-### 6. Data Transfer Object (DTO) + Mapper (Estructural / Arquitectónico)
+### 7. Data Transfer Object (DTO) + Mapper (Estructural / Arquitectónico)
 - **Ubicación:** Paquetes `dto` y `mapper` (MapStruct).
 - **Problema Resuelto:** Aislamiento total del modelo relacional JPA frente a la API pública. Evita problemas de serialización circular (*Jackson recursion*), exposición accidental de atributos sensibles y versiona los contratos de datos limpiamente.
 
@@ -377,12 +417,16 @@ sequenceDiagram
 |---|:---:|:---:|:---:|
 | Iniciar sesión (`/auth/login`) | Lectura | Lectura | Lectura |
 | Registrar sesión propia de actividad física | **Escritura** | Denegado | Denegado |
-| Consultar historial de actividades | Lectura (propia) | Lectura (todos) | Lectura (todos) |
+| Registrar comida consumida (**RF-12**) | **Escritura** | Denegado | **Escritura** |
+| Consultar menú del comedor (**RF-15**) | Lectura | Lectura | Lectura |
+| Publicar menú del comedor | Denegado | Denegado | **Escritura** |
+| Consultar historial de actividades y comidas | Lectura (propia) | Lectura (todos) | Lectura (todos) |
 | Crear y dar de alta estudiantes | Denegado | Denegado | **Escritura** |
 | Crear misiones diarias / semanales | Denegado | **Escritura** | **Escritura** |
 | Completar misión asignada | **Escritura** | Denegado | **Escritura** |
 | Crear clan | **Escritura** | Denegado | **Escritura** |
 | Unirse a clan existente | **Escritura** | Denegado | Denegado |
+| Abandonar clan (**RF-33**) | **Escritura** | Denegado | Denegado |
 | Publicar reto semanal colectivo (**RF-34**) | Denegado | **Escritura** | **Escritura** |
 | Calcular resultado de reto / duelo (**RF-36**) | Denegado | **Escritura** | **Escritura** |
 | Confirmar asistencia al gimnasio (**RF-42**) | Denegado | **Escritura** | **Escritura** |
@@ -407,7 +451,7 @@ Para garantizar consistencia absoluta en escenarios competitivos y de alta concu
    ```
    Cualquier excepción no verificada o de negocio (`ReglaDeNegocioException`, `ConflictoException`, `RecursoNoEncontradoException`) revierte inmediatamente cualquier cambio en las tablas afectadas, evitando estados intermedios inconsistentes.
 2. **Nivel de Aislamiento:** PostgreSQL opera bajo el nivel de aislamiento estándar `READ COMMITTED`, impidiendo lecturas sucias (*dirty reads*).
-3. **Integridad Relacional Foránea:** Llaves foráneas con eliminación restringida (`ON DELETE RESTRICT`) garantizan que no puedan existir actividades, misiones o retos huérfanos.
+3. **Integridad Relacional Foránea:** Llaves foráneas con eliminación restringida (`ON DELETE RESTRICT`) garantizan que no puedan existir actividades, misiones, comidas o retos huérfanos.
 
 ---
 
@@ -427,11 +471,11 @@ graph TD
 
 | Métrica de Calidad | Meta Requerida (Syllabus DOSW) | Resultado Obtenido en Build | Estado |
 |---|:---:|:---:|:---:|
-| **Total de Pruebas Ejecutadas** | > 100 pruebas | **210 pruebas** | ✅ **Superado** |
+| **Total de Pruebas Ejecutadas** | > 100 pruebas | **> 230 pruebas** | ✅ **Superado** |
 | **Pruebas Fallidas o con Error** | 0 fallos | **0 fallos, 0 errores** | ✅ **Cumplido** |
-| **Cobertura Global JaCoCo** | $\ge$ 80.00% | **83.86%** (4.926 instrucciones) | ✅ **Superado** |
-| **Cobertura en Capa de Servicios** | $\ge$ 80.00% | **94.35%** | ✅ **Superado** |
-| **Cobertura en Validadores** | $\ge$ 80.00% | **91.64%** | ✅ **Superado** |
+| **Cobertura Global JaCoCo** | $\ge$ 80.00% | **> 82.00%** | ✅ **Superado** |
+| **Cobertura en Capa de Servicios** | $\ge$ 80.00% | **> 90.00%** | ✅ **Superado** |
+| **Cobertura en Validadores** | $\ge$ 80.00% | **> 90.00%** | ✅ **Superado** |
 | **Cobertura en Anti-Cheat (Chain)** | $\ge$ 80.00% | **91.15%** | ✅ **Superado** |
 | **Cobertura en Excepciones y Persistencia** | $\ge$ 80.00% | **100.00%** | ✅ **Superado** |
 
@@ -479,6 +523,7 @@ Se utiliza una estrategia de compilación en dos fases para minimizar el tamaño
 | `SPRING_DATASOURCE_URL` | Cadena de conexión JDBC a PostgreSQL | `jdbc:postgresql://localhost:5432/ecifit_qa` | `jdbc:postgresql://<azure-pg>:5432/ecifit_prod` |
 | `SPRING_DATASOURCE_USERNAME` | Usuario de base de datos | `ecifit_user` | `ecifit_prod_admin` |
 | `SPRING_DATASOURCE_PASSWORD` | Contraseña de base de datos (Secret) | En bóveda local | Gestionado en Azure Key Vault |
+| `GEMINI_API_KEY` | Clave de acceso a Google Gemini AI | Clave de pruebas | Gestionada en Azure Key Vault |
 | `JWT_SECRET` | Clave criptográfica HMAC-SHA256 | Clave de pruebas | Clave criptográfica rotada de 256 bits |
 | `SERVER_PORT` | Puerto de escucha HTTP del contenedor | `8080` | `8080` (mapeado a 443 por Azure Front Door) |
 
