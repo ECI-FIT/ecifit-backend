@@ -29,6 +29,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ecifit
       JWT_SECRET: 44CaracteresBase64SeguraParaPruebasLocalSprint3ECIFIT2026=
       JWT_EXPIRATION: 86400000
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODELO: ${GEMINI_MODELO:-gemini-2.5-flash-lite}
     depends_on:
       postgres:
         condition: service_healthy
