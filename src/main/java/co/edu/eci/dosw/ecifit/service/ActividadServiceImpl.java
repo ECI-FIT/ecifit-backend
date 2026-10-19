@@ -31,7 +31,7 @@ public class ActividadServiceImpl implements IActividadService {
     private final IActividadValidator actividadValidator;
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Actividad registrarActividad(Actividad actividad, String estudianteId) {
         log.info("Iniciando registro de actividad física para el estudiante con ID: {}", estudianteId);
 
