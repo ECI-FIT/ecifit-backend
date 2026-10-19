@@ -1,0 +1,242 @@
+package co.edu.eci.dosw.ecifit.exception;
+
+import co.edu.eci.dosw.ecifit.dto.response.ErrorResponseDTO;
+import jakarta.servlet.http.HttpServletRequest;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.core.MethodParameter;
+import org.springframework.http.HttpInputMessage;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+@DisplayName("Pruebas unitarias de GlobalExceptionHandler")
+class GlobalExceptionHandlerTest {
+
+    private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+    private HttpServletRequest crearRequest(String uri) {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI(uri);
+        return request;
+    }
+
+    @Test
+    @DisplayName("Debe manejar recurso no encontrado con estado 404")
+    void debeManejarRecursoNoEncontrado() {
+        // Arrange
+        RecursoNoEncontradoException exception =
+                new RecursoNoEncontradoException("Estudiante no encontrado");
+
+        // Act
+        ErrorResponseDTO response = handler.handleNoEncontrado(
+                exception,
+                crearRequest("/api/estudiantes/E1")
+        );
+
+        // Assert
+        assertEquals(404, response.status());
+        assertEquals("Estudiante no encontrado", response.mensaje());
+        assertEquals("/api/estudiantes/E1", response.ruta());
+        assertNotNull(response.timestamp());
+    }
+
+    @Test
+    @DisplayName("Debe manejar conflicto con estado 409")
+    void debeManejarConflicto() {
+        // Arrange
+        ConflictoException exception =
+                new ConflictoException("El estudiante ya existe");
+
+        // Act
+        ErrorResponseDTO response = handler.handleConflicto(
+                exception,
+                crearRequest("/api/estudiantes")
+        );
+
+        // Assert
+        assertEquals(409, response.status());
+        assertEquals("El estudiante ya existe", response.mensaje());
+        assertEquals("/api/estudiantes", response.ruta());
+        assertNotNull(response.timestamp());
+    }
+
+    @Test
+    @DisplayName("Debe manejar regla de negocio con estado 422")
+    void debeManejarReglaDeNegocio() {
+        // Arrange
+        ReglaDeNegocioException exception =
+                new ReglaDeNegocioException("La actividad no cumple la regla");
+
+        // Act
+        ErrorResponseDTO response = handler.handleReglaDeNegocio(
+                exception,
+                crearRequest("/api/actividades")
+        );
+
+        // Assert
+        assertEquals(422, response.status());
+        assertEquals("La actividad no cumple la regla", response.mensaje());
+        assertEquals("/api/actividades", response.ruta());
+        assertNotNull(response.timestamp());
+    }
+
+    @Test
+    @DisplayName("Debe manejar estado inválido con estado 422")
+    void debeManejarEstadoInvalido() {
+        // Arrange
+        EstadoInvalidoException exception =
+                new EstadoInvalidoException("La temporada no está activa");
+
+        // Act
+        ErrorResponseDTO response = handler.handleReglaDeNegocio(
+                exception,
+                crearRequest("/api/temporadas")
+        );
+
+        // Assert
+        assertEquals(422, response.status());
+        assertEquals("La temporada no está activa", response.mensaje());
+        assertEquals("/api/temporadas", response.ruta());
+        assertNotNull(response.timestamp());
+    }
+
+    @Test
+    @DisplayName("Debe construir mensaje con los errores de validación")
+    void debeManejarValidacion() {
+        // Arrange
+        BindingResult bindingResult = mock(BindingResult.class);
+
+        FieldError errorCorreo = new FieldError(
+                "crearEstudianteRequestDTO",
+                "correoInstitucional",
+                "El correo es obligatorio"
+        );
+
+        FieldError errorNombre = new FieldError(
+                "crearEstudianteRequestDTO",
+                "nombre",
+                "El nombre es obligatorio"
+        );
+
+        when(bindingResult.getFieldErrors())
+                .thenReturn(List.of(errorCorreo, errorNombre));
+
+        MethodParameter methodParameter = mock(MethodParameter.class);
+
+        MethodArgumentNotValidException exception =
+                new MethodArgumentNotValidException(
+                        methodParameter,
+                        bindingResult
+                );
+
+        // Act
+        ErrorResponseDTO response = handler.handleValidacion(
+                exception,
+                crearRequest("/api/estudiantes")
+        );
+
+        // Assert
+        assertEquals(400, response.status());
+        assertEquals(
+                "correoInstitucional: El correo es obligatorio, nombre: El nombre es obligatorio",
+                response.mensaje()
+        );
+        assertEquals("/api/estudiantes", response.ruta());
+        assertNotNull(response.timestamp());
+    }
+
+    @Test
+    @DisplayName("Debe manejar solicitud mal formada con estado 400")
+    void debeManejarSolicitudMalFormada() {
+        // Arrange
+        HttpInputMessage inputMessage = mock(HttpInputMessage.class);
+
+        HttpMessageNotReadableException exception =
+                new HttpMessageNotReadableException(
+                        "JSON inválido",
+                        inputMessage
+                );
+
+        // Act
+        ErrorResponseDTO response = handler.handleSolicitudMalFormada(
+                exception,
+                crearRequest("/api/actividades")
+        );
+
+        // Assert
+        assertEquals(400, response.status());
+        assertEquals(
+                "La solicitud tiene un formato inválido",
+                response.mensaje()
+        );
+        assertEquals("/api/actividades", response.ruta());
+        assertNotNull(response.timestamp());
+    }
+
+    @Test
+    @DisplayName("Debe manejar error general con estado 500")
+    void debeManejarErrorGeneral() {
+        // Arrange
+        RuntimeException exception =
+                new RuntimeException("Error inesperado");
+
+        // Act
+        ErrorResponseDTO response = handler.handleGeneral(
+                exception,
+                crearRequest("/api/error")
+        );
+
+        // Assert
+        assertEquals(500, response.status());
+        assertEquals(
+                "Error interno del servidor",
+                response.mensaje()
+        );
+        assertEquals("/api/error", response.ruta());
+        assertNotNull(response.timestamp());
+    }
+
+    @Test
+    @DisplayName("Debe manejar acceso denegado con estado 403")
+    void debeManejarAccesoDenegado() {
+        org.springframework.security.access.AccessDeniedException exception =
+                new org.springframework.security.access.AccessDeniedException("Acceso prohibido");
+
+        ErrorResponseDTO response = handler.handleAccesoDenegado(
+                exception,
+                crearRequest("/api/v1/test/admin")
+        );
+
+        assertEquals(403, response.status());
+        assertEquals("Acceso denegado: permisos insuficientes", response.mensaje());
+        assertEquals("/api/v1/test/admin", response.ruta());
+        assertNotNull(response.timestamp());
+    }
+
+    @Test
+    @DisplayName("Debe manejar credenciales inválidas con estado 401")
+    void debeManejarCredencialesInvalidas() {
+        org.springframework.security.authentication.BadCredentialsException exception =
+                new org.springframework.security.authentication.BadCredentialsException("Credenciales malas");
+
+        ErrorResponseDTO response = handler.handleCredencialesInvalidas(
+                exception,
+                crearRequest("/api/v1/auth/login")
+        );
+
+        assertEquals(401, response.status());
+        assertEquals("Credenciales inválidas", response.mensaje());
+        assertEquals("/api/v1/auth/login", response.ruta());
+        assertNotNull(response.timestamp());
+    }
+}

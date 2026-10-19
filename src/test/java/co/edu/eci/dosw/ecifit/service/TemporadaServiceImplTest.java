@@ -1,0 +1,356 @@
+package co.edu.eci.dosw.ecifit.service;
+
+import co.edu.eci.dosw.ecifit.exception.ConflictoException;
+import co.edu.eci.dosw.ecifit.exception.RecursoNoEncontradoException;
+import co.edu.eci.dosw.ecifit.exception.ReglaDeNegocioException;
+import co.edu.eci.dosw.ecifit.mapper.RankingTemporadaEntityMapper;
+import co.edu.eci.dosw.ecifit.mapper.TemporadaEntityMapper;
+import co.edu.eci.dosw.ecifit.model.RankingTemporada;
+import co.edu.eci.dosw.ecifit.model.Temporada;
+import co.edu.eci.dosw.ecifit.persistence.RankingTemporadaEntity;
+import co.edu.eci.dosw.ecifit.persistence.TemporadaEntity;
+import co.edu.eci.dosw.ecifit.repository.RankingTemporadaRepository;
+import co.edu.eci.dosw.ecifit.repository.TemporadaRepository;
+import co.edu.eci.dosw.ecifit.validator.ITemporadaValidator;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class TemporadaServiceImplTest {
+
+    @Mock
+    private TemporadaRepository temporadaRepository;
+    @Mock
+    private RankingTemporadaRepository rankingTemporadaRepository;
+    @Mock
+    private TemporadaEntityMapper temporadaEntityMapper;
+    @Mock
+    private RankingTemporadaEntityMapper rankingTemporadaEntityMapper;
+    @Mock
+    private ITemporadaValidator temporadaValidator;
+    @InjectMocks
+    private TemporadaServiceImpl service;
+
+    private final UUID temporadaId = UUID.randomUUID();
+
+    @Test
+    @DisplayName("obtenerRankingGeneral - temporada existente devuelve el ranking ordenado")
+    void obtenerRankingGeneral_temporadaExistente_retornaRanking() {
+        // Arrange
+        RankingTemporadaEntity primeroEntity = new RankingTemporadaEntity();
+        RankingTemporadaEntity segundoEntity = new RankingTemporadaEntity();
+        RankingTemporada primero = new RankingTemporada();
+        primero.setPuntosAcumulados(500);
+        RankingTemporada segundo = new RankingTemporada();
+        segundo.setPuntosAcumulados(300);
+
+        when(temporadaRepository.existsById(temporadaId)).thenReturn(true);
+        when(rankingTemporadaRepository.findByTemporadaIdOrderByPuntosAcumuladosDesc(temporadaId))
+                .thenReturn(List.of(primeroEntity, segundoEntity));
+        when(rankingTemporadaEntityMapper.toDomain(primeroEntity)).thenReturn(primero);
+        when(rankingTemporadaEntityMapper.toDomain(segundoEntity)).thenReturn(segundo);
+
+        // Act
+        List<RankingTemporada> resultado = service.obtenerRankingGeneral(temporadaId);
+
+        // Assert
+        assertEquals(2, resultado.size());
+        assertEquals(500, resultado.get(0).getPuntosAcumulados());
+        assertEquals(300, resultado.get(1).getPuntosAcumulados());
+    }
+
+    @Test
+    @DisplayName("obtenerRankingGeneral - temporada inexistente lanza RecursoNoEncontradoException")
+    void obtenerRankingGeneral_temporadaInexistente_lanzaExcepcion() {
+        // Arrange
+        when(temporadaRepository.existsById(temporadaId)).thenReturn(false);
+
+        // Act & Assert
+        assertThrows(RecursoNoEncontradoException.class,
+                () -> service.obtenerRankingGeneral(temporadaId));
+        verify(rankingTemporadaRepository, never()).findByTemporadaIdOrderByPuntosAcumuladosDesc(any());
+    }
+
+    @Test
+    @DisplayName("obtenerRankingGeneral - temporada sin registros devuelve lista vacía, no null")
+    void obtenerRankingGeneral_sinRegistros_devuelveListaVacia() {
+        // Arrange
+        when(temporadaRepository.existsById(temporadaId)).thenReturn(true);
+        when(rankingTemporadaRepository.findByTemporadaIdOrderByPuntosAcumuladosDesc(temporadaId))
+                .thenReturn(List.of());
+
+        // Act
+        List<RankingTemporada> resultado = service.obtenerRankingGeneral(temporadaId);
+
+        // Assert
+        assertNotNull(resultado);
+        assertTrue(resultado.isEmpty());
+    }
+
+    @Test
+    @DisplayName("crear - ya existe una temporada activa lanza ConflictoException")
+    void crear_temporadaActivaExistente_lanzaConflicto() {
+        // Arrange
+        Temporada temporada = new Temporada(null, "2026-2", LocalDate.of(2026, 8, 1), LocalDate.of(2026, 12, 1), true);
+        doThrow(new ConflictoException("Ya existe una temporada activa"))
+                .when(temporadaValidator).validarTemporadaUnicaActiva(true);
+
+        // Act & Assert
+        assertThrows(ConflictoException.class, () -> service.crear(temporada));
+        verify(temporadaRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("crear - fecha fin anterior a fecha inicio lanza ReglaDeNegocioException")
+    void crear_fechasInvalidas_lanzaReglaDeNegocio() {
+        // Arrange
+        LocalDate inicio = LocalDate.of(2026, 12, 1);
+        LocalDate fin = LocalDate.of(2026, 8, 1);
+        Temporada temporada = new Temporada(null, "2026-2", inicio, fin, true);
+        doThrow(new ReglaDeNegocioException("La fecha de fin debe ser posterior a la fecha de inicio"))
+                .when(temporadaValidator).validarFechas(inicio, fin);
+
+        // Act & Assert
+        assertThrows(ReglaDeNegocioException.class, () -> service.crear(temporada));
+        verify(temporadaRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("obtenerActiva - sin temporada activa lanza RecursoNoEncontradoException")
+    void obtenerActiva_sinTemporadaActiva_lanzaExcepcion() {
+        // Arrange
+        when(temporadaRepository.findByEstadoActivoTrue()).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(RecursoNoEncontradoException.class, () -> service.obtenerActiva());
+    }
+
+    @Test
+    @DisplayName("crear - datos válidos guarda y devuelve la temporada")
+    void crear_datosValidos_guardaYRetornaTemporada() {
+        // Arrange
+        LocalDate inicio = LocalDate.of(2026, 8, 1);
+        LocalDate fin = LocalDate.of(2026, 12, 1);
+        Temporada temporada = new Temporada(null, "2026-2", inicio, fin, null);
+        TemporadaEntity entity = new TemporadaEntity();
+        Temporada guardada = new Temporada(temporadaId, "2026-2", inicio, fin, true);
+
+        when(temporadaEntityMapper.toEntity(temporada)).thenReturn(entity);
+        when(temporadaRepository.save(entity)).thenReturn(entity);
+        when(temporadaEntityMapper.toDomain(entity)).thenReturn(guardada);
+
+        // Act
+        Temporada resultado = service.crear(temporada);
+
+        // Assert
+        assertEquals(temporadaId, resultado.getId());
+        assertTrue(temporada.getEstadoActivo());
+        verify(temporadaValidator).validarFechas(inicio, fin);
+        verify(temporadaValidator).validarTemporadaUnicaActiva(true);
+        verify(temporadaRepository).save(entity);
+    }
+
+    @Test
+    @DisplayName("obtenerPorId - temporada existente la devuelve")
+    void obtenerPorId_temporadaExistente_retornaTemporada() {
+        // Arrange
+        TemporadaEntity entity = new TemporadaEntity();
+        Temporada temporada = new Temporada(temporadaId, "2026-2", LocalDate.of(2026, 8, 1), LocalDate.of(2026, 12, 1), true);
+        when(temporadaRepository.findById(temporadaId)).thenReturn(Optional.of(entity));
+        when(temporadaEntityMapper.toDomain(entity)).thenReturn(temporada);
+
+        // Act
+        Temporada resultado = service.obtenerPorId(temporadaId);
+
+        // Assert
+        assertEquals(temporadaId, resultado.getId());
+        assertEquals("2026-2", resultado.getNombre());
+    }
+
+    @Test
+    @DisplayName("obtenerPorId - temporada inexistente lanza RecursoNoEncontradoException (404)")
+    void obtenerPorId_temporadaInexistente_lanzaExcepcion() {
+        // Arrange
+        when(temporadaRepository.findById(temporadaId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(RecursoNoEncontradoException.class, () -> service.obtenerPorId(temporadaId));
+    }
+
+    @Test
+    @DisplayName("obtenerActiva - existe temporada activa y la devuelve")
+    void obtenerActiva_conTemporadaActiva_retornaTemporada() {
+        // Arrange
+        TemporadaEntity entity = new TemporadaEntity();
+        entity.setId(temporadaId);
+        Temporada temporada = new Temporada(temporadaId, "2026-2", LocalDate.of(2026, 8, 1), LocalDate.of(2026, 12, 1), true);
+        when(temporadaRepository.findByEstadoActivoTrue()).thenReturn(Optional.of(entity));
+        when(temporadaEntityMapper.toDomain(entity)).thenReturn(temporada);
+
+        // Act
+        Temporada resultado = service.obtenerActiva();
+
+        // Assert
+        assertEquals(temporadaId, resultado.getId());
+        assertTrue(resultado.getEstadoActivo());
+    }
+
+    @Test
+    @DisplayName("recalcularLigasSemanal - con temporada activa reduce 50 puntos a cada ranking y guarda")
+    void recalcularLigasSemanal_conTemporadaActiva_reducePuntosYGuarda() {
+        // Arrange
+        TemporadaEntity activa = new TemporadaEntity();
+        activa.setId(temporadaId);
+        RankingTemporadaEntity rankingEntity = new RankingTemporadaEntity();
+        RankingTemporada ranking = new RankingTemporada();
+        ranking.setPuntosAcumulados(200);
+
+        when(temporadaRepository.findByEstadoActivoTrue()).thenReturn(Optional.of(activa));
+        when(rankingTemporadaRepository.findByTemporadaId(temporadaId)).thenReturn(List.of(rankingEntity));
+        when(rankingTemporadaEntityMapper.toDomain(rankingEntity)).thenReturn(ranking);
+        when(rankingTemporadaEntityMapper.toEntity(ranking)).thenReturn(rankingEntity);
+
+        // Act
+        service.recalcularLigasSemanal();
+
+        // Assert
+        assertEquals(150, ranking.getPuntosAcumulados());
+        verify(rankingTemporadaRepository, times(1)).saveAll(List.of(rankingEntity));
+    }
+
+    @Test
+    @DisplayName("recalcularLigasSemanal - sin temporada activa no procesa rankings")
+    void recalcularLigasSemanal_sinTemporadaActiva_noHaceNada() {
+        // Arrange
+        when(temporadaRepository.findByEstadoActivoTrue()).thenReturn(Optional.empty());
+
+        // Act
+        service.recalcularLigasSemanal();
+
+        // Assert
+        verify(rankingTemporadaRepository, never()).findByTemporadaId(any());
+        verify(rankingTemporadaRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("sumarPuntosTemporadaActiva - ranking existente suma los puntos y guarda")
+    void sumarPuntosTemporadaActiva_rankingExistente_sumaPuntos() {
+        // Arrange
+        UUID estudianteId = UUID.randomUUID();
+        TemporadaEntity activa = new TemporadaEntity();
+        activa.setId(temporadaId);
+        RankingTemporadaEntity rankingEntity = new RankingTemporadaEntity();
+        RankingTemporada ranking = new RankingTemporada();
+        ranking.setPuntosAcumulados(100);
+
+        when(temporadaRepository.findByEstadoActivoTrue()).thenReturn(Optional.of(activa));
+        when(rankingTemporadaRepository.findByEstudianteIdAndTemporadaId(estudianteId, temporadaId))
+                .thenReturn(Optional.of(rankingEntity));
+        when(rankingTemporadaEntityMapper.toDomain(rankingEntity)).thenReturn(ranking);
+        when(rankingTemporadaEntityMapper.toEntity(ranking)).thenReturn(rankingEntity);
+
+        // Act
+        service.sumarPuntosTemporadaActiva(estudianteId.toString(), 50);
+
+        // Assert
+        assertEquals(150, ranking.getPuntosAcumulados());
+        verify(rankingTemporadaRepository).save(rankingEntity);
+    }
+
+    @Test
+    @DisplayName("sumarPuntosTemporadaActiva - sin ranking previo crea uno con los puntos")
+    void sumarPuntosTemporadaActiva_sinRanking_creaRanking() {
+        // Arrange
+        UUID estudianteId = UUID.randomUUID();
+        TemporadaEntity activa = new TemporadaEntity();
+        activa.setId(temporadaId);
+        RankingTemporadaEntity guardado = new RankingTemporadaEntity();
+
+        when(temporadaRepository.findByEstadoActivoTrue()).thenReturn(Optional.of(activa));
+        when(rankingTemporadaRepository.findByEstudianteIdAndTemporadaId(estudianteId, temporadaId))
+                .thenReturn(Optional.empty());
+        when(rankingTemporadaEntityMapper.toEntity(any(RankingTemporada.class))).thenAnswer(inv -> {
+            RankingTemporada nuevo = inv.getArgument(0);
+            assertEquals(estudianteId, nuevo.getEstudianteId());
+            assertEquals(30, nuevo.getPuntosAcumulados());
+            return guardado;
+        });
+
+        // Act
+        service.sumarPuntosTemporadaActiva(estudianteId.toString(), 30);
+
+        // Assert
+        verify(rankingTemporadaRepository).save(guardado);
+    }
+
+    @Test
+    @DisplayName("sumarPuntosTemporadaActiva - sin temporada activa no guarda nada")
+    void sumarPuntosTemporadaActiva_sinTemporadaActiva_noGuarda() {
+        // Arrange
+        when(temporadaRepository.findByEstadoActivoTrue()).thenReturn(Optional.empty());
+
+        // Act
+        service.sumarPuntosTemporadaActiva(UUID.randomUUID().toString(), 50);
+
+        // Assert
+        verify(rankingTemporadaRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("sumarPuntosTemporadaActiva - puntos en cero no consulta la temporada")
+    void sumarPuntosTemporadaActiva_puntosCero_noHaceNada() {
+        // Act
+        service.sumarPuntosTemporadaActiva(UUID.randomUUID().toString(), 0);
+
+        // Assert
+        verify(temporadaRepository, never()).findByEstadoActivoTrue();
+        verify(rankingTemporadaRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("sumarPuntosTemporadaActiva - ID alfanumerico resuelve UUID deterministico y guarda")
+    void sumarPuntosTemporadaActiva_idAlfanumerico_resuelveUUIDYGuarda() {
+        // Arrange
+        String estudianteId = "EST-01";
+        UUID uuidEsperado = UUID.nameUUIDFromBytes(estudianteId.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        TemporadaEntity activa = new TemporadaEntity();
+        activa.setId(temporadaId);
+        RankingTemporadaEntity guardado = new RankingTemporadaEntity();
+
+        when(temporadaRepository.findByEstadoActivoTrue()).thenReturn(Optional.of(activa));
+        when(rankingTemporadaRepository.findByEstudianteIdAndTemporadaId(uuidEsperado, temporadaId))
+                .thenReturn(Optional.empty());
+        when(rankingTemporadaEntityMapper.toEntity(any(RankingTemporada.class))).thenAnswer(inv -> {
+            RankingTemporada nuevo = inv.getArgument(0);
+            assertEquals(uuidEsperado, nuevo.getEstudianteId());
+            assertEquals(40, nuevo.getPuntosAcumulados());
+            return guardado;
+        });
+
+        // Act
+        service.sumarPuntosTemporadaActiva(estudianteId, 40);
+
+        // Assert
+        verify(rankingTemporadaRepository).save(guardado);
+    }
+}

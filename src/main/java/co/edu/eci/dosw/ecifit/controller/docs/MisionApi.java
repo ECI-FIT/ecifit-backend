@@ -1,0 +1,64 @@
+package co.edu.eci.dosw.ecifit.controller.docs;
+
+import co.edu.eci.dosw.ecifit.dto.request.CrearMisionRequestDTO;
+import co.edu.eci.dosw.ecifit.dto.response.MisionResponseDTO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+
+import java.util.List;
+
+@Tag(name = "Misiones", description = "Generación y consulta de misiones diarias y semanales")
+public interface MisionApi {
+
+    @Operation(summary = "Generar una misión diaria para un estudiante")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Misión diaria generada"),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos"),
+            @ApiResponse(responseCode = "422", description = "El estudiante ya tiene el máximo de misiones activas")
+    })
+    ResponseEntity<MisionResponseDTO> generarDiaria(@Valid CrearMisionRequestDTO dto);
+
+    @Operation(summary = "Generar una misión semanal para un estudiante")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Misión semanal generada"),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos"),
+            @ApiResponse(responseCode = "422", description = "El estudiante ya tiene el máximo de misiones activas")
+    })
+    ResponseEntity<MisionResponseDTO> generarSemanal(@Valid CrearMisionRequestDTO dto);
+
+    @Operation(summary = "Listar las misiones de un estudiante")
+    @ApiResponse(responseCode = "200", description = "Listado de misiones del estudiante")
+    ResponseEntity<List<MisionResponseDTO>> obtenerPorEstudiante(
+            @Parameter(description = "Id del estudiante") String estudianteId);
+
+    @Operation(summary = "Completar una misión y reclamar su recompensa")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Misión completada y recompensa otorgada exitosamente"),
+            @ApiResponse(responseCode = "400", description = "Solicitud inválida"),
+            @ApiResponse(responseCode = "401", description = "No autenticado"),
+            @ApiResponse(responseCode = "403", description = "Acceso denegado: permisos insuficientes"),
+            @ApiResponse(responseCode = "404", description = "Misión o estudiante no encontrado"),
+            @ApiResponse(responseCode = "409", description = "Conflicto o estado inválido al completar la misión"),
+            @ApiResponse(responseCode = "422", description = "Criterios de la misión no cumplidos o estado inválido")
+    })
+    ResponseEntity<MisionResponseDTO> completar(
+            @Parameter(description = "Id de la misión") String id);
+
+    @Operation(summary = "Registrar cumplimiento de una misión con evidencia o actividad (RF-18)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Cumplimiento de misión registrado exitosamente"),
+            @ApiResponse(responseCode = "400", description = "Solicitud inválida"),
+            @ApiResponse(responseCode = "404", description = "Misión no encontrada"),
+            @ApiResponse(responseCode = "409", description = "La misión ya fue completada"),
+            @ApiResponse(responseCode = "422", description = "Criterios no alcanzados")
+    })
+    ResponseEntity<MisionResponseDTO> registrarCumplimiento(
+            @Parameter(description = "Id de la misión") String id,
+            @Valid @org.springframework.web.bind.annotation.RequestBody(required = false)
+            co.edu.eci.dosw.ecifit.dto.request.RegistrarCumplimientoMisionRequestDTO dto);
+}

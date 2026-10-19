@@ -1,0 +1,45 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ecifit-db
+    environment:
+      POSTGRES_DB: ecifit
+      POSTGRES_USER: ecifit
+      POSTGRES_PASSWORD: ecifit
+    ports:
+      - "5432:5432"
+    volumes:
+      - ecifit-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecifit -d ecifit"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ecifit-network
+
+  api:
+    build: .
+    container_name: ecifit-api
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ecifit
+      SPRING_DATASOURCE_USERNAME: ecifit
+      SPRING_DATASOURCE_PASSWORD: ecifit
+      JWT_SECRET: 44CaracteresBase64SeguraParaPruebasLocalSprint3ECIFIT2026=
+      JWT_EXPIRATION: 86400000
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODELO: ${GEMINI_MODELO:-gemini-2.5-flash-lite}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ecifit-network
+
+volumes:
+  ecifit-data:
+
+networks:
+  ecifit-network:
+    driver: bridge
