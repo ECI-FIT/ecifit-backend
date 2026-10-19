@@ -1,11 +1,17 @@
 package co.edu.eci.dosw.ecifit.controller;
 
 import co.edu.eci.dosw.ecifit.controller.docs.ClanApi;
+import co.edu.eci.dosw.ecifit.dto.request.CompararRetoClanesRequestDTO;
 import co.edu.eci.dosw.ecifit.dto.request.CrearClanRequestDTO;
+import co.edu.eci.dosw.ecifit.dto.request.PublicarRetoClanRequestDTO;
 import co.edu.eci.dosw.ecifit.dto.request.UnirseClanRequestDTO;
 import co.edu.eci.dosw.ecifit.dto.response.ClanResponseDTO;
+import co.edu.eci.dosw.ecifit.dto.response.ResultadoRetoClanesResponseDTO;
+import co.edu.eci.dosw.ecifit.dto.response.RetoClanResponseDTO;
 import co.edu.eci.dosw.ecifit.mapper.ClanMapper;
+import co.edu.eci.dosw.ecifit.mapper.RetoClanMapper;
 import co.edu.eci.dosw.ecifit.model.Clan;
+import co.edu.eci.dosw.ecifit.model.RetoClan;
 import co.edu.eci.dosw.ecifit.service.IClanService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +34,7 @@ public class ClanController implements ClanApi {
 
     private final IClanService clanService;
     private final ClanMapper clanMapper;
+    private final RetoClanMapper retoClanMapper;
 
     @Override
     @PostMapping
@@ -62,5 +69,39 @@ public class ClanController implements ClanApi {
                 .map(clanMapper::toResponse)
                 .toList();
         return ResponseEntity.ok(clanes);
+    }
+
+    @Override
+    @PostMapping("/retos")
+    @PreAuthorize("hasAnyRole('ENTRENADOR', 'ADMINISTRADOR')")
+    public ResponseEntity<RetoClanResponseDTO> publicarReto(@RequestBody @Valid PublicarRetoClanRequestDTO dto) {
+        RetoClan reto = retoClanMapper.toDomain(dto);
+        RetoClan publicado = clanService.publicarRetoSemanal(reto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(retoClanMapper.toResponse(publicado));
+    }
+
+    @Override
+    @PostMapping("/{clanId}/retos/{retoId}/calcular")
+    @PreAuthorize("hasAnyRole('ENTRENADOR', 'ADMINISTRADOR')")
+    public ResponseEntity<RetoClanResponseDTO> calcularResultadoReto(@PathVariable String clanId, @PathVariable String retoId) {
+        RetoClan resultado = clanService.calcularResultadoReto(clanId, retoId);
+        return ResponseEntity.ok(retoClanMapper.toResponse(resultado));
+    }
+
+    @Override
+    @PostMapping("/retos/comparar-duelo")
+    @PreAuthorize("hasAnyRole('ENTRENADOR', 'ADMINISTRADOR')")
+    public ResponseEntity<ResultadoRetoClanesResponseDTO> compararRetoEntreClanes(@RequestBody @Valid CompararRetoClanesRequestDTO dto) {
+        ResultadoRetoClanesResponseDTO resultado = clanService.compararRetoEntreClanes(
+                dto.clanId1(), dto.clanId2(), dto.bonificacionVictoria());
+        return ResponseEntity.ok(resultado);
+    }
+
+    @Override
+    @GetMapping("/{clanId}/retos")
+    @PreAuthorize("hasAnyRole('ESTUDIANTE', 'ENTRENADOR', 'ADMINISTRADOR')")
+    public ResponseEntity<List<RetoClanResponseDTO>> obtenerRetosPorClan(@PathVariable String clanId) {
+        List<RetoClanResponseDTO> retos = retoClanMapper.toResponseList(clanService.obtenerRetosPorClan(clanId));
+        return ResponseEntity.ok(retos);
     }
 }
