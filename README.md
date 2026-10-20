@@ -113,6 +113,7 @@ Cada diagrama está explicado en el [documento de arquitectura](docs/arquitectur
 Cada fila es un módulo con el mismo recorrido: Controller → Mapper → Service (con su Validator) → EntityMapper → Repository → PostgreSQL. Antes de cualquier controlador, `JwtAuthFilter` valida el token.
 
 ## Base de datos
+![Diagrama de base de datos](docs/diagramas/diagrama-bd.jpeg)
 ![Modelo entidad-relación](docs/diagramas/modelo-er.png)
 
 ### Decisión de persistencia
@@ -122,6 +123,20 @@ Se usa PostgreSQL por su cumplimiento del estándar ACID, necesario para mantene
 La API usa autenticación stateless con JWT (JJWT 0.12.3). `JwtAuthFilter` valida el token en cada petición con un secreto definido en la variable de entorno `JWT_SECRET`. Los usuarios se guardan en la tabla `usuarios`, separada del dominio, con contraseñas cifradas con BCrypt.
 
 Las credenciales inválidas devuelven 401 y el acceso con un rol sin permisos devuelve 403. Ambos casos se manejan con `CustomAuthenticationEntryPoint`, `CustomAccessDeniedHandler` y `GlobalExceptionHandler`, y responden con `ErrorResponseDTO`.
+
+### Evidencia de Validación de Seguridad (RBAC)
+- **Sin Token / Token Inválido:** Devuelve `401 Unauthorized` (`CP-02`).
+- **Rol Incorrecto (Estudiante accediendo a recurso de Admin):** Devuelve `403 Forbidden` (`CP-04`).
+- **Rol Correcto (Administrador o Estudiante autorizado):** Devuelve `200 OK` / `201 Created` (`CP-01`, `CP-03`).
+
+#### 1. Sin Token / No Autenticado (401 Unauthorized)
+![401 Unauthorized](docs/evidencias/swagger-prod-401.png)
+
+#### 2. Acceso Denegado por Rol Insuficiente (403 Forbidden)
+![403 Forbidden](docs/evidencias/swagger-prod-403.png)
+
+#### 3. Acceso Autorizado con Rol Válido (200 OK)
+![200 OK](docs/evidencias/swagger-prod-200.png)
 
 ### Roles y permisos
 | Módulo | Método | Endpoint | Público | Roles permitidos |
@@ -208,6 +223,8 @@ Ubicación de la colección oficial: [`postman/ecifit-collection.json`](postman/
 
 **Cómo correrlo:** importar la colección y el ambiente en Postman, seleccionar el ambiente (QA o PROD) y ejecutar la colección completa con el **Collection Runner**. Cada request valida automáticamente el código de respuesta.
 
+![Resultado Completo de Pruebas en Postman Runner](docs/evidencias/postman-runner.png)
+
 | ID | Funcionalidad (RF) | Escenario de Prueba | Método y Request | Esperado | Obtenido | Evidencia |
 |:---:|---|---|---|:---:|:---:|:---:|
 | **CP-01** | RF-01 Login | Autenticación exitosa Administrador | `POST /api/v1/auth/login` | 200 OK + JWT Admin | ✅ 200 OK | `docs/evidencias/cp01-login-admin.png` |
@@ -255,18 +272,34 @@ Lo que no alcanzó a cerrarse, con su impacto y cómo se resolvería, está en l
 ![Pipeline PROD](docs/evidencias/pipeline-prod.jpeg)
 
 ## Despliegue
-**Imagen Docker:** https://hub.docker.com/r/cobos1/ecifit-backend
+- **Swagger en Producción (Azure):** [https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html](https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html)
+- **Health Check Azure (Probe):** [https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/api/v1/health](https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/api/v1/health)
+- **Imagen Docker en Docker Hub:** [https://hub.docker.com/r/cobos1/ecifit-backend](https://hub.docker.com/r/cobos1/ecifit-backend)
+
+![Swagger en Azure PROD](docs/evidencias/swagger-prod.png)
+
+![Imagen en Docker Hub](docs/evidencias/dockerhub.png)
 
 ### Diagrama de despliegue
-![Diagrama de despliegue](docs/diagramas/diagrama-despliegue.jpeg)
+![diagrama-despliegue.jpeg](docs/diagramas/Despliegue-ecifit.png)
 
 ## Integrantes
-Los roles cambian en cada sprint. Esta tabla corresponde al Sprint 4.
+### Sprint 4 (Cierre Final y Feria de Proyectos)
 
 | Nombre | Rol en el Sprint 4 | Qué implementó en el Sprint 4 |
-|---|---|---|
-| Julian Camilo Giral Cobos | Coordinación | Organización de pendientes en Jira, seguimiento del equipo, paquete final y montaje de la feria. |
-| Sebastián Camilo Granados López | Deuda técnica y documentación | Deuda técnica P1 y P2 del backend, RF-23, RF-30 y RF-33, documento de arquitectura del backend y diagramas. |
-| Juan David Munar Chaparro | Estabilidad y demostración | API estable en Azure, set de pruebas de funcionamiento, datos de demo, diagramas de secuencia y video de respaldo. |
-| Daniel Alfredo Barrera Aranque | Identidad visual y arquitectura front | Plantilla de documentos, documento de arquitectura del frontend y módulo de nutrición (RF-12 a RF-15). |
-| Daniel Jose Villamizar Castellanos | Marketing y presentación | Documento de marketing, investigación de mercado, piezas para jurados y presentación inicial. |
+|------------------------------------|---|--------------------------------------------------------------------------------------------------------------------------------------------|
+| Juan David Munar Chaparro          | Backend: Seguridad, QA & Arquitectura | Consolidación exhaustiva del Documento de Arquitectura HLD, pruebas de seguridad RBAC (401/403/200), diseño y ejecución de la suite de pruebas de funcionamiento en Postman (CP-01 a CP-10), aseguramiento de 329 tests unitarios y semillero de datos. |
+| Sebastián Camilo Granados López    | Líder técnico e Integración | Coordinación de sprint en Jira, revisión y aprobación de Pull Requests, sincronización de ramas `develop`/`main` y verificación de despliegues. |
+| Daniel Jose Villamizar Castellanos | Backend: Negocio y Persistencia | Implementación y estabilización de reglas de negocio en clanes, retos colectivos y misiones, validadores de dominio y manejo transaccional. |
+| Julian Camilo Giral Cobos          | DevOps: CI/CD y Cloud | Automatización de pipelines de GitHub Actions (QA y PROD), construcción y etiquetado de imágenes en Docker Hub, configuración de secrets y soporte de Azure. |
+| Daniel Alfredo Barrera Aranque     | Frontend & Experiencia de Usuario | Integración cliente-servidor con el backend en Azure, refinamiento de vistas gamificadas y preparación de material interactivo para la Feria de Proyectos. |
+
+### Histórico Sprint 3
+
+| Nombre | Rol en el Sprint 3 | Qué implementó en el Sprint 3 |
+|------------------------------------|---|--------------------------------------------------------------------------------------------------------------------------------------------|
+| Sebastián Camilo Granados López    | Líder técnico | Gestión del sprint en Jira, diagrama de flujo de pantallas, integración y verificación de QA y PROD, README del backend.                   |
+| Daniel Jose Villamizar Castellanos | Backend: funcionalidades y Docker | Funcionalidades pendientes, manejo global de excepciones, pruebas, Dockerización, imagen en Docker Hub, diagramas de clases y componentes. |
+| Juan David Munar Chaparro          | Backend: seguridad | Autenticación JWT, roles y permisos por endpoint, pruebas de seguridad, funcionalidades pendientes, diagrama de base de datos.             |
+| Julian Camilo Giral Cobos          | Backend: CI/CD y Azure | Pipelines de QA y PROD, despliegue en Azure, secrets y variables de entorno, diagrama de despliegue.                                       |
+| Daniel Alfredo Barrera Aranque     | Frontend | Mascota, manual de identidad, mockups finales en Figma, README del frontend.                                                               |
