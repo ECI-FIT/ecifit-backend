@@ -209,7 +209,14 @@ Las credenciales inválidas devuelven 401 y el acceso con un rol sin permisos de
 - **Rol Incorrecto (Estudiante accediendo a recurso de Admin):** Devuelve `403 Forbidden` (`CP-04`).
 - **Rol Correcto (Administrador o Estudiante autorizado):** Devuelve `200 OK` / `201 Created` (`CP-01`, `CP-03`).
 
-![Pruebas de Seguridad RBAC](docs/evidencias/seguridad-rbac.png)
+#### 1. Sin Token / No Autenticado (401 Unauthorized)
+![401 Unauthorized](docs/evidencias/swagger-prod-401.png)
+
+#### 2. Acceso Denegado por Rol Insuficiente (403 Forbidden)
+![403 Forbidden](docs/evidencias/swagger-prod-403.png)
+
+#### 3. Acceso Autorizado con Rol Válido (200 OK)
+![200 OK](docs/evidencias/swagger-prod-200.png)
 
 ### Roles y permisos
 | Módulo | Método | Endpoint | Público | Roles permitidos |
