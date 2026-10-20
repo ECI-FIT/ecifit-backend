@@ -10,10 +10,10 @@
 Sus responsabilidades esenciales abarcan:
 1. **Gestión de Personajes y Progresión:** Creación de atletas institucionales bajo arquetipos de juego (*Tanque*, *Corredor*, *Estratega*) y trazabilidad de estadísticas.
 2. **Pipeline Anti-Fraude de Actividades:** Validación fisiológica estricta y blindaje contra registros ficticios mediante el patrón *Chain of Responsibility*.
-3. **Misiones Gamificadas:** Generación desacoplada de objetivos diarios y semanales mediante *Factory Method*.
+3. **Misiones Gamificadas:** Generación desacoplada de objetivos diarios y semanales mediante *Abstract Factory*.
 4. **Guerras de Clanes y Asedios:** Gestión de clanes (límite estricto de 5 miembros), defensa reactiva de la torre (*Observer*), publicación de retos colectivos (**RF-34**) y resolución de duelos entre clanes (**RF-36**).
 5. **Gobernanza de Membresía e Invitaciones a Clanes (RF-30, RF-31, RF-33):** Sistema completo de invitaciones directas por miembros, aceptación/rechazo y abandono con reasignación automática de líder.
-6. **Ciclo de Ligas y Temporadas:** Control de calendario académico (*State*) y recálculo semanal de ascensos y descensos (*Bronce*, *Plata*, *Oro*, *Diamante*).
+6. **Ciclo de Ligas y Temporadas:** Temporadas semestrales, ranking por temporada y recálculo semanal de ascensos y descensos (*Bronce*, *Plata*, *Oro*, *Platino*, *Diamante*).
 7. **Nutrición Asistida por Inteligencia Artificial (RF-12, RF-13, RF-14):** Evaluación dietética automática y consejos nutricionales conectando de forma resiliente con **Google Gemini 2.5 Flash Lite**.
 8. **Menú del Comedor Institucional (RF-15):** Exposición del menú saludable diario publicado por bienestar universitario.
 9. **Asistencia Verificada al Gimnasio (RF-42):** Registro presencial validado exclusivamente por entrenadores institucionales.
@@ -21,34 +21,18 @@ Sus responsabilidades esenciales abarcan:
 
 ### 1.2 Diagrama de Contexto del Sistema (C4 Nivel 1)
 
-El siguiente diagrama delimita las fronteras del backend con los actores del campus y los subsistemas externos:
+El sistema se ve como una caja negra: tres tipos de usuario lo usan desde el navegador y él se apoya en tres sistemas externos. Siguiendo la convención del modelo C4, el sistema que se construye va en azul y los sistemas externos que ya existen, en rojo.
 
-```mermaid
-flowchart TD
-    subgraph Actores["Comunidad Universitaria"]
-        Estudiante["Estudiante / Jugador\n(Web & Mobile App)"]
-        Entrenador["Entrenador Institucional\n(Gestión Gym & Misiones)"]
-        Admin["Administrador del Sistema\n(Bienestar & Configuración)"]
-    end
+![Diagrama de contexto C4](diagramas/contexto-c4.png)
 
-    subgraph Frontera["Frontera del Sistema: ECI FIT"]
-        Backend["ECI FIT Backend\n(Spring Boot 3.5.16 / Java 21 LTS)\n[API REST Stateless + JWT]"]
-    end
+- **Estudiante:** registra actividades, comidas y misiones, y participa en clanes y retos.
+- **Entrenador:** confirma asistencias al gimnasio, crea misiones y publica retos de clan.
+- **Administrador:** registra estudiantes, crea temporadas y publica el menú del comedor.
+- **Google Gemini API:** recibe la descripción de una comida y responde si es balanceada.
+- **PostgreSQL 16:** guarda toda la información del sistema.
+- **Microsoft Azure:** aloja la API en dos ambientes (QA y PROD) mediante contenedores Docker.
 
-    subgraph Externos["Sistemas Externos y Almacenamiento"]
-        Postgres[("PostgreSQL 16\n(Persistencia Relacional ACID - 12 Tablas)")]
-        GeminiAPI["Google Gemini 2.5 Flash Lite API\n(Evaluación Nutricional Asistida)"]
-        AzureCloud["Azure App Service\n(Container Runtime Linux)"]
-    end
-
-    Estudiante -->|"Registra actividades, comidas, retos, invitaciones\n[HTTPS / REST / JWT]"| Backend
-    Entrenador -->|"Valida asistencias gym, publica retos\n[HTTPS / REST / JWT]"| Backend
-    Admin -->|"Configura temporadas, estudiantes, menús\n[HTTPS / REST / JWT]"| Backend
-
-    Backend -->|"Persistencia transaccional\n[JDBC / Pool HikariCP]"| Postgres
-    Backend -->|"Clasificación nutricional y consejos\n[HTTP REST JSON]"| GeminiAPI
-    Backend -.->|"Hospedaje de contenedores\n[Docker Multi-Stage]"| AzureCloud
-```
+El acceso con correo institucional se controla dentro del propio sistema: solo se aceptan cuentas `@mail.escuelaing.edu.co`.
 
 ---
 
@@ -68,9 +52,9 @@ La selección tecnológica prioriza componentes LTS con soporte corporativo, com
 | **MapStruct** | 1.6.3 | Mapeo entre capas de datos | Transformación tipo-segura en tiempo de compilación entre DTOs, Entidades de Dominio y Entidades JPA con costo de reflexión cero (*Zero-Overhead*). |
 | **Lombok** | 1.18.48 | Reducción de código repetitivo | Generación automática de Getters, Setters, Builders inmutables y trazabilidad de logs estructurados con `@Slf4j`. |
 | **Springdoc OpenAPI** | 2.8.17 | Documentación viva y contratos Swagger | Generación automatizada de OpenAPI 3.0 mediante interfaces desacopladas (`*Api.java`) y UI interactiva en `/swagger-ui.html`. |
-| **JUnit 5 & Mockito** | 5.10 / 5.11 | Pruebas unitarias e integración | Validación de lógica pura con patrón AAA (*Arrange, Act, Assert*), aislamiento de servicios con `@MockitoBean` y pruebas MVC con `MockMvc`. |
-| **JaCoCo** | 0.8.15 | Medición de cobertura de pruebas | Auditoría automatizada de cobertura de instrucciones y ramas durante el ciclo de empaquetado Maven, exigiendo umbral mínimo del 80%. |
-| **Docker** | Multi-Stage | Empaquetamiento y aislamiento | Construcción liviana en dos etapas (`build` y `runtime` con JRE Alpine) reduciendo la imagen a menos de 180 MB y eliminando vulnerabilidades. |
+| **JUnit 5 & Mockito** | Spring Boot Test | Pruebas unitarias e integración | Validación de lógica pura con patrón AAA (*Arrange, Act, Assert*), aislamiento de servicios con `@MockitoBean` y pruebas MVC con `MockMvc`. |
+| **JaCoCo** | 0.8.15 | Medición de cobertura de pruebas | Genera el reporte HTML de cobertura de instrucciones y ramas en cada `mvn test` (`target/site/jacoco/index.html`). |
+| **Docker** | Multi-Stage | Empaquetamiento y aislamiento | Construcción en dos etapas: compilación con `maven:3.9.9-eclipse-temurin-21` y ejecución con `eclipse-temurin:21-jre`, sin incluir el código fuente ni Maven en la imagen final. |
 | **GitHub Actions** | — | Automatización CI/CD | Orquestación de pipelines automatizados de calidad, ejecución de pruebas, auditoría JaCoCo y despliegue continuo a Azure. |
 | **Azure App Service** | Linux PaaS | Entorno de ejecución en la nube | Plataforma administrada de alta disponibilidad con monitoreo integrado, gestión de probes de health check y soporte de variables secretas. |
 
@@ -85,11 +69,11 @@ Alineación formal y exhaustiva entre el catálogo canónico de los 42 requerimi
 | **RF-01** | Autenticar estudiante mediante correo institucional | Autenticación / Auth | `POST /api/v1/auth/login` | **Implementado** |
 | **RF-02** | Crear personaje del estudiante | Estudiantes | `POST /api/v1/estudiantes/personaje`<br>`POST /api/v1/estudiantes` | **Implementado** |
 | **RF-03** | Seleccionar rol de temporada (Tanque, Corredor, Estratega) | Estudiantes | `CrearEstudianteRequestDTO.rol` | **Implementado** |
-| **RF-04** | Aplicar bonificación según el rol seleccionado | Actividades / Strategy | `ActividadServiceImpl` / `RolStrategy` | **Implementado** |
+| **RF-04** | Aplicar bonificación según el rol seleccionado | Actividades / Strategy | `RolTemporada` (Strategy: Tanque, Corredor, Estratega) | **Implementado** |
 | **RF-05** | Actualizar estadísticas del personaje (Fuerza, Cardio, etc.) | Estudiantes / Dominio | `Estudiante.puntosAcumulados` | **Limitación Conocida** |
-| **RF-06** | Registrar sesión de entrenamiento de fuerza | Actividades | `POST /api/v1/actividades` (`FUERZA`) | **Implementado** |
-| **RF-07** | Registrar actividad cardiovascular | Actividades | `POST /api/v1/actividades` (`CARDIO`) | **Implementado** |
-| **RF-08** | Registrar sesión de flexibilidad o movilidad | Actividades | `POST /api/v1/actividades` (`FLEXIBILIDAD`) | **Implementado** |
+| **RF-06** | Registrar sesión de entrenamiento de fuerza | Actividades | `POST /api/v1/actividades` (campo `tipo`) | **Implementado** |
+| **RF-07** | Registrar actividad cardiovascular | Actividades | `POST /api/v1/actividades` (campo `tipo`) | **Implementado** |
+| **RF-08** | Registrar sesión de flexibilidad o movilidad | Actividades | `POST /api/v1/actividades` (campo `tipo`) | **Implementado** |
 | **RF-09** | Validar duración mínima de una actividad (10 min) | Anti-Cheat / Chain | `DataIntegrityHandler` / `ActividadValidator` | **Implementado** |
 | **RF-10** | Otorgar puntos por actividad física válida | Actividades | `ActividadResponseDTO.puntosOtorgados` | **Implementado** |
 | **RF-11** | Otorgar puntos adicionales por asistencia al gimnasio | Asistencia Gimnasio | `POST /api/v1/gimnasio/asistencias` (+20 pts) | **Implementado** |
@@ -101,17 +85,17 @@ Alineación formal y exhaustiva entre el catálogo canónico de los 42 requerimi
 | **RF-17** | Generar misiones semanales | Misiones / Factory | `POST /api/v1/misiones/semanales` | **Implementado** |
 | **RF-18** | Registrar cumplimiento de una misión | Misiones | `POST /api/v1/misiones/{id}/cumplimiento`<br>`POST /api/v1/misiones/{id}/completar` | **Implementado** |
 | **RF-19** | Otorgar puntos al completar una misión | Misiones | `MisionServiceImpl.completarMision` | **Implementado** |
-| **RF-20** | Calcular racha de actividad consecutiva | Actividades | `ActividadServiceImpl.calcularRacha` | **Implementado** |
-| **RF-21** | Otorgar bonificación por alcanzar racha de 7 días | Actividades | `ActividadServiceImpl.evaluarBonoRacha` (+200 pts) | **Implementado** |
+| **RF-20** | Calcular racha de actividad consecutiva | Actividades | `Estudiante.evaluarRacha` | **Implementado** |
+| **RF-21** | Otorgar bonificación por alcanzar racha de 7 días | Actividades | `Estudiante.evaluarRacha` (+200 pts) | **Implementado** |
 | **RF-22** | Crear temporada asociada al semestre académico | Temporadas | `POST /api/v1/temporadas` | **Implementado** |
 | **RF-23** | Acumular puntos del estudiante durante la temporada | Temporadas | `TemporadaServiceImpl.sumarPuntosTemporadaActiva` | **Implementado** |
-| **RF-24** | Calcular liga individual del estudiante | Temporadas | `RankingTemporadaEntity.ligaActual` | **Implementado** |
+| **RF-24** | Calcular liga individual del estudiante | Temporadas | `RankingTemporada.actualizarLiga` / `LigaEnum.desdePuntos` | **Implementado** |
 | **RF-25** | Recalcular semanalmente la liga (corte semanal) | Scheduler / Temporadas | `TemporadaServiceImpl.recalcularLigasSemanal` | **Implementado** |
-| **RF-26** | Ascender estudiante de liga al cumplir el umbral | Temporadas | `Temporada.determinarLiga` | **Implementado** |
-| **RF-27** | Descender estudiante de liga cuando corresponda | Temporadas | `Temporada.determinarLiga` | **Implementado** |
+| **RF-26** | Ascender estudiante de liga al cumplir el umbral | Temporadas | `RankingTemporada.agregarPuntos` → `actualizarLiga` | **Implementado** |
+| **RF-27** | Descender estudiante de liga cuando corresponda | Temporadas | `TemporadaServiceImpl.recalcularLigasSemanal` (−50 pts semanales) | **Implementado** |
 | **RF-28** | Consultar ranking de la temporada | Temporadas | `GET /api/v1/temporadas/{id}/ranking` | **Implementado** |
 | **RF-29** | Crear clan | Clanes | `POST /api/v1/clanes` | **Implementado** |
-| **RF-30** | Invitar estudiante a un clan | Clanes / Invitaciones | Prototipo `POST /api/v1/clanes/invitaciones`; flujo formal con notificación asíncrona aplazado | **Limitación Conocida** |
+| **RF-30** | Invitar estudiante a un clan | Clanes / Invitaciones | `POST /api/v1/clanes/invitaciones` | **Implementado** |
 | **RF-31** | Aceptar o rechazar invitación a clan | Clanes / Invitaciones | `POST /api/v1/clanes/invitaciones/{id}/responder`<br>`POST /api/v1/clanes/unirse` | **Implementado** |
 | **RF-32** | Limitar el clan a máximo cinco integrantes | Clanes / Validator | `ClanValidator.validarCupoDisponible` | **Implementado** |
 | **RF-33** | Abandonar un clan voluntariamente | Clanes | `POST /api/v1/clanes/abandonar` | **Implementado** |
@@ -120,62 +104,122 @@ Alineación formal y exhaustiva entre el catálogo canónico de los 42 requerimi
 | **RF-36** | Calcular resultado de reto entre clanes / duelos | Clanes / Retos | `POST /api/v1/clanes/{id}/retos/{rId}/calcular`<br>`POST /api/v1/clanes/retos/comparar-duelo` | **Implementado** |
 | **RF-37** | Publicar resultados semanales de clanes | Clanes / Retos | `GET /api/v1/clanes/{clanId}/retos` | **Implementado** |
 | **RF-38** | Aplicar ascenso o descenso del clan según resultado | Clanes | — | **Limitación Conocida** |
-| **RF-39** | Reportar ocupación actual del gimnasio | Gimnasio IoT | — | **Limitación Conocida** |
-| **RF-40** | Consultar ocupación reportada del gimnasio | Gimnasio IoT | — | **Limitación Conocida** |
-| **RF-41** | Actualizar mapa colaborativo de ocupación | Gimnasio IoT | — | **Limitación Conocida** |
+| **RF-39** | Reportar ocupación actual del gimnasio | Gimnasio | — | **Limitación Conocida** |
+| **RF-40** | Consultar ocupación reportada del gimnasio | Gimnasio | — | **Limitación Conocida** |
+| **RF-41** | Actualizar mapa colaborativo de ocupación | Gimnasio | — | **Limitación Conocida** |
 | **RF-42** | Confirmar asistencia de estudiante por entrenador | Asistencia Gimnasio | `POST /api/v1/gimnasio/asistencias` | **Implementado** |
 
 
 > ### Balance de Requerimientos:
-> $$\text{Requerimientos Implementados (36)} + \text{Requerimientos Parciales (0)} + \text{Limitaciones Conocidas (6)} = 42\text{ Requerimientos Totales}$$
+> **37 implementados + 0 parciales + 5 limitaciones conocidas = 42 requerimientos.**
 > 
-> * **Completamente Implementados (36):** RF-01, RF-02, RF-03, RF-04, RF-06, RF-07, RF-08, RF-09, RF-10, RF-11, RF-12, RF-13, RF-14, RF-15, RF-16, RF-17, RF-18, RF-19, RF-20, RF-21, RF-22, RF-23, RF-24, RF-25, RF-26, RF-27, RF-28, RF-29, RF-31, RF-32, RF-33, RF-34, RF-35, RF-36, RF-37, RF-42.
+> * **Completamente Implementados (37):** RF-01, RF-02, RF-03, RF-04, RF-06, RF-07, RF-08, RF-09, RF-10, RF-11, RF-12, RF-13, RF-14, RF-15, RF-16, RF-17, RF-18, RF-19, RF-20, RF-21, RF-22, RF-23, RF-24, RF-25, RF-26, RF-27, RF-28, RF-29, RF-30, RF-31, RF-32, RF-33, RF-34, RF-35, RF-36, RF-37, RF-42.
 > * **Parciales (0):** Ninguno (todos los requerimientos parciales fueron implementados y verificados con pruebas automatizadas).
-> * **Limitaciones Conocidas (6):** RF-05 (estadísticas desglosadas por atributo), RF-30 (sistema de invitaciones formal con notificaciones y expiración temporal), RF-38 (niveles de clan), RF-39 (reporte IoT de aforo), RF-40 (consulta IoT de aforo), RF-41 (mapa colaborativo térmico).
+> * **Limitaciones Conocidas (5):** RF-05 (estadísticas desglosadas por atributo), RF-38 (niveles de clan), RF-39 (reportar ocupación del gimnasio), RF-40 (consultar ocupación) y RF-41 (mapa colaborativo de ocupación).
 
 ---
 
 ## 4. Diagramas Arquitectónicos
 
+Todos los diagramas están hechos en draw.io, con fondo y recuadros blancos. Cada módulo tiene un color de borde que se mantiene igual en el diagrama de clases, en el de componentes específico y en el modelo entidad-relación:
+
+| Color | Módulo |
+|---|---|
+| Azul `#1F6FB2` | Estudiantes y actividades |
+| Verde `#2E7D32` | Clanes, invitaciones y retos |
+| Morado `#7B1FA2` | Misiones |
+| Naranja `#E07B00` | Temporadas y ligas |
+| Turquesa `#00838F` | Gimnasio |
+| Magenta `#C2185B` | Nutrición y comedor |
+| Gris `#424242` | Seguridad y elementos transversales |
+| Oscuro `#0F1923` | Base de datos y sistemas externos |
+
 ### 4.1 Modelo Entidad-Relación de Base de Datos (ERD)
-Representación de las **12 tablas relacionales** en PostgreSQL 16 normalizadas en Tercera Forma Normal (3FN), con llaves primarias, llaves foráneas e índices únicos:
 
 ![Modelo entidad-relación](diagramas/modelo-er.png)
 
-#### Entidades y Tablas JPA del Esquema Relacional (12 Tablas):
-1. **`usuarios` (`UsuarioEntity`):** Credenciales de autenticación (`email` UNIQUE, `password` BCrypt Hash, `rol`, `activo`).
-2. **`estudiantes` (`EstudianteEntity`):** Perfil del jugador (`correo_institucional` UNIQUE, `rol_activo`, `puntos_acumulados`, `clan_id` FK nullable).
-3. **`clanes` (`ClanEntity`):** Información de agrupaciones (`nombre` UNIQUE, `salud_torre`, `puntos_totales`, `lider_id`).
-4. **`retos_clan` (`RetoClanEntity`):** Retos colectivos semanales (`clan_id` FK hacia `clanes.id`, `objetivo_puntos`, `progreso_actual`, `recompensa`, `completado`).
-5. **`actividades` (`ActividadEntity`):** Historial deportivo (`estudiante_id` FK, `tipo`, `duracion_minutos`, `intensidad`, `puntos_otorgados`, `fecha`).
-6. **`comidas` (`ComidaEntity`):** Registros nutricionales (`estudiante_id` FK, `tipo_comida`, `estado_evaluacion`, `balanceada`, `justificacion_ia`, `recomendacion_ia`, `puntos_otorgados`).
-7. **`menus_comedor` (`MenuComedorEntity`):** Menú diario institucional (`fecha`, `tipo_comida`).
-8. **`platos_menu` (`PlatoMenuEntity`):** Ítems del menú (`menu_id` FK hacia `menus_comedor.id`, `nombre`, `categoria`, `calorias_aproximadas`).
-9. **`misiones` (`MisionEntity`):** Retos individuales (`estudiante_id` FK, `descripcion`, `recompensa`, `tipo`, `completada`).
-10. **`temporadas` (`TemporadaEntity`):** Periodos semestrales (`nombre`, `fecha_inicio`, `fecha_fin`, `estado_activo`).
-11. **`rankings_temporada` (`RankingTemporadaEntity`):** Posiciones competitivas (`temporada_id` FK, `estudiante_id` FK, `puntos_acumulados`, `liga_actual`, restricción `UNIQUE(temporada_id, estudiante_id)`).
-12. **`asistencias_gym` (`AsistenciaGymEntity`):** Registro de visitas (`estudiante_id` FK, `entrenador_id`, `fecha`, restricción `UNIQUE(estudiante_id, fecha)`).
+La base de datos tiene **15 tablas** en PostgreSQL 16. Las relaciones entre módulos se hacen por identificador (por ejemplo, `estudiante_id`), lo que mantiene cada módulo independiente; las únicas llaves foráneas declaradas en JPA son `rankings_temporada.temporada_id` y `platos_menu.menu_id`.
+
+| Tabla | Qué guarda |
+|---|---|
+| `usuarios` | Credenciales de acceso: correo único, contraseña cifrada con BCrypt, rol y estado |
+| `estudiantes` | Perfil del jugador: nombre, correo institucional, rol de temporada, puntos, clan y fecha del último bono de racha |
+| `clanes` | Nombre, salud de la torre (inicia en 5000) y puntos totales |
+| `clan_miembros` | Integrantes de cada clan; el primero de la lista es el líder |
+| `invitaciones_clan` | Invitaciones a clanes con su estado: `PENDIENTE`, `ACEPTADA` o `RECHAZADA` |
+| `retos_clan` | Retos semanales: objetivo, progreso, recompensa, vigencia y si se completó |
+| `actividades` | Sesiones de ejercicio: tipo, duración, intensidad, fecha y puntos obtenidos |
+| `misiones` | Misiones diarias y semanales asignadas a cada estudiante |
+| `asistencias_gym` | Asistencias al gimnasio confirmadas por un entrenador |
+| `comidas` | Comidas registradas y el resultado de la evaluación de Gemini |
+| `comida_recomendaciones` | Recomendaciones de Gemini para cada comida |
+| `menus_comedor` | Menú del comedor por fecha y tipo de comida (sin repetir la pareja fecha–tipo) |
+| `platos_menu` | Platos de cada menú: nombre, descripción y precio |
+| `temporadas` | Temporadas semestrales con sus fechas y si están activas |
+| `rankings_temporada` | Puntos y liga de cada estudiante en una temporada |
 
 ---
 
 ### 4.2 Diagrama de Clases del Dominio
-Modelo orientado a dominio puro (DDD) libre de dependencias de persistencia:
 
 ![Diagrama de clases](diagramas/clases.png)
 
+El diagrama tiene tres franjas: **Dominio** (entidades de negocio, enumeraciones y clases de los patrones, sin dependencias de Spring ni de la base de datos), **Persistencia** (las entidades JPA que se guardan en PostgreSQL; sus atributos están en el modelo entidad-relación) y **Transferencia** (los DTOs de entrada y salida de la API, agrupados en un paquete por módulo; sus campos están en el catálogo de endpoints de la sección 5). En el dominio cada clase muestra su visibilidad (`+` pública, `-` privada, `#` protegida), y las relaciones indican multiplicidad, agregación (◇, un clan agrupa estudiantes) y composición (◆, un menú está compuesto por sus platos). Las implementaciones de los patrones aparecen solo con su nombre porque implementan el método de su interfaz. Los estereotipos `«Interface»`, `«Abstract»`, `«Enumeration»`, `«Record»` y `«Entity»` identifican el tipo de cada clase.
+
+| Patrón | Clases | Qué resuelve |
+|---|---|---|
+| Strategy | `RolTemporada`, `Tanque`, `Corredor`, `Estratega` | Cada rol calcula los puntos de una actividad con su propio multiplicador |
+| Chain of Responsibility | `ActividadHandler`, `SanctionStatusHandler`, `DataIntegrityHandler`, `PhysiologicalLimitsHandler` | Validación anti-cheat en eslabones: sin fechas futuras, duración e intensidad válidas y máximo 300 minutos por sesión |
+| Abstract Factory | `FabricaMisiones`, `FabricaMisionesEstandar`, `Mision`, `MisionDiaria`, `MisionSemanal` | Crear misiones diarias y semanales sin acoplar el servicio a cada tipo |
+| Observer | `ActividadObserver`, `GestorLigas`, `TorreClan` | Avisar cuando se registra una actividad; se usa para calcular sus puntos |
+| State | `EstadoTemporada`, `SemanaRegular`, `SemanaParciales` | Reglas distintas en semana regular y de parciales |
+
+El dominio recibe el resultado de Gemini como un `EvaluacionNutricional`; la llamada HTTP vive en el servicio `GeminiEvaluadorNutricional`, que por ser un componente de Spring aparece en el diagrama de componentes específico y no en este.
+
 ---
 
-### 4.3 Diagrama de Componentes General (Arquitectura en Capas)
-Flujo de dependencias desacoplado y unidireccional:
+### 4.3 Diagrama de Componentes General
 
 ![Diagrama de componentes general](diagramas/componentes-general.png)
 
+Los tres tipos de usuario usan el frontend, que consume la API REST del backend (interfaz provista por el backend y requerida por el frontend). El backend guarda los datos en PostgreSQL mediante JPA y consulta a Google Gemini por HTTPS para evaluar las comidas.
+
 ---
 
-### 4.4 Diagrama de Componentes Específico (Servicios, Mappers y Anti-Cheat)
-Desacoplamiento entre interfaces de controlador, adaptadores de IA, cadena de validación y repositorios:
+### 4.4 Diagrama de Componentes Específico
 
 ![Diagrama de componentes específico](diagramas/componentes-especifico.png)
+
+El diagrama usa la notación UML de componentes: cada componente tiene **puertos** (cuadros en el borde) y se conecta por **interfaces**; el círculo (lollipop) es la interfaz que un componente provee y el semicírculo (socket) es la que otro requiere, con el nombre real de la interfaz (`IActividadService`, `IActividadValidator`, `JpaRepository`…). Toda petición pasa primero por `JwtAuthFilter`, que valida el token. Después, cada módulo sigue el mismo recorrido por capas, con las dependencias que Spring inyecta en el código:
+
+| Componente | Responsabilidad |
+|---|---|
+| Controller | Recibe la petición, valida el DTO con `@Valid`, revisa el rol con `@PreAuthorize` y devuelve el código HTTP |
+| Mapper (`XMapper`) | Convierte el DTO de entrada en un objeto de dominio y el dominio en el DTO de respuesta |
+| Service (`XServiceImpl`) | Ejecuta el caso de uso con objetos de dominio |
+| Validator | Aplica las reglas de negocio y lanza excepciones tipadas (404, 409, 422) |
+| Mapper de persistencia (`XEntityMapper`) | Convierte el dominio en entidad JPA y viceversa |
+| Repository | Consulta y guarda en PostgreSQL |
+
+Las flechas punteadas entre módulos muestran dependencias reales: Actividad, Misión y Asistencia usan `ITemporadaService` para sumar puntos al ranking, e Invitación usa `IClanService` para unir al estudiante. `ComidaServiceImpl` requiere `IEvaluadorNutricional`, que provee el adaptador `GeminiEvaluadorNutricional` hacia la API de Gemini, y `ActividadValidator` usa la **cadena anti-cheat**.
+
+---
+
+### 4.5 Organización del Código
+
+| Carpeta | Qué contiene |
+|---|---|
+| `controller` y `controller/docs` | Endpoints REST y sus contratos de Swagger |
+| `dto` | Datos de entrada (`request`), salida (`response`) y de la integración con Gemini (`ia`) |
+| `mapper` | Conversión entre DTO, dominio y entidades (MapStruct) |
+| `service` y `service/ia` | Casos de uso y el adaptador de Gemini |
+| `validator` | Reglas de negocio de cada módulo |
+| `model` | Dominio y patrones (`strategy`, `chain`, `factory`, `observer`, `state`) |
+| `persistence` y `repository` | Entidades JPA y repositorios |
+| `security` | JWT, usuarios, roles y configuración de Spring Security |
+| `scheduler` | Corte semanal de ligas (lunes 00:00) y reintento de evaluaciones nutricionales pendientes |
+| `exception` | Excepciones de negocio y `GlobalExceptionHandler` |
+| `config` | Configuración de Swagger y de Gemini |
 
 ---
 
@@ -193,8 +237,8 @@ Autentica las credenciales del usuario y genera un token JWT firmado con algorit
 
 | Campo | Tipo | Obligatorio | Restricciones | Descripción |
 |---|---|:---:|---|---|
-| `email` | String | Sí | Formato RFC 5322 `@mail.escuelaing.edu.co` o `@escuelaing.edu.co` | Correo institucional del usuario registrado |
-| `password` | String | Sí | No vacío, mínimo 6 caracteres | Contraseña en texto plano para validación BCrypt |
+| `email` | String | Sí | No vacío, formato de correo válido | Correo del usuario registrado |
+| `password` | String | Sí | No vacío | Contraseña en texto plano; se compara con el hash BCrypt |
 
 ```json
 {
@@ -215,9 +259,9 @@ Registra un nuevo estudiante en el sistema y le asigna su arquetipo deportivo.
 
 | Campo | Tipo | Obligatorio | Restricciones | Descripción |
 |---|---|:---:|---|---|
-| `nombre` | String | Sí | 3 – 100 caracteres, no vacío | Nombre completo del estudiante |
-| `correoInstitucional` | String | Sí | Formato institucional, valor único en BD | Correo electrónico de la Escuela |
-| `rol` | Enum `Rol` | Sí | `TANQUE · CORREDOR · ESTRATEGA` | Arquetipo deportivo asignado al atleta |
+| `nombre` | String | Sí | No vacío | Nombre completo del estudiante |
+| `correoInstitucional` | String | Sí | Formato de correo; debe terminar en `@mail.escuelaing.edu.co` (422) y no estar registrado (409) | Correo electrónico de la Escuela |
+| `rol` | String | Sí | `TANQUE · CORREDOR · ESTRATEGA` (otro valor → 422) | Arquetipo deportivo asignado al atleta |
 
 ```json
 {
@@ -235,8 +279,8 @@ Crea y vincula el personaje del estudiante en su primer ingreso (**RF-02**). Lan
 
 | Campo | Tipo | Obligatorio | Restricciones | Descripción |
 |---|---|:---:|---|---|
-| `nombre` | String | Sí | 3 – 80 caracteres | Nombre visible del personaje del jugador |
-| `rol` | Enum `Rol` | Sí | `TANQUE · CORREDOR · ESTRATEGA` | Rol o especialidad deportiva para la temporada activa |
+| `nombre` | String | Sí | No vacío | Nombre visible del personaje del jugador |
+| `rol` | String | Sí | `TANQUE · CORREDOR · ESTRATEGA` (otro valor → 422) | Rol o especialidad deportiva para la temporada activa |
 
 ```json
 {
@@ -301,9 +345,9 @@ Registra un entrenamiento físico. Pasa obligatoriamente por el pipeline Anti-Ch
 | Campo | Tipo | Obligatorio | Restricciones | Descripción |
 |---|---|:---:|---|---|
 | `estudianteId` | String | Sí | ID de estudiante registrado | Identificador del estudiante que entrenó |
-| `tipo` | Enum `TipoActividad` | Sí | `CARDIO · FUERZA · FLEXIBILIDAD` | Tipo de entrenamiento realizado |
-| `duracionMinutos` | Integer | Sí | $\ge 10$ y $\le 360$ minutos | Duración continua de la sesión deportiva |
-| `intensidad` | Integer | Sí | Rango entero de 1 a 10 | Escala de esfuerzo percibido |
+| `tipo` | String | Sí | No vacío (por ejemplo `CARDIO`, `FUERZA`, `FLEXIBILIDAD`) | Tipo de entrenamiento realizado |
+| `duracionMinutos` | Integer | Sí | Mínimo 10 (400); máximo 300 según la cadena anti-cheat (422) | Duración continua de la sesión deportiva |
+| `intensidad` | Integer | Sí | Entre 1 y 10 | Escala de esfuerzo percibido |
 
 ```json
 {
@@ -347,14 +391,14 @@ Funda un nuevo clan estudiantil en la plataforma y designa al creador como líde
 
 | Campo | Tipo | Obligatorio | Restricciones | Descripción |
 |---|---|:---:|---|---|
-| `nombre` | String | Sí | 3 – 60 caracteres, valor único en BD | Nombre identificador del clan |
-| `liderEstudianteId` | String | Sí | Estudiante registrado sin clan actual | Identificador del estudiante que funda y lidera el clan |
+| `nombre` | String | Sí | No vacío; no puede repetirse (409) | Nombre identificador del clan |
+| `liderEstudianteId` | String | Sí | No vacío | Identificador del estudiante que funda y lidera el clan |
 
 ```json
 {
   "id": "CLAN-01",
   "nombre": "Espartanos ECI",
-  "saludTorre": 1000,
+  "saludTorre": 5000,
   "puntosTotales": 0,
   "cantidadMiembros": 1,
   "liderId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90"
@@ -373,7 +417,7 @@ Afilia a un estudiante a un clan existente. Valida que el estudiante no pertenez
 {
   "id": "CLAN-01",
   "nombre": "Espartanos ECI",
-  "saludTorre": 1000,
+  "saludTorre": 5000,
   "puntosTotales": 120,
   "cantidadMiembros": 2,
   "liderId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90"
@@ -392,7 +436,7 @@ Permite a un estudiante retirarse voluntariamente de su clan (**RF-33**). Si qui
 {
   "id": "CLAN-01",
   "nombre": "Espartanos ECI",
-  "saludTorre": 1000,
+  "saludTorre": 5000,
   "puntosTotales": 120,
   "cantidadMiembros": 1,
   "liderId": "e3171714-53a0-4558-af20-a61d983623d3"
@@ -407,7 +451,7 @@ Consulta el listado general de clanes con salud de torre y cantidad de miembros.
   {
     "id": "CLAN-01",
     "nombre": "Espartanos ECI",
-    "saludTorre": 1000,
+    "saludTorre": 5000,
     "puntosTotales": 480,
     "cantidadMiembros": 4,
     "liderId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90"
@@ -426,7 +470,7 @@ Consulta la información detallada de un clan en particular.
 {
   "id": "CLAN-01",
   "nombre": "Espartanos ECI",
-  "saludTorre": 1000,
+  "saludTorre": 5000,
   "puntosTotales": 480,
   "cantidadMiembros": 4,
   "liderId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90"
@@ -443,7 +487,7 @@ Publica un reto colectivo semanal para un clan determinado (**RF-34**).
 | `objetivoPuntos` | Integer | Sí | Entero $> 0$ | Meta de puntos colectivos a alcanzar |
 | `recompensa` | Integer | Sí | Entero $> 0$ | Puntos acreditados al clan si supera la meta |
 | `fechaInicio` | LocalDate | Sí | Formato `YYYY-MM-DD` | Fecha de inicio de la vigencia del reto |
-| `fechaFin` | LocalDate | Sí | Posterior a `fechaInicio` | Fecha de cierre del reto semanal |
+| `fechaFin` | LocalDate | Sí | No anterior a `fechaInicio` (422) | Fecha de cierre del reto semanal |
 
 ```json
 {
@@ -489,7 +533,7 @@ Resuelve y compara un enfrentamiento directo entre dos clanes rivales (**RF-36**
 | Campo | Tipo | Obligatorio | Restricciones | Descripción |
 |---|---|:---:|---|---|
 | `clanId1` | String | Sí | ID del primer clan | Identificador del clan retador |
-| `clanId2` | String | Sí | ID del segundo clan (distinto a clanId1) | Identificador del clan adversario |
+| `clanId2` | String | Sí | Distinto a `clanId1` (422) | Identificador del clan adversario |
 | `bonificacionVictoria` | Integer | Sí | Entero $> 0$ | Puntos transferidos al clan ganador |
 
 ```json
@@ -607,13 +651,13 @@ Registra una comida (**RF-12**), otorga +5 puntos base y ejecuta la evaluación 
 | Campo | Tipo | Obligatorio | Restricciones | Descripción |
 |---|---|:---:|---|---|
 | `estudianteId` | String | Sí | ID de estudiante registrado | Identificador del comensal |
-| `tipo` | Enum `TipoComida` | Sí | `DESAYUNO · ALMUERZO · CENA · SNACK` | Tipo de servicio de alimentación |
+| `tipo` | Enum `TipoComida` | Sí | `DESAYUNO · MEDIA_MANANA · ALMUERZO · ONCES · CENA` | Tipo de servicio de alimentación |
 | `descripcion` | String | Sí | 3 – 500 caracteres | Descripción textual de los alimentos ingeridos |
 | `fechaHora` | LocalDateTime | No | Formato ISO-8601 (opcional) | Fecha y hora de consumo |
 
 - **Enumeraciones de Respuesta:**
-  - `EstadoEvaluacion`: `PENDIENTE · EVALUADA · FALLIDA`
-  - `CalificacionComida`: `EXCELENTE · BUENA · REGULAR · DEFICIENTE`
+  - `EstadoEvaluacion`: `PENDIENTE · EVALUADA · ERROR`
+  - `CalificacionComida`: `BUENA · REGULAR · MALA`
 
 ```json
 {
@@ -624,7 +668,7 @@ Registra una comida (**RF-12**), otorga +5 puntos base y ejecuta la evaluación 
   "fechaHora": "2026-10-19T12:45:00",
   "estado": "EVALUADA",
   "balanceada": true,
-  "calificacion": "EXCELENTE",
+  "calificacion": "BUENA",
   "puntaje": 95,
   "consejo": "Excelente ingesta de proteína magra y vegetales.",
   "recomendaciones": [
@@ -637,7 +681,7 @@ Registra una comida (**RF-12**), otorga +5 puntos base y ejecuta la evaluación 
 ```
 
 #### `POST /api/v1/nutricion/comidas/{id}/evaluar` · Rol: `ESTUDIANTE`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
-Reintenta la clasificación por IA de una comida que quedó en estado `PENDIENTE` por timeout o intermitencia de red externa.
+Reintenta la clasificación por IA de una comida que quedó en estado `PENDIENTE` por timeout o intermitencia de red externa. Además, `EvaluacionNutricionalScheduler` reintenta automáticamente las comidas pendientes cada 15 minutos.
 
 | Parámetro Ruta | Tipo | Obligatorio | Restricciones | Descripción |
 |---|---|:---:|---|---|
@@ -652,7 +696,7 @@ Reintenta la clasificación por IA de una comida que quedó en estado `PENDIENTE
   "fechaHora": "2026-10-19T12:45:00",
   "estado": "EVALUADA",
   "balanceada": true,
-  "calificacion": "EXCELENTE",
+  "calificacion": "BUENA",
   "puntaje": 95,
   "consejo": "Excelente ingesta.",
   "recomendaciones": [],
@@ -660,6 +704,15 @@ Reintenta la clasificación por IA de una comida que quedó en estado `PENDIENTE
   "aviso": null
 }
 ```
+
+#### `GET /api/v1/nutricion/comidas/{id}` · Rol: `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
+Consulta una comida registrada con el resultado de su evaluación nutricional.
+
+| Parámetro Ruta | Tipo | Obligatorio | Restricciones | Descripción |
+|---|---|:---:|---|---|
+| `id` | String | Sí | Comida existente (404 si no existe) | Identificador de la comida |
+
+*(La respuesta tiene la misma estructura de `ComidaResponseDTO` del registro de comidas.)*
 
 #### `GET /api/v1/nutricion/comidas/estudiante/{estudianteId}` · Rol: `ESTUDIANTE`, `ENTRENADOR`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
 Consulta el historial de comidas registradas por un estudiante.
@@ -678,7 +731,7 @@ Consulta el historial de comidas registradas por un estudiante.
     "fechaHora": "2026-10-19T12:45:00",
     "estado": "EVALUADA",
     "balanceada": true,
-    "calificacion": "EXCELENTE",
+    "calificacion": "BUENA",
     "puntaje": 95,
     "consejo": "Excelente ingesta.",
     "recomendaciones": [],
@@ -698,13 +751,13 @@ Publica la oferta del menú saludable del comedor universitario para una fecha d
 | Campo | Tipo | Obligatorio | Restricciones | Descripción |
 |---|---|:---:|---|---|
 | `fecha` | LocalDate | Sí | Formato ISO `YYYY-MM-DD` | Fecha programada para servir el menú |
-| `tipo` | Enum `TipoComida` | Sí | `DESAYUNO · ALMUERZO · CENA · SNACK` | Tipo de servicio de comida |
+| `tipo` | Enum `TipoComida` | Sí | `DESAYUNO · MEDIA_MANANA · ALMUERZO · ONCES · CENA`; la pareja fecha–tipo no puede repetirse | Tipo de servicio de comida |
 | `platos` | List<`PlatoMenuRequestDTO`> | Sí | Mínimo 1 plato en la lista | Lista de platos que conforman el menú |
 
 ##### Objeto Anidado: `PlatoMenuRequestDTO`
 | Campo | Tipo | Obligatorio | Restricciones | Descripción |
 |---|---|:---:|---|---|
-| `nombre` | String | Sí | 1 – 120 caracteres | Nombre visible del plato |
+| `nombre` | String | Sí | No vacío, máximo 120 caracteres | Nombre visible del plato |
 | `descripcion` | String | No | Máximo 300 caracteres | Ingredientes principales o acompañamientos |
 | `precio` | Integer | No | Entero $\ge 0$ (en COP) | Precio subsidiado del plato institucional |
 
@@ -857,9 +910,9 @@ Crea una nueva temporada semestral académica (**RF-22**).
 
 | Campo | Tipo | Obligatorio | Restricciones | Descripción |
 |---|---|:---:|---|---|
-| `nombre` | String | Sí | No vacío, 3 – 80 caracteres | Nombre oficial del ciclo de temporada |
+| `nombre` | String | Sí | No vacío | Nombre oficial del ciclo de temporada |
 | `fechaInicio` | LocalDate | Sí | Formato `YYYY-MM-DD` | Fecha de apertura de la temporada |
-| `fechaFin` | LocalDate | Sí | Posterior a `fechaInicio` | Fecha de cierre y corte de calificaciones |
+| `fechaFin` | LocalDate | Sí | Posterior a `fechaInicio` (422); solo una temporada activa a la vez (409) | Fecha de cierre y corte de calificaciones |
 
 ```json
 {
@@ -908,21 +961,21 @@ Consulta el escalafón competitivo y las divisiones de liga de los atletas (**RF
 |---|---|:---:|---|---|
 | `temporadaId` | UUID | Sí | UUID de temporada activa | Identificador de la temporada |
 
-- **Enumeración de Liga (`LigaEnum`):** `BRONCE · PLATA · ORO · DIAMANTE`
+- **Enumeración de Liga (`LigaEnum`):** `BRONCE (0) · PLATA (1000) · ORO (2000) · PLATINO (3000) · DIAMANTE (4000)` puntos
 
 ```json
 [
   {
     "id": "1d86d634-b258-4098-99e2-d7b1aef59e8f",
     "estudianteId": "cd9fbaf4-2cf6-4b58-91f1-147329b84d90",
-    "puntosAcumulados": 980,
-    "ligaActual": "DIAMANTE"
+    "puntosAcumulados": 2150,
+    "ligaActual": "ORO"
   },
   {
     "id": "f51a42b1-5e8b-4977-87ef-3286dbfa8012",
     "estudianteId": "e3171714-53a0-4558-af20-a61d983623d3",
     "puntosAcumulados": 640,
-    "ligaActual": "ORO"
+    "ligaActual": "BRONCE"
   }
 ]
 ```
@@ -964,352 +1017,305 @@ ECI FIT backend is running
 
 ## 6. Manejo Global de Errores
 
-El sistema intercepta cualquier error mediante un `@RestControllerAdvice` centralizado (`co.edu.eci.dosw.ecifit.exception.GlobalExceptionHandler`), garantizando que el cliente reciba siempre un contrato uniforme sin exponer volcados de pila (*stack traces*):
+Todos los errores pasan por `GlobalExceptionHandler` (`@RestControllerAdvice`), que responde siempre con el mismo formato y nunca expone el *stack trace* al cliente.
 
 ### 6.1 Estructura Estándar de Error (`ErrorResponseDTO`)
 
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `status` | int | Código HTTP de la respuesta |
+| `mensaje` | String | Explicación del error |
+| `ruta` | String | Endpoint que se llamó |
+| `timestamp` | LocalDateTime | Fecha y hora del error |
+
 ```json
 {
-  "codigo": 409,
+  "status": 409,
   "mensaje": "El estudiante ya tiene una invitación pendiente a este clan",
-  "ruta": "/api/v1/clanes/invitaciones"
+  "ruta": "/api/v1/clanes/invitaciones",
+  "timestamp": "2026-10-19T10:15:00"
 }
 ```
 
-### 6.2 Matriz Formal de Excepciones del Sistema
+### 6.2 Códigos HTTP y Mensajes
 
-| Código HTTP | Nombre HTTP | Excepción Origen de Spring / Dominio | Causa de Negocio / Técnica | Mensaje Retornado al Cliente |
-|:---:|---|---|---|---|
-| **400** | Bad Request | `MethodArgumentNotValidException` | Fallo de validación sintáctica `@Valid` en DTO de entrada | `"campo: mensaje de restricción fallida"` |
-| **400** | Bad Request | `HttpMessageNotReadableException`, `MethodArgumentTypeMismatchException` | Payload JSON malformado o incompatibilidad de tipos | `"La solicitud tiene un formato inválido"` |
-| **401** | Unauthorized | `BadCredentialsException`, `InternalAuthenticationServiceException` | Credenciales inválidas o token expirado/alterado | `"Credenciales inválidas"` |
-| **403** | Forbidden | `AccessDeniedException` | Token válido con rol insuficiente en `@PreAuthorize` | `"Acceso denegado: permisos insuficientes"` |
-| **404** | Not Found | `RecursoNoEncontradoException`, `NoResourceFoundException` | Identificador no encontrado en la base de datos | `"No se encontró el recurso solicitado: <detalle>"` |
-| **409** | Conflict | `ConflictoException` | Violación de restricciones de unicidad o invitaciones duplicadas | `"Ya existe un registro con esos datos: <detalle>"` |
-| **422** | Unprocessable Entity | `ReglaDeNegocioException`, `EstadoInvalidoException` | Infracción de límites de juego o pipeline anti-cheat | Mensaje explícito de la regla violada |
-| **500** | Internal Server Error | `Exception.class` | Falla imprevista no capturada en tiempo de ejecución | `"Error interno del servidor"` *(Stack trace confinado en log del servidor)* |
+| Código | Escenario | Excepción | Mensaje devuelto (ejemplo real) |
+|:---:|---|---|---|
+| **400** | Campo obligatorio vacío o con formato inválido | `MethodArgumentNotValidException` | `"duracionMinutos: La duración mínima es de 10 minutos"` (campo: mensaje, separados por coma si son varios) |
+| **400** | JSON mal formado o tipo de dato incorrecto | `HttpMessageNotReadableException`, `MethodArgumentTypeMismatchException` | `"La solicitud tiene un formato inválido"` |
+| **401** | Credenciales incorrectas, sin token o token inválido | `BadCredentialsException` / `CustomAuthenticationEntryPoint` | `"Credenciales inválidas"` |
+| **403** | Token válido con un rol sin permiso | `AccessDeniedException` / `CustomAccessDeniedHandler` | `"Acceso denegado: permisos insuficientes"` |
+| **404** | El recurso no existe | `RecursoNoEncontradoException` | `"Estudiante no encontrado con ID: E-99"` |
+| **409** | Dato repetido o conflicto con el estado actual | `ConflictoException` | `"El estudiante ya pertenece a un clan"` · `"Ya existe una temporada activa"` |
+| **422** | Regla de negocio incumplida | `ReglaDeNegocioException`, `EstadoInvalidoException` | `"El clan 'Espartanos ECI' ya alcanzo el limite de 5 miembros"` · `"La invitación ya fue respondida"` |
+| **500** | Error no controlado | `Exception` | `"Error interno del servidor"` (el detalle queda solo en el log) |
 
 ---
 
 ## 7. Diagramas de Secuencia de Flujos Clave
 
-### 7.1 Flujo A: Autenticación, Firma de Token JWT y Control Perimetral
+### 7.1 Flujo A: Inicio de Sesión con JWT
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Cliente as Cliente (Web / Postman)
+    actor Cliente
     participant AuthCtrl as AuthController
     participant AuthSvc as AuthServiceImpl
-    participant UserDetails as CustomUserDetailsService
-    participant Encoder as PasswordEncoder (BCrypt)
-    participant JwtService as JwtService
+    participant AuthMgr as AuthenticationManager
+    participant Users as CustomUserDetailsService
+    participant Jwt as JwtUtil
     participant BD as PostgreSQL (usuarios)
 
     Cliente->>AuthCtrl: POST /api/v1/auth/login {email, password}
     AuthCtrl->>AuthSvc: login(LoginRequestDTO)
-    AuthSvc->>UserDetails: loadUserByUsername(email)
-    UserDetails->>BD: findByEmail(email)
-    BD-->>UserDetails: UsuarioEntity(hashPassword, ROL)
-    UserDetails-->>AuthSvc: UserDetails
-    AuthSvc->>Encoder: matches(rawPassword, hashPassword)
-    alt Contraseña incorrecta
-        Encoder-->>AuthSvc: false
-        AuthSvc-->>AuthCtrl: BadCredentialsException
-        AuthCtrl-->>Cliente: 401 Unauthorized {"mensaje": "Credenciales inválidas"}
-    else Contraseña válida
-        Encoder-->>AuthSvc: true
-        AuthSvc->>JwtService: generateToken(UserDetails)
-        JwtService-->>AuthSvc: tokenJWT (HMAC-SHA256)
-        AuthSvc-->>AuthCtrl: AuthResponseDTO(token, "Bearer", email, rol)
-        AuthCtrl-->>Cliente: 200 OK {token, tipo, email, rol}
+    AuthSvc->>AuthMgr: authenticate(email, password)
+    AuthMgr->>Users: loadUserByUsername(email)
+    Users->>BD: buscar usuario por email
+    BD-->>Users: UsuarioEntity (hash BCrypt, rol)
+    alt Credenciales incorrectas
+        AuthMgr-->>AuthSvc: BadCredentialsException
+        AuthSvc-->>Cliente: 401 {"mensaje": "Credenciales inválidas"}
+    else Credenciales válidas
+        AuthSvc->>Jwt: generateToken(usuario)
+        Jwt-->>AuthSvc: token firmado (HMAC-SHA256, 24 h)
+        AuthSvc-->>AuthCtrl: AuthResponseDTO
+        AuthCtrl-->>Cliente: 200 {token, tipo, email, rol, expiresIn}
     end
 ```
 
+**Explicación:** `AuthenticationManager` compara la contraseña con el hash BCrypt guardado en `usuarios`. Si coincide, `JwtUtil` firma un token con el correo y el rol, válido por 24 horas; ese token se envía después en la cabecera `Authorization: Bearer` de cada petición.
+
 ---
 
-### 7.2 Flujo B: Registro de Actividad Física con Pipeline Anti-Cheat (*Chain of Responsibility*)
+### 7.2 Flujo B: Registro de Actividad con la Cadena Anti-Cheat (RF-06 a RF-10, RF-20, RF-21, RF-23)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Jugador as Estudiante Autenticado
+    actor Est as Estudiante
     participant Filter as JwtAuthFilter
-    participant ActCtrl as ActividadController
-    participant ActSvc as ActividadServiceImpl
-    participant Chain as Pipeline Anti-Cheat (ActividadHandler)
-    participant Strategy as RolStrategy (Tanque/Corredor/Estratega)
-    participant EstSvc as EstudianteServiceImpl
-    participant Repo as ActividadRepository
-    participant BD as PostgreSQL
-
-    Jugador->>Filter: POST /api/v1/actividades [Header: Bearer JWT]
-    Filter->>Filter: Validar token y claims (ROLE_ESTUDIANTE)
-    Filter->>ActCtrl: Delegar request validado
-    ActCtrl->>ActSvc: registrarActividad(actividad, estudianteId)
-    ActSvc->>EstSvc: obtenerPorId(estudianteId)
-    EstSvc-->>ActSvc: Estudiante(rol, puntos, racha)
-    
-    rect rgb(240, 248, 255)
-        note over ActSvc,Chain: Invocación Pipeline Anti-Cheat
-        ActSvc->>Chain: handle(actividad)
-        Chain->>Chain: SanctionStatusHandler: Verificar si estudiante está suspendido
-        Chain->>Chain: DataIntegrityHandler: Verificar duración >= 10m y valores no nulos
-        Chain->>Chain: PhysiologicalLimitsHandler: Validar coherencia metabólica (máx. 360 min)
-    end
-
-    alt Infracción Anti-Cheat detectada
-        Chain-->>ActSvc: ReglaDeNegocioException("Supera límite biológico...")
-        ActSvc-->>ActCtrl: Propagar excepción
-        ActCtrl-->>Jugador: 422 Unprocessable Entity
-    else Validación Aprobada
-        ActSvc->>Strategy: calcularPuntos(actividad, rol)
-        Strategy-->>ActSvc: puntosCalculados (con multiplicador de rol)
-        ActSvc->>ActSvc: evaluarRachaYBonificacion(estudiante)
-        ActSvc->>Repo: save(actividadEntity)
-        Repo->>BD: INSERT INTO actividades ...
-        ActSvc->>EstSvc: actualizarPuntosYRacha(estudianteId, puntos)
-        EstSvc->>BD: UPDATE estudiantes SET puntos_acumulados = ...
-        ActSvc-->>ActCtrl: Actividad registrada
-        ActCtrl-->>Jugador: 201 Created (ActividadResponseDTO)
-    end
-```
-
----
-
-### 7.3 Flujo C: Registro y Evaluación Nutricional Asistida por IA (*Google Gemini 2.5 Flash Lite*)
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Estudiante as Estudiante
-    participant ComidaCtrl as ComidaController
-    participant ComidaSvc as ComidaServiceImpl
-    participant GeminiClient as GeminiEvaluadorNutricional (Adapter)
-    participant GeminiAPI as Google Gemini 2.5 Flash Lite API
-    participant ComidaRepo as ComidaRepository
+    participant Ctrl as ActividadController
+    participant Svc as ActividadServiceImpl
+    participant Val as ActividadValidator
+    participant Chain as Cadena anti-cheat
     participant EstRepo as EstudianteRepository
-    participant BD as PostgreSQL
+    participant ActRepo as ActividadRepository
+    participant Temp as TemporadaServiceImpl
 
-    Estudiante->>ComidaCtrl: POST /api/v1/nutricion/comidas {descripcion, tipoComida}
-    ComidaCtrl->>ComidaSvc: registrar(comida)
-    ComidaSvc->>ComidaSvc: Calcular puntos base (+5 pts)
-    ComidaSvc->>ComidaRepo: save(Comida[estado=PENDIENTE, puntos=5])
-    ComidaRepo->>BD: INSERT INTO comidas ...
-    
-    rect rgb(255, 250, 240)
-        note over ComidaSvc,GeminiAPI: Clasificación Asistida por IA
-        ComidaSvc->>GeminiClient: evaluar(tipoComida, descripcion)
-        GeminiClient->>GeminiAPI: HTTP POST /v1beta/models/gemini-2.5-flash-lite:generateContent
-        alt API Gemini responde exitosamente
-            GeminiAPI-->>GeminiClient: 200 OK {"balanceada": true, "calificacion": "EXCELENTE", "puntaje": 95, ...}
-            GeminiClient-->>ComidaSvc: EvaluacionNutricional
-            ComidaSvc->>ComidaSvc: Sumar bono balanceado (+15 pts -> Total 20 pts)
-            ComidaSvc->>ComidaRepo: save(Comida[estado=EVALUADA, balanceada=true, puntos=20])
-            ComidaSvc->>EstRepo: acreditarPuntos(estudianteId, 20)
-        else Timeout o Fallo de Conexión Externa
-            GeminiAPI-->>GeminiClient: 503 Service Unavailable / Timeout
-            GeminiClient-->>ComidaSvc: Fallo atrapado con fallback seguro
-            note over ComidaSvc: Se conserva Comida en estado PENDIENTE para reintento por Scheduler
-        end
+    Est->>Filter: POST /api/v1/actividades [Bearer JWT]
+    Filter->>Ctrl: token válido y rol ESTUDIANTE
+    Ctrl->>Svc: registrarActividad(actividad, estudianteId)
+    Svc->>EstRepo: findById(estudianteId)
+    alt Estudiante no existe
+        Svc-->>Est: 404 Not Found
     end
-    
-    ComidaSvc-->>ComidaCtrl: Comida persistida
-    ComidaCtrl-->>Estudiante: 201 Created (ComidaResponseDTO)
+    Svc->>Val: validar(actividad)
+    Val->>Chain: SanctionStatus → DataIntegrity → PhysiologicalLimits
+    alt Fecha futura, duración < 10 o > 300 min, intensidad fuera de 1-10
+        Chain-->>Est: 422 Unprocessable Entity
+    else Actividad válida
+        Svc->>Svc: puntos según el rol (Strategy) y bono de racha de 7 días
+        Svc->>ActRepo: save(actividad)
+        Svc->>EstRepo: save(estudiante con puntos actualizados)
+        Svc->>Temp: sumarPuntosTemporadaActiva(estudianteId, puntos)
+        Ctrl-->>Est: 201 Created (ActividadResponseDTO)
+    end
 ```
+
+**Explicación:** el filtro JWT rechaza la petición antes de llegar al controlador si no hay token (401) o si el rol no es estudiante (403). La cadena anti-cheat revisa la actividad eslabón por eslabón y corta en el primer error. Si todo está bien, el rol del estudiante define los puntos y, si completa 7 días seguidos, recibe 200 puntos extra; los puntos ganados también se suman al ranking de la temporada activa.
 
 ---
 
-### 7.4 Flujo D: Gobernanza de Clanes — Invitación, Validación de Cupo y Aceptación Transaccional (*RF-30, RF-31, RF-32*)
-
-Este flujo modela el ciclo de vida de membresía en un clan: envío de invitación formal por un miembro activo, validación de la regla de negocio de cupo máximo (máximo 5 integrantes, **RF-32**), y la posterior respuesta del estudiante invitado con afiliación atómica o rechazo.
+### 7.3 Flujo C: Registro de Comida con Evaluación de Gemini (RF-12, RF-13, RF-14)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Anfitrion as Miembro Emisor
-    actor Invitado as Estudiante Invitado
-    participant Filter as JwtAuthFilter
-    participant InvCtrl as InvitacionClanController
+    actor Est as Estudiante
+    participant Ctrl as ComidaController
+    participant Svc as ComidaServiceImpl
+    participant Val as ComidaValidator
+    participant IA as GeminiEvaluadorNutricional
+    participant Gemini as Google Gemini API
+    participant Repo as ComidaRepository
+    participant Sch as EvaluacionNutricionalScheduler
+
+    Est->>Ctrl: POST /api/v1/nutricion/comidas {estudianteId, tipo, descripcion}
+    Ctrl->>Svc: registrar(comida)
+    Svc->>Val: validar(comida)
+    Svc->>Svc: ¿primera comida de ese tipo hoy? (solo esa da puntos)
+    Svc->>IA: evaluar(tipo, descripcion)
+    IA->>Gemini: generateContent
+    alt Gemini responde
+        Gemini-->>IA: balanceada, calificación, puntaje, consejo
+        Svc->>Svc: estado EVALUADA · +5 pts registro · +15 si es balanceada
+    else Timeout o error de Gemini
+        Svc->>Svc: estado PENDIENTE (se reintenta más tarde)
+    end
+    Svc->>Repo: save(comida)
+    Ctrl-->>Est: 201 Created (ComidaResponseDTO)
+    Sch->>Svc: cada 15 min reintenta las comidas PENDIENTE
+```
+
+**Explicación:** la comida se guarda aunque Gemini falle; en ese caso queda `PENDIENTE` y `EvaluacionNutricionalScheduler` la reintenta cada 15 minutos (hasta 3 intentos, luego queda en `ERROR`). Para evitar abusos, solo la primera comida de cada tipo en el día otorga puntos.
+
+---
+
+### 7.4 Flujo D: Invitación a un Clan y Respuesta (RF-30, RF-31, RF-32)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Miembro as Miembro del clan
+    actor Invitado as Estudiante invitado
+    participant Ctrl as InvitacionClanController
+    participant Svc as InvitacionClanServiceImpl
     participant ClanSvc as ClanServiceImpl
-    participant ClanVal as ClanValidator
-    participant InvRepo as InvitacionClanRepository
-    participant EstRepo as EstudianteRepository
-    participant BD as PostgreSQL
+    participant Val as ClanValidator
+    participant Repo as InvitacionClanRepository
 
-    note over Anfitrion,BD: Paso 1: Emisión de la Invitación al Clan
-    Anfitrion->>Filter: POST /api/v1/clanes/invitaciones [Bearer JWT]
-    Filter->>Filter: Validar token y rol (ROLE_ESTUDIANTE)
-    Filter->>InvCtrl: invitarEstudiante(InvitarClanRequestDTO)
-    InvCtrl->>ClanSvc: invitarEstudianteAClan(clanId, estudianteId, emisorId)
-    ClanSvc->>ClanVal: validarCupoDisponible(clanId)
-    alt Clan con cupo completo (5 miembros)
-        ClanVal-->>ClanSvc: ConflictoException("El clan ya cuenta con el cupo máximo de 5 miembros")
-        ClanSvc-->>InvCtrl: Propagar ConflictoException
-        InvCtrl-->>Anfitrion: 409 Conflict {"mensaje": "Cupo máximo alcanzado"}
-    else Cupo disponible y estudiante sin clan
-        ClanSvc->>InvRepo: save(InvitacionClanEntity[estado='PENDIENTE'])
-        InvRepo->>BD: INSERT INTO invitaciones_clan ...
-        ClanSvc-->>InvCtrl: InvitacionClanResponseDTO
-        InvCtrl-->>Anfitrion: 201 Created (InvitacionClanResponseDTO)
+    Miembro->>Ctrl: POST /api/v1/clanes/invitaciones {clanId, estudianteId, invitadoPorId}
+    Ctrl->>Svc: invitar(clanId, estudianteId, invitadoPorId)
+    Svc->>ClanSvc: obtenerPorId(clanId)
+    alt Quien invita no es miembro o el clan está lleno
+        Svc-->>Miembro: 422 Unprocessable Entity
+    else El invitado ya tiene clan o una invitación pendiente
+        Svc-->>Miembro: 409 Conflict
+    else Todo válido
+        Svc->>Val: validarEstudianteSinClan · validarCupoDisponible
+        Svc->>Repo: save(invitación PENDIENTE)
+        Ctrl-->>Miembro: 201 Created
     end
 
-    note over Invitado,BD: Paso 2: Resolución de la Invitación (Aceptar / Rechazar)
-    Invitado->>Filter: POST /api/v1/clanes/invitaciones/{id}/responder {aceptar: true}
-    Filter->>Filter: Validar token del estudiante invitado
-    Filter->>InvCtrl: responderInvitacion(id, ResponderInvitacionRequestDTO)
-    InvCtrl->>ClanSvc: responderInvitacion(id, aceptar=true)
-    ClanSvc->>InvRepo: findById(id)
-    alt Invitación no encontrada o ya resuelta
-        InvRepo-->>ClanSvc: Empty / Estado != PENDIENTE
-        ClanSvc-->>InvCtrl: RecursoNoEncontradoException / ConflictoException
-        InvCtrl-->>Invitado: 404 Not Found / 409 Conflict
-    else Invitación válida y confirmada
-        ClanSvc->>ClanVal: validarCupoDisponible(clanId)
-        ClanSvc->>InvRepo: actualizarEstado(id, 'ACEPTADA')
-        InvRepo->>BD: UPDATE invitaciones_clan SET estado='ACEPTADA' WHERE id=id
-        ClanSvc->>EstRepo: afiliarAClan(estudianteId, clanId)
-        EstRepo->>BD: UPDATE estudiantes SET clan_id=clanId WHERE id=estudianteId
-        ClanSvc-->>InvCtrl: InvitacionClanResponseDTO(estado='ACEPTADA')
-        InvCtrl-->>Invitado: 200 OK (Afiliación Exitosa al Clan)
+    Invitado->>Ctrl: POST /api/v1/clanes/invitaciones/{id}/responder {aceptar}
+    Ctrl->>Svc: responder(id, aceptar)
+    alt Invitación ya respondida
+        Svc-->>Invitado: 422 Unprocessable Entity
+    else aceptar = true
+        Svc->>ClanSvc: unirse(clanId, estudianteId)
+        Svc->>Repo: save(invitación ACEPTADA)
+        Ctrl-->>Invitado: 200 OK
+    else aceptar = false
+        Svc->>Repo: save(invitación RECHAZADA)
+        Ctrl-->>Invitado: 200 OK
     end
 ```
 
-**Explicación del Flujo:**
-1. **Control Perimetral:** `JwtAuthFilter` autentica al emisor y asegura que posea el rol `ROLE_ESTUDIANTE`.
-2. **Validación de Cupo:** `ClanValidator` audita la cardinalidad de la relación; si el clan ya registra 5 integrantes en la base de datos, interrumpe el flujo y el `GlobalExceptionHandler` genera un código **409 Conflict**, impidiendo sobrecupos.
-3. **Respuesta Atómica:** Al recibir la confirmación (`aceptar=true`), `ClanServiceImpl` ejecuta la actualización bajo `@Transactional(rollbackFor = Exception.class)`, garantizando que el cambio de estado de la invitación y la asignación del `clan_id` en `EstudianteEntity` ocurran en una única transacción ACID.
+**Explicación:** al aceptar, el servicio vuelve a validar el cupo y que el estudiante no esté en otro clan antes de agregarlo a `clan_miembros`. Todo ocurre en una transacción (`@Transactional`): si la unión falla, la invitación no queda marcada como aceptada.
 
 ---
 
-### 7.5 Flujo E: Confirmación de Asistencia al Gimnasio por Entrenador con Bonificación (*RF-42, RF-11, RF-23*)
-
-Este flujo modela la certificación presencial de actividad deportiva en el gimnasio del campus por parte de un entrenador institucional, con validación de rol restringido, control de unicidad diaria y bonificación multirrecurso.
+### 7.5 Flujo E: Confirmación de Asistencia al Gimnasio (RF-42, RF-11, RF-23)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Entrenador as Entrenador Institucional
+    actor Ent as Entrenador
     participant Filter as JwtAuthFilter
-    participant GymCtrl as AsistenciaGymController
-    participant GymSvc as AsistenciaGymServiceImpl
-    participant GymVal as AsistenciaGymValidator
-    participant GymRepo as AsistenciaGymRepository
+    participant Ctrl as AsistenciaGymController
+    participant Svc as AsistenciaGymServiceImpl
+    participant Val as AsistenciaGymValidator
+    participant Repo as AsistenciaGymRepository
     participant EstRepo as EstudianteRepository
-    participant TempSvc as TemporadaServiceImpl
-    participant BD as PostgreSQL
+    participant Temp as TemporadaServiceImpl
 
-    Entrenador->>Filter: POST /api/v1/gimnasio/asistencias {estudianteId, entrenadorId}
-    Filter->>Filter: Validar token y evaluar @PreAuthorize("hasAnyRole('ENTRENADOR', 'ADMINISTRADOR')")
-    alt Rol sin privilegios suficientes (ej. Estudiante)
-        Filter-->>Entrenador: 403 Forbidden {"mensaje": "Acceso denegado: permisos insuficientes"}
-    else Credencial autorizada
-        Filter->>GymCtrl: registrarAsistencia(AsistenciaGymRequestDTO)
-        GymCtrl->>GymSvc: registrarAsistencia(estudianteId, entrenadorId)
-        GymSvc->>GymVal: validarRegistroUnicoDiario(estudianteId, fechaActual)
-        alt Asistencia previa detectada en la misma fecha
-            GymVal-->>GymSvc: ConflictoException("El estudiante ya registró asistencia el día de hoy")
-            GymSvc-->>GymCtrl: Propagar ConflictoException
-            GymCtrl-->>Entrenador: 409 Conflict {"codigo": 409, "mensaje": "Asistencia duplicada"}
-        else Asistencia inédita en la jornada
-            GymSvc->>GymRepo: save(AsistenciaGymEntity[puntosOtorgados=20, fecha=CURRENT_DATE])
-            GymRepo->>BD: INSERT INTO asistencias_gym ...
-            GymSvc->>EstRepo: acreditarPuntos(estudianteId, 20)
-            EstRepo->>BD: UPDATE estudiantes SET puntos_acumulados = puntos + 20
-            GymSvc->>TempSvc: sumarPuntosTemporadaActiva(estudianteId, 20)
-            TempSvc->>BD: UPDATE rankings_temporada SET puntos = puntos + 20 WHERE estudiante_id=estudianteId
-            GymSvc-->>GymCtrl: AsistenciaGymResponseDTO(puntosOtorgados=20)
-            GymCtrl-->>Entrenador: 201 Created (Asistencia Confirmada)
+    Ent->>Filter: POST /api/v1/gimnasio/asistencias {estudianteId, entrenadorId}
+    alt Rol distinto de ENTRENADOR o ADMINISTRADOR
+        Filter-->>Ent: 403 Forbidden
+    else Rol autorizado
+        Filter->>Ctrl: petición autorizada
+        Ctrl->>Svc: registrarAsistencia(estudianteId, entrenadorId)
+        Svc->>Val: validar(estudianteId, entrenadorId)
+        Svc->>EstRepo: findById(estudianteId)
+        Svc->>Repo: ¿ya tiene asistencia hoy?
+        alt Ya registró asistencia hoy
+            Svc-->>Ent: 409 Conflict
+        else Primera asistencia del día
+            Svc->>EstRepo: save(estudiante +20 pts)
+            Svc->>Temp: sumarPuntosTemporadaActiva(estudianteId, 20)
+            Svc->>Repo: save(asistencia)
+            Ctrl-->>Ent: 201 Created
         end
     end
 ```
 
-**Explicación del Flujo:**
-1. **Control de Acceso RBAC:** El decorador `@PreAuthorize("hasAnyRole('ENTRENADOR', 'ADMINISTRADOR')")` rechaza en la capa web cualquier intento de suplantación si la petición proviene de un token de estudiante (retorna **403 Forbidden**).
-2. **Restricción de Integridad Única:** `AsistenciaGymValidator` verifica si ya existe una tupla `(estudiante_id, fecha)` en la tabla `asistencias_gym`. Si ya asistió, previene fraudes de puntos retornando **409 Conflict**.
-3. **Bonificación Multirrecurso:** Al ser válida, la asistencia acredita de manera atómica +20 puntos en la tabla `estudiantes` (**RF-11**) y replica el impacto inmediatamente sobre la tabla `rankings_temporada` de la temporada activa (**RF-23**).
+**Explicación:** solo un entrenador o un administrador puede confirmar asistencias. El servicio permite una asistencia por estudiante al día y cada una suma 20 puntos al estudiante y al ranking de la temporada activa.
 
 ---
 
 ## 8. Despliegue y Seguridad
 
-### 8.1 Topología en Azure Cloud y Entornos
+### 8.1 Diagrama de Despliegue
 
-El sistema opera bajo una arquitectura de contenedores Docker en Azure App Service (Linux B1):
+![Diagrama de despliegue](diagramas/diagrama-despliegue.jpeg)
 
-```mermaid
-flowchart LR
-    subgraph Internet["Tráfico Externo"]
-        WebFront["Frontend SPA\n(React / Vite)"]
-        Jurados["Jurados y Postman\n(Feria DOSW)"]
-    end
+La API se empaqueta en una imagen Docker y se publica en Docker Hub. GitHub Actions la despliega en dos Azure App Service independientes (QA y PROD), cada uno con su propia base de datos PostgreSQL y sus propios secretos.
 
-    subgraph AzureCloud["Azure App Service (PaaS)"]
-        subgraph QA["Ambiente QA"]
-            AppQA["EciFit-qa\n(Linux Container 8080)\nhttps://ecifit-qa-...azurewebsites.net"]
-        end
-        subgraph PROD["Ambiente Producción"]
-            AppProd["EciFit-prod\n(Linux Container 8080)\nhttps://ecifit-prod-...azurewebsites.net"]
-        end
-    end
+### 8.2 Roles y Permisos
 
-    subgraph DataTier["Base de Datos"]
-        AzurePG[("PostgreSQL 16\nSSL/TLS Activo - 12 Tablas")]
-    end
+| Rol | Puede hacer |
+|---|---|
+| Público (sin token) | Iniciar sesión, ver Swagger y consultar `/api/v1/health` |
+| `ESTUDIANTE` | Crear su personaje, registrar actividades y comidas, completar misiones, crear clanes, unirse, abandonar, invitar y responder invitaciones, y consultar rankings, retos y menús |
+| `ENTRENADOR` | Confirmar asistencias al gimnasio, crear misiones, publicar y calcular retos de clan, y consultar estudiantes |
+| `ADMINISTRADOR` | Todo lo anterior, además de registrar estudiantes, crear temporadas y publicar menús del comedor |
 
-    WebFront -->|"HTTPS / REST"| AppProd
-    Jurados -->|"HTTPS / REST"| AppProd
-    AppQA -->|"JDBC SSL"| AzurePG
-    AppProd -->|"JDBC SSL"| AzurePG
-```
+El detalle de rol por endpoint está en la sección 5 y en la tabla de roles del README.
 
-### 8.2 URLs Oficiales de Producción y QA
-- **Swagger UI Producción:** https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html
-- **API Base Producción:** https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/api/v1
-- **Health Check Probe:** https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/api/v1/health
-- **Swagger UI QA:** https://ecifit-qa-bxhdd4a0dkc4bma0.canadacentral-01.azurewebsites.net/swagger-ui/index.html
+### 8.3 URLs de Producción y QA
 
-### 8.3 Estrategia de Ramificación (Git Flow) y CI/CD
-- `main`: Refleja el código en Producción. Cada release se marca con un tag semántico `vX.Y.Z` que dispara el workflow `.github/workflows/ci-prod.yml`.
-- `develop`: Rama troncal de integración de características. Cada push dispara `.github/workflows/ci-qa.yml` ejecutando `mvn clean verify` antes del despliegue.
-- `feature/*`: Ramas de desarrollo temporal con merges vía Pull Request y revisión obligatoria.
+- **Swagger PROD:** https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html
+- **API PROD:** https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/api/v1
+- **Health check PROD:** https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/api/v1/health
+- **Swagger QA:** https://ecifit-qa-bxhdd4a0dkc4bma0.canadacentral-01.azurewebsites.net/swagger-ui/index.html
+
+### 8.4 Ramas y CI/CD
+
+| Rama / evento | Pipeline | Qué hace |
+|---|---|---|
+| Push a `main` o `develop` | `ci-qa.yml` | Ejecuta las pruebas, construye la imagen y despliega en QA |
+| Tag `vX.Y.Z` | `ci-prod.yml` | Despliega en PROD con aprobación manual |
+| `feature/*` | — | Ramas de trabajo que entran a `develop` por Pull Request con revisión |
 
 ---
 
-## 9. Limitaciones Conocidas (Deuda Técnica Declarada)
+## 9. Limitaciones Conocidas
 
-En estricto cumplimiento de la **Regla 3 de Deuda Técnica** del Sprint 4, el equipo declara con transparencia técnica y madurez ingenieril las **6 limitaciones conocidas** que no formaron parte del alcance de entrega de este corte:
-
-1. **RF-05 — Desglose de Estadísticas por Atributo Físico:**
-   - *Impacto:* La entidad `Estudiante` y la tabla `estudiantes` almacenan `puntosAcumulados` de forma global y consolidada, pero no dividen el rendimiento en 4 columnas separadas (Fuerza, Cardio, Flexibilidad y Nutrición).
-   - *Mitigación / Solución Futura:* Creación de una entidad `EstadisticaAtleta` vinculada 1:1 con `Estudiante` que discrimine el puntaje por cada disciplina deportiva.
-2. **RF-30 — Flujo Completo de Invitaciones a Clanes con Notificación y Expiración:**
-   - *Impacto:* La vinculación de estudiantes al clan se garantiza de forma directa y atómica (`POST /api/v1/clanes/unirse`). El flujo formal asíncrono de invitaciones con ciclo de vida, notificaciones push/correo y caducidad temporal (TTL) fue pospuesto para la fase de cliente móvil.
-   - *Mitigación / Solución Futura:* Integración de mensajería push (Firebase Cloud Messaging) o WebSockets, complementado con un job Quartz/Spring Scheduler que expire invitaciones tras 48 horas de inactividad.
-3. **RF-38 — Escalamiento Jerárquico de Nivel de Clanes:**
-   - *Impacto:* Los clanes acumulan puntos colectivos y salud de torre en guerras de campus, pero no poseen un árbol de habilidades o niveles desbloqueables (ej. Clan Nivel 1 a 10).
-   - *Mitigación / Solución Futura:* Extensión del modelo `Clan` con experiencia grupal acumulada y multiplicadores defensivos progresivos sobre la torre.
-4. **RF-39 — Reporte de Ocupación y Aforo del Gimnasio con Sensores IoT:**
-   - *Impacto:* El reporte de ocupación del gimnasio requiere infraestructura física de torniquetes inteligentes o cámaras con visión artificial que exceden el alcance del backend software del MVP.
-   - *Mitigación / Solución Futura:* Integración de un broker MQTT / WebSockets y persistencia temporal en Redis para transmitir telemetría de presencia sin saturar PostgreSQL.
-5. **RF-40 — Consulta de Aforo en Tiempo Real del Gimnasio:**
-   - *Impacto:* Al no existir sensores de presencia instalados, no se expone endpoint de consulta de ocupación en vivo.
-   - *Mitigación / Solución Futura:* Endpoint `GET /api/v1/gimnasio/aforo` conectado a Redis para consulta con latencia menor a 15 ms.
-6. **RF-41 — Mapa Colaborativo Térmico de Zonas del Gimnasio:**
-   - *Impacto:* La representación visual de zonas (mancuernas, máquinas, cardio) requiere telemetría de balizas BLE o reportes de usuarios por micro-zonas.
-   - *Mitigación / Solución Futura:* Servicio espacial en PostgreSQL (PostGIS) o matriz de calor matricial por estaciones de entrenamiento.
+| Limitación | Impacto | Cómo se resolvería |
+|---|---|---|
+| **RF-05:** estadísticas del personaje por atributo | Los puntos se guardan como un total, sin separar Fuerza, Cardio, Flexibilidad y Nutrición | Una entidad `EstadisticaAtleta` 1:1 con `Estudiante` que acumule puntos por tipo de actividad |
+| **RF-38:** niveles de clan | Los clanes acumulan puntos y salud de torre, pero no suben ni bajan de nivel | Agregar experiencia y nivel al clan, actualizados al cerrar cada reto |
+| **RF-39, RF-40, RF-41:** ocupación del gimnasio y mapa colaborativo | No se puede reportar ni consultar cuánta gente hay en el gimnasio | Endpoints de reporte y consulta de ocupación por zona, con los reportes más recientes de los usuarios |
+| `TorreClan` y `GestorLigas` (Observer) | Están definidos, pero el registro de actividades no los conecta; las ligas se calculan en `RankingTemporada` | Registrarlos como observadores en `ActividadServiceImpl` cuando exista el emparejamiento de torres entre clanes |
+| State (`SemanaRegular` / `SemanaParciales`) | Está definido, pero no hay dónde registrar las fechas de parciales, así que no cambia las reglas | Guardar las semanas de parciales en la temporada y consultar el estado al calcular puntos |
+| Dependencia de Gemini | Si Gemini no responde, la comida queda pendiente y los puntos se otorgan más tarde | Ya mitigado con reintentos automáticos cada 15 minutos (máximo 3) |
 
 ---
 
 ## 10. Bibliografía
 
-1. **Oracle Corporation.** (2023). *Java Platform, Standard Edition Java SE 21 Development Kit Documentation*. Oracle Help Center. https://docs.oracle.com/en/java/javase/21/
-2. **Spring Authors & Broadcom.** (2024). *Spring Framework 6 Reference Documentation*. VMware Tanzu. https://docs.spring.io/spring-framework/reference/
-3. **Spring Boot Authors & Broadcom.** (2024). *Spring Boot 3.5 Reference Documentation*. VMware Tanzu. https://docs.spring.io/spring-boot/docs/current/reference/html/
-4. **The PostgreSQL Global Development Group.** (2024). *PostgreSQL 16.3 Documentation*. PostgreSQL.org. https://www.postgresql.org/docs/16/
-5. **Jones, M., Bradley, J., & Sakimura, N.** (2015). *JSON Web Token (JWT)* (RFC 7519). Internet Engineering Task Force (IETF). https://datatracker.ietf.org/doc/html/rfc7519
-6. **Google Cloud & Google AI.** (2024). *Gemini REST API Reference and Developer Guides (gemini-2.5-flash-lite)*. Google for Developers. https://ai.google.dev/api/rest
-7. **Docker Inc.** (2024). *Docker Documentation: Multi-stage builds and best practices*. Docker Docs. https://docs.docker.com/build/building/multi-stage/
-8. **Microsoft Azure.** (2024). *Azure App Service Linux Container Documentation*. Microsoft Learn. https://learn.microsoft.com/en-us/azure/app-service/
-9. **OpenAPI Initiative.** (2021). *OpenAPI Specification Version 3.0.3*. https://spec.openapis.org/oas/v3.0.3
-10. **Escuela Colombiana de Ingeniería Julio Garavito.** (2026). *Guía Oficial de DOSW — Sprint 4: Cierre Final, Documentación, Marketing y Feria de Proyectos*. Decanatura de Ingeniería de Sistemas.
+1. Oracle. (2023). *Java SE 21 Documentation*. https://docs.oracle.com/en/java/javase/21/
+2. Spring. (2024). *Spring Framework Reference Documentation*. https://docs.spring.io/spring-framework/reference/
+3. Spring. (2024). *Spring Boot Reference Documentation*. https://docs.spring.io/spring-boot/
+4. Spring. (2024). *Spring Security Reference*. https://docs.spring.io/spring-security/reference/
+5. The PostgreSQL Global Development Group. (2024). *PostgreSQL 16 Documentation*. https://www.postgresql.org/docs/16/
+6. Jones, M., Bradley, J. y Sakimura, N. (2015). *JSON Web Token (JWT)*, RFC 7519. IETF. https://datatracker.ietf.org/doc/html/rfc7519
+7. Google. (2024). *Gemini API Reference*. https://ai.google.dev/api
+8. MapStruct. (2024). *MapStruct 1.6 Reference Guide*. https://mapstruct.org/documentation/stable/reference/html/
+9. Docker. (2024). *Multi-stage builds*. https://docs.docker.com/build/building/multi-stage/
+10. Microsoft. (2024). *Azure App Service Documentation*. https://learn.microsoft.com/azure/app-service/
+11. OpenAPI Initiative. (2021). *OpenAPI Specification 3.0.3*. https://spec.openapis.org/oas/v3.0.3
+12. Gamma, E., Helm, R., Johnson, R. y Vlissides, J. (1994). *Design Patterns: Elements of Reusable Object-Oriented Software*. Addison-Wesley.
+
+---
+
+## 11. Historial de Revisión
+
+| Versión | Fecha | Autor | Cambios |
+|---|---|---|---|
+| 0.1 | 2026-10-16 | Sebastián Granados | Primera versión: descripción, stack, matriz de trazabilidad, diagramas y catálogo de endpoints |
+| 0.2 | 2026-10-18 | Sebastián Granados | Organización del servidor, RF-23, umbrales de liga unificados y RF-30/RF-33 |
+| 0.3 | 2026-10-18 | Daniel Barrera | Módulo de nutrición y comedor (RF-12 a RF-15) |
+| 0.4 | 2026-10-19 | Juan Munar | Endpoints con formato de la guía, diagramas de secuencia, despliegue y bibliografía |
+| 1.0 | 2026-10-19 | Sebastián Granados | Revisión contra el código, diagramas en fondo blanco, explicación de cada diagrama, manejo de errores, limitaciones e historial |
