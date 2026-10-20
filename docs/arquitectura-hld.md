@@ -970,189 +970,31 @@ El sistema intercepta cualquier error mediante un `@RestControllerAdvice` centra
 
 ### 7.1 Flujo A: Autenticación, Firma de Token JWT y Control Perimetral
 
-```mermaid
-%%{init: {'theme': 'default', 'themeVariables': { 'darkMode': false, 'background': '#FFFFFF', 'actorBkg': '#FFFFFF', 'actorBorder': '#0284C7', 'actorTextColor': '#0F172A', 'actorLineColor': '#0284C7', 'signalColor': '#0284C7', 'signalTextColor': '#0F172A', 'labelBoxBkgColor': '#F8FAFC', 'labelBoxBorderColor': '#CBD5E1', 'labelTextColor': '#0F172A', 'loopTextColor': '#0F172A', 'noteBkgColor': '#FEF3C7', 'noteBorderColor': '#D97706', 'noteTextColor': '#78350F', 'activationBorderColor': '#0284C7', 'activationBkgColor': '#E0F2FE' }}}%%
-sequenceDiagram
-    autonumber
-    actor Cliente as Cliente (Web / Postman)
-    participant AuthCtrl as AuthController
-    participant AuthSvc as AuthServiceImpl
-    participant UserDetails as CustomUserDetailsService
-    participant Encoder as PasswordEncoder (BCrypt)
-    participant JwtService as JwtService
-    participant BD as PostgreSQL (usuarios)
+![Diagrama de Secuencia - Flujo A](diagramas/secuencia-flujo-a.png)
 
-    Cliente->>AuthCtrl: POST /api/v1/auth/login {email, password}
-    AuthCtrl->>AuthSvc: login(LoginRequestDTO)
-    AuthSvc->>UserDetails: loadUserByUsername(email)
-    UserDetails->>BD: findByEmail(email)
-    BD-->>UserDetails: UsuarioEntity(hashPassword, ROL)
-    UserDetails-->>AuthSvc: UserDetails
-    AuthSvc->>Encoder: matches(rawPassword, hashPassword)
-    alt Contraseña incorrecta
-        Encoder-->>AuthSvc: false
-        AuthSvc-->>AuthCtrl: BadCredentialsException
-        AuthCtrl-->>Cliente: 401 Unauthorized {"mensaje": "Credenciales inválidas"}
-    else Contraseña válida
-        Encoder-->>AuthSvc: true
-        AuthSvc->>JwtService: generateToken(UserDetails)
-        JwtService-->>AuthSvc: tokenJWT (HMAC-SHA256)
-        AuthSvc-->>AuthCtrl: AuthResponseDTO(token, "Bearer", email, rol)
-        AuthCtrl-->>Cliente: 200 OK {token, tipo, email, rol}
-    end
-```
+**Explicación del Flujo:**
+1. **Petición de Acceso:** El cliente envía credenciales de acceso al endpoint `/api/v1/auth/login`.
+2. **Validación Criptográfica:** `CustomUserDetailsService` consulta el usuario en PostgreSQL y `BCryptPasswordEncoder` verifica el hash de la contraseña.
+3. **Generación de Token:** Si las credenciales son válidas, `JwtService` expide un token JWT firmado (HMAC-SHA256) con claims de rol y expiración para autorizar subsecuentes peticiones.
 
 ---
 
 ### 7.2 Flujo B: Registro de Actividad Física con Pipeline Anti-Cheat (*Chain of Responsibility*)
 
-```mermaid
-%%{init: {'theme': 'default', 'themeVariables': { 'darkMode': false, 'background': '#FFFFFF', 'actorBkg': '#FFFFFF', 'actorBorder': '#0284C7', 'actorTextColor': '#0F172A', 'actorLineColor': '#0284C7', 'signalColor': '#0284C7', 'signalTextColor': '#0F172A', 'labelBoxBkgColor': '#F8FAFC', 'labelBoxBorderColor': '#CBD5E1', 'labelTextColor': '#0F172A', 'loopTextColor': '#0F172A', 'noteBkgColor': '#FEF3C7', 'noteBorderColor': '#D97706', 'noteTextColor': '#78350F', 'activationBorderColor': '#0284C7', 'activationBkgColor': '#E0F2FE' }}}%%
-sequenceDiagram
-    autonumber
-    actor Jugador as Estudiante Autenticado
-    participant Filter as JwtAuthFilter
-    participant ActCtrl as ActividadController
-    participant ActSvc as ActividadServiceImpl
-    participant Chain as Pipeline Anti-Cheat (ActividadHandler)
-    participant Strategy as RolStrategy (Tanque/Corredor/Estratega)
-    participant EstSvc as EstudianteServiceImpl
-    participant Repo as ActividadRepository
-    participant BD as PostgreSQL
+![Diagrama de Secuencia - Flujo B](diagramas/secuencia-flujo-b.png)
 
-    Jugador->>Filter: POST /api/v1/actividades [Header: Bearer JWT]
-    Filter->>Filter: Validar token y claims (ROLE_ESTUDIANTE)
-    Filter->>ActCtrl: Delegar request validado
-    ActCtrl->>ActSvc: registrarActividad(actividad, estudianteId)
-    ActSvc->>EstSvc: obtenerPorId(estudianteId)
-    EstSvc-->>ActSvc: Estudiante(rol, puntos, racha)
-    
-    rect rgb(240, 248, 255)
-        note over ActSvc,Chain: Invocación Pipeline Anti-Cheat
-        ActSvc->>Chain: handle(actividad)
-        Chain->>Chain: SanctionStatusHandler: Verificar si estudiante está suspendido
-        Chain->>Chain: DataIntegrityHandler: Verificar duración >= 10m y valores no nulos
-        Chain->>Chain: PhysiologicalLimitsHandler: Validar coherencia metabólica (máx. 360 min)
-    end
-
-    alt Infracción Anti-Cheat detectada
-        Chain-->>ActSvc: ReglaDeNegocioException("Supera límite biológico...")
-        ActSvc-->>ActCtrl: Propagar excepción
-        ActCtrl-->>Jugador: 422 Unprocessable Entity
-    else Validación Aprobada
-        ActSvc->>Strategy: calcularPuntos(actividad, rol)
-        Strategy-->>ActSvc: puntosCalculados (con multiplicador de rol)
-        ActSvc->>ActSvc: evaluarRachaYBonificacion(estudiante)
-        ActSvc->>Repo: save(actividadEntity)
-        Repo->>BD: INSERT INTO actividades ...
-        ActSvc->>EstSvc: actualizarPuntosYRacha(estudianteId, puntos)
-        EstSvc->>BD: UPDATE estudiantes SET puntos_acumulados = ...
-        ActSvc-->>ActCtrl: Actividad registrada
-        ActCtrl-->>Jugador: 201 Created (ActividadResponseDTO)
-    end
-```
+**Explicación del Flujo:**
+1. **Control Perimetral:** `JwtAuthFilter` intercepta la petición y valida el token Bearer con rol `ROLE_ESTUDIANTE`.
+2. **Pipeline Anti-Cheat:** `ActividadServiceImpl` delega la validación secuencial a la cadena de manejadores (`SanctionStatusHandler`, `DataIntegrityHandler`, `PhysiologicalLimitsHandler`). Ante inconsistencias biológicas o temporales, interrumpe el flujo con `ReglaDeNegocioException` (HTTP 422).
+3. **Liquidación y Persistencia:** Al superar los filtros, la estrategia del rol (`TanqueStrategy`, `CorredorStrategy`, `EstrategaStrategy`) calcula los puntos con su respectivo multiplicador, evaluando racha y persistiendo la actividad atómicamente.
 
 ---
 
-### 7.3 Flujo C: Registro y Evaluación Nutricional Asistida por IA (*Google Gemini 2.5 Flash Lite*)
-
-```mermaid
-%%{init: {'theme': 'default', 'themeVariables': { 'darkMode': false, 'background': '#FFFFFF', 'actorBkg': '#FFFFFF', 'actorBorder': '#0284C7', 'actorTextColor': '#0F172A', 'actorLineColor': '#0284C7', 'signalColor': '#0284C7', 'signalTextColor': '#0F172A', 'labelBoxBkgColor': '#F8FAFC', 'labelBoxBorderColor': '#CBD5E1', 'labelTextColor': '#0F172A', 'loopTextColor': '#0F172A', 'noteBkgColor': '#FEF3C7', 'noteBorderColor': '#D97706', 'noteTextColor': '#78350F', 'activationBorderColor': '#0284C7', 'activationBkgColor': '#E0F2FE' }}}%%
-sequenceDiagram
-    autonumber
-    actor Estudiante as Estudiante
-    participant ComidaCtrl as ComidaController
-    participant ComidaSvc as ComidaServiceImpl
-    participant GeminiClient as GeminiEvaluadorNutricional (Adapter)
-    participant GeminiAPI as Google Gemini 2.5 Flash Lite API
-    participant ComidaRepo as ComidaRepository
-    participant EstRepo as EstudianteRepository
-    participant BD as PostgreSQL
-
-    Estudiante->>ComidaCtrl: POST /api/v1/nutricion/comidas {descripcion, tipoComida}
-    ComidaCtrl->>ComidaSvc: registrar(comida)
-    ComidaSvc->>ComidaSvc: Calcular puntos base (+5 pts)
-    ComidaSvc->>ComidaRepo: save(Comida[estado=PENDIENTE, puntos=5])
-    ComidaRepo->>BD: INSERT INTO comidas ...
-    
-    rect rgb(255, 250, 240)
-        note over ComidaSvc,GeminiAPI: Clasificación Asistida por IA
-        ComidaSvc->>GeminiClient: evaluar(tipoComida, descripcion)
-        GeminiClient->>GeminiAPI: HTTP POST /v1beta/models/gemini-2.5-flash-lite:generateContent
-        alt API Gemini responde exitosamente
-            GeminiAPI-->>GeminiClient: 200 OK {"balanceada": true, "calificacion": "EXCELENTE", "puntaje": 95, ...}
-            GeminiClient-->>ComidaSvc: EvaluacionNutricional
-            ComidaSvc->>ComidaSvc: Sumar bono balanceado (+15 pts -> Total 20 pts)
-            ComidaSvc->>ComidaRepo: save(Comida[estado=EVALUADA, balanceada=true, puntos=20])
-            ComidaSvc->>EstRepo: acreditarPuntos(estudianteId, 20)
-        else Timeout o Fallo de Conexión Externa
-            GeminiAPI-->>GeminiClient: 503 Service Unavailable / Timeout
-            GeminiClient-->>ComidaSvc: Fallo atrapado con fallback seguro
-            note over ComidaSvc: Se conserva Comida en estado PENDIENTE para reintento por Scheduler
-        end
-    end
-    
-    ComidaSvc-->>ComidaCtrl: Comida persistida
-    ComidaCtrl-->>Estudiante: 201 Created (ComidaResponseDTO)
-```
-
----
-
-### 7.4 Flujo D: Gobernanza de Clanes — Invitación, Validación de Cupo y Aceptación Transaccional (*RF-30, RF-31, RF-32*)
+### 7.3 Flujo C: Gobernanza de Clanes — Invitación, Validación de Cupo y Aceptación Transaccional (*RF-30, RF-31, RF-32*)
 
 Este flujo modela el ciclo de vida de membresía en un clan: envío de invitación formal por un miembro activo, validación de la regla de negocio de cupo máximo (máximo 5 integrantes, **RF-32**), y la posterior respuesta del estudiante invitado con afiliación atómica o rechazo.
 
-```mermaid
-%%{init: {'theme': 'default', 'themeVariables': { 'darkMode': false, 'background': '#FFFFFF', 'actorBkg': '#FFFFFF', 'actorBorder': '#0284C7', 'actorTextColor': '#0F172A', 'actorLineColor': '#0284C7', 'signalColor': '#0284C7', 'signalTextColor': '#0F172A', 'labelBoxBkgColor': '#F8FAFC', 'labelBoxBorderColor': '#CBD5E1', 'labelTextColor': '#0F172A', 'loopTextColor': '#0F172A', 'noteBkgColor': '#FEF3C7', 'noteBorderColor': '#D97706', 'noteTextColor': '#78350F', 'activationBorderColor': '#0284C7', 'activationBkgColor': '#E0F2FE' }}}%%
-sequenceDiagram
-    autonumber
-    actor Anfitrion as Miembro Emisor
-    actor Invitado as Estudiante Invitado
-    participant Filter as JwtAuthFilter
-    participant InvCtrl as InvitacionClanController
-    participant ClanSvc as ClanServiceImpl
-    participant ClanVal as ClanValidator
-    participant InvRepo as InvitacionClanRepository
-    participant EstRepo as EstudianteRepository
-    participant BD as PostgreSQL
-
-    note over Anfitrion,BD: Paso 1: Emisión de la Invitación al Clan
-    Anfitrion->>Filter: POST /api/v1/clanes/invitaciones [Bearer JWT]
-    Filter->>Filter: Validar token y rol (ROLE_ESTUDIANTE)
-    Filter->>InvCtrl: invitarEstudiante(InvitarClanRequestDTO)
-    InvCtrl->>ClanSvc: invitarEstudianteAClan(clanId, estudianteId, emisorId)
-    ClanSvc->>ClanVal: validarCupoDisponible(clanId)
-    alt Clan con cupo completo (5 miembros)
-        ClanVal-->>ClanSvc: ConflictoException("El clan ya cuenta con el cupo máximo de 5 miembros")
-        ClanSvc-->>InvCtrl: Propagar ConflictoException
-        InvCtrl-->>Anfitrion: 409 Conflict {"mensaje": "Cupo máximo alcanzado"}
-    else Cupo disponible y estudiante sin clan
-        ClanSvc->>InvRepo: save(InvitacionClanEntity[estado='PENDIENTE'])
-        InvRepo->>BD: INSERT INTO invitaciones_clan ...
-        ClanSvc-->>InvCtrl: InvitacionClanResponseDTO
-        InvCtrl-->>Anfitrion: 201 Created (InvitacionClanResponseDTO)
-    end
-
-    note over Invitado,BD: Paso 2: Resolución de la Invitación (Aceptar / Rechazar)
-    Invitado->>Filter: POST /api/v1/clanes/invitaciones/{id}/responder {aceptar: true}
-    Filter->>Filter: Validar token del estudiante invitado
-    Filter->>InvCtrl: responderInvitacion(id, ResponderInvitacionRequestDTO)
-    InvCtrl->>ClanSvc: responderInvitacion(id, aceptar=true)
-    ClanSvc->>InvRepo: findById(id)
-    alt Invitación no encontrada o ya resuelta
-        InvRepo-->>ClanSvc: Empty / Estado != PENDIENTE
-        ClanSvc-->>InvCtrl: RecursoNoEncontradoException / ConflictoException
-        InvCtrl-->>Invitado: 404 Not Found / 409 Conflict
-    else Invitación válida y confirmada
-        ClanSvc->>ClanVal: validarCupoDisponible(clanId)
-        ClanSvc->>InvRepo: actualizarEstado(id, 'ACEPTADA')
-        InvRepo->>BD: UPDATE invitaciones_clan SET estado='ACEPTADA' WHERE id=id
-        ClanSvc->>EstRepo: afiliarAClan(estudianteId, clanId)
-        EstRepo->>BD: UPDATE estudiantes SET clan_id=clanId WHERE id=estudianteId
-        ClanSvc-->>InvCtrl: InvitacionClanResponseDTO(estado='ACEPTADA')
-        InvCtrl-->>Invitado: 200 OK (Afiliación Exitosa al Clan)
-    end
-```
+![Diagrama de Secuencia - Flujo C](diagramas/secuencia-flujo-c.png)
 
 **Explicación del Flujo:**
 1. **Control Perimetral:** `JwtAuthFilter` autentica al emisor y asegura que posea el rol `ROLE_ESTUDIANTE`.
@@ -1161,48 +1003,11 @@ sequenceDiagram
 
 ---
 
-### 7.5 Flujo E: Confirmación de Asistencia al Gimnasio por Entrenador con Bonificación (*RF-42, RF-11, RF-23*)
+### 7.4 Flujo D: Confirmación de Asistencia al Gimnasio por Entrenador con Bonificación (*RF-42, RF-11, RF-23*)
 
 Este flujo modela la certificación presencial de actividad deportiva en el gimnasio del campus por parte de un entrenador institucional, con validación de rol restringido, control de unicidad diaria y bonificación multirrecurso.
 
-```mermaid
-%%{init: {'theme': 'default', 'themeVariables': { 'darkMode': false, 'background': '#FFFFFF', 'actorBkg': '#FFFFFF', 'actorBorder': '#0284C7', 'actorTextColor': '#0F172A', 'actorLineColor': '#0284C7', 'signalColor': '#0284C7', 'signalTextColor': '#0F172A', 'labelBoxBkgColor': '#F8FAFC', 'labelBoxBorderColor': '#CBD5E1', 'labelTextColor': '#0F172A', 'loopTextColor': '#0F172A', 'noteBkgColor': '#FEF3C7', 'noteBorderColor': '#D97706', 'noteTextColor': '#78350F', 'activationBorderColor': '#0284C7', 'activationBkgColor': '#E0F2FE' }}}%%
-sequenceDiagram
-    autonumber
-    actor Entrenador as Entrenador Institucional
-    participant Filter as JwtAuthFilter
-    participant GymCtrl as AsistenciaGymController
-    participant GymSvc as AsistenciaGymServiceImpl
-    participant GymVal as AsistenciaGymValidator
-    participant GymRepo as AsistenciaGymRepository
-    participant EstRepo as EstudianteRepository
-    participant TempSvc as TemporadaServiceImpl
-    participant BD as PostgreSQL
-
-    Entrenador->>Filter: POST /api/v1/gimnasio/asistencias {estudianteId, entrenadorId}
-    Filter->>Filter: Validar token y evaluar @PreAuthorize("hasAnyRole('ENTRENADOR', 'ADMINISTRADOR')")
-    alt Rol sin privilegios suficientes (ej. Estudiante)
-        Filter-->>Entrenador: 403 Forbidden {"mensaje": "Acceso denegado: permisos insuficientes"}
-    else Credencial autorizada
-        Filter->>GymCtrl: registrarAsistencia(AsistenciaGymRequestDTO)
-        GymCtrl->>GymSvc: registrarAsistencia(estudianteId, entrenadorId)
-        GymSvc->>GymVal: validarRegistroUnicoDiario(estudianteId, fechaActual)
-        alt Asistencia previa detectada en la misma fecha
-            GymVal-->>GymSvc: ConflictoException("El estudiante ya registró asistencia el día de hoy")
-            GymSvc-->>GymCtrl: Propagar ConflictoException
-            GymCtrl-->>Entrenador: 409 Conflict {"codigo": 409, "mensaje": "Asistencia duplicada"}
-        else Asistencia inédita en la jornada
-            GymSvc->>GymRepo: save(AsistenciaGymEntity[puntosOtorgados=20, fecha=CURRENT_DATE])
-            GymRepo->>BD: INSERT INTO asistencias_gym ...
-            GymSvc->>EstRepo: acreditarPuntos(estudianteId, 20)
-            EstRepo->>BD: UPDATE estudiantes SET puntos_acumulados = puntos + 20
-            GymSvc->>TempSvc: sumarPuntosTemporadaActiva(estudianteId, 20)
-            TempSvc->>BD: UPDATE rankings_temporada SET puntos = puntos + 20 WHERE estudiante_id=estudianteId
-            GymSvc-->>GymCtrl: AsistenciaGymResponseDTO(puntosOtorgados=20)
-            GymCtrl-->>Entrenador: 201 Created (Asistencia Confirmada)
-        end
-    end
-```
+![Diagrama de Secuencia - Flujo D](diagramas/secuencia-flujo-d.png)
 
 **Explicación del Flujo:**
 1. **Control de Acceso RBAC:** El decorador `@PreAuthorize("hasAnyRole('ENTRENADOR', 'ADMINISTRADOR')")` rechaza en la capa web cualquier intento de suplantación si la petición proviene de un token de estudiante (retorna **403 Forbidden**).
