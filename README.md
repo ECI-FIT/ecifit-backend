@@ -1,203 +1,122 @@
 # ECIFIT Backend
 
-Backend para la plataforma de gamificación y entrenamiento de ECI FIT.
+Backend de la plataforma de gamificación deportiva y bienestar de ECI FIT.
 
 - **QA:** https://ecifit-qa-bxhdd4a0dkc4bma0.canadacentral-01.azurewebsites.net/swagger-ui/index.html
 - **PROD:** https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html
+- **Documento de arquitectura (HLD):** [docs/arquitectura-hld.md](docs/arquitectura-hld.md) · [PDF](docs/ECI_FIT_Arquitectura_Backend_v1.0.pdf)
 - **Frontend:** https://github.com/ECI-FIT/ecifit-frontend.git
 
 ## Índice
 1. [Objetivo](#objetivo)
-2. [Arquitectura propuesta](#arquitectura-propuesta)
+2. [Arquitectura](#arquitectura)
 3. [Estructura del proyecto](#estructura-del-proyecto)
 4. [Stack tecnológico](#stack-tecnológico)
-5. [Justificación de Patrones de Diseño (GoF)](#justificación-de-patrones-de-diseño-gof)
+5. [Patrones de diseño (GoF)](#patrones-de-diseño-gof)
 6. [Diagramas](#diagramas)
 7. [Base de datos](#base-de-datos)
 8. [Seguridad](#seguridad)
 9. [Cómo levantar localmente](#cómo-levantar-localmente)
 10. [Variables de entorno](#variables-de-entorno)
 11. [Ejecución de pruebas](#ejecución-de-pruebas)
-12. [CI/CD](#cicd)
-13. [Despliegue](#despliegue)
-14. [Integrantes](#integrantes)
+12. [Limitaciones conocidas](#limitaciones-conocidas)
+13. [CI/CD](#cicd)
+14. [Despliegue](#despliegue)
+15. [Integrantes](#integrantes)
 
 ## Objetivo
 
-Proveer la capa de negocio, persistencia y exposición de APIs para gestionar:
+Proveer la lógica de negocio, la persistencia y la API REST para gestionar:
 
-- jugadores
-- clanes
-- actividades
-- misiones y retos
-- puntuaciones y validaciones
-- eventos y notificaciones
-- PostgreSQL
-- Docker
-- GitHub Actions
-- Azure App Service
+- estudiantes y sus personajes
+- actividades físicas con validación anti-cheat
+- misiones diarias y semanales
+- clanes, invitaciones y retos colectivos
+- temporadas, rankings y ligas
+- asistencia al gimnasio
+- registro de comidas con evaluación nutricional (Google Gemini) y menú del comedor
 
-## Arquitectura propuesta
+## Arquitectura
 
-La aplicación sigue una estructura en capas con patrones de diseño GoF aplicados al núcleo de evaluación y reglas del sistema.
+La aplicación sigue una arquitectura en capas (Controller → Service → Validator → Repository) con un dominio independiente de la base de datos y patrones GoF en el núcleo. El detalle completo está en el [documento de arquitectura](docs/arquitectura-hld.md): diagramas explicados, catálogo de endpoints, manejo de errores, diagramas de secuencia, despliegue y limitaciones.
 
 ## Estructura del proyecto
 
 ```text
 ecifit-backend/
-├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   └── co/edu/eci/dosw/ecifit/
-│   │   │       ├── EciFitApplication.java
-│   │   │       ├── config/
-│   │   │       ├── controller/
-│   │   │       │   └── docs/
-│   │   │       ├── dto/
-│   │   │       │   ├── request/
-│   │   │       │   └── response/
-│   │   │       ├── exception/
-│   │   │       ├── mapper/
-│   │   │       ├── model/
-│   │   │       │   ├── factory/
-│   │   │       │   ├── observer/
-│   │   │       │   ├── state/
-│   │   │       │   └── strategy/
-│   │   │       ├── persistence/
-│   │   │       ├── repository/
-│   │   │       ├── security/
-│   │   │       ├── service/
-│   │   │       └── validator/
-│   │   └── resources/
-│   │       └── application.properties
-│   └── test/
-│       ├── java/
-│       │   └── co/edu/eci/dosw/ecifit/
-│       │       ├── EciFitTest.java
-│       │       ├── controller/
-│       │       ├── exception/
-│       │       ├── model/
-│       │       ├── security/
-│       │       ├── service/
-│       │       └── validator/
-│       └── resources/
-│           └── application.properties
-├── .gitignore
+├── src/main/java/co/edu/eci/dosw/ecifit/
+│   ├── config/          ← Swagger y Gemini
+│   ├── controller/      ← endpoints REST (docs/ con los contratos de Swagger)
+│   ├── dto/             ← request, response e ia
+│   ├── exception/       ← excepciones de negocio y GlobalExceptionHandler
+│   ├── mapper/          ← MapStruct: DTO ↔ dominio ↔ entidad
+│   ├── model/           ← dominio y patrones (strategy, chain, factory, observer, state)
+│   ├── persistence/     ← entidades JPA
+│   ├── repository/      ← repositorios Spring Data
+│   ├── scheduler/       ← corte semanal de ligas y reintento de evaluaciones nutricionales
+│   ├── security/        ← JWT, usuarios y roles
+│   ├── service/         ← casos de uso (ia/ con el adaptador de Gemini)
+│   └── validator/       ← reglas de negocio
+├── src/test/            ← pruebas unitarias y de integración
+├── docs/
+│   ├── arquitectura-hld.md
+│   ├── diagramas/
+│   └── evidencias/
+├── postman/             ← colección y ambientes de QA y PROD
+├── .github/workflows/   ← pipelines de QA y PROD
+├── Dockerfile
 ├── docker-compose.yml
-├── pom.xml
-└── README.md
+└── pom.xml
 ```
 
 ## Stack tecnológico
 
-- Java 21
-- Spring Boot 3
-- Spring Web
-- Spring Data JPA
-- Spring Validation
-- Spring Security
-- OpenAPI/Swagger
+| Tecnología | Versión |
+|---|---|
+| Java | 21 LTS |
+| Spring Boot (Web, Data JPA, Validation, Security) | 3.5.16 |
+| PostgreSQL | 16 |
+| JJWT | 0.12.3 |
+| MapStruct | 1.6.3 |
+| Lombok | 1.18.48 |
+| springdoc-openapi (Swagger) | 2.8.17 |
+| JaCoCo | 0.8.15 |
+| Google Gemini API | gemini-2.5-flash-lite |
+| Docker, GitHub Actions y Azure App Service | — |
 
-## Justificación de Patrones de Diseño (GoF)
+## Patrones de diseño (GoF)
 
-El núcleo de **ECI FIT** aplica principios de *Clean Architecture* apoyados en 5 patrones de diseño fundamentales para garantizar alta cohesión, bajo acoplamiento y cumplimiento del principio Open/Closed (SOLID).
-
-### 1. Strategy (Patrón de Comportamiento)
-* **Problema:** El cálculo de experiencia y puntos varía drásticamente según el rol del estudiante (Tanque, Corredor, Estratega). Anidar condicionales (`switch`/`if-else`) en el servicio central vuelve el código rígido y propenso a errores ante la eventual creación de nuevos roles.
-* **Implementación:** Encapsulamos los algoritmos de cálculo en clases independientes (ej. `TankScoreStrategy`, `RunnerScoreStrategy`) bajo una interfaz común. El motor de puntuación inyecta dinámicamente la estrategia requerida, permitiendo escalar los roles sin modificar ni recompilar la lógica core.
-* **Ubicación:** `co.edu.eci.dosw.ecifit.model.strategy`
-
-### 2. Observer (Patrón de Comportamiento)
-* **Problema:** Registrar un entrenamiento dispara múltiples efectos secundarios: actualizar el daño en la torre enemiga, evaluar ascensos de división y emitir notificaciones en tiempo real al cliente. Ejecutar esto sincrónicamente degrada el tiempo de respuesta HTTP y acopla módulos independientes.
-* **Implementación:** Implementamos un modelo Publicador-Suscriptor. El servicio principal emite un evento inmutable de dominio (`ActivityLoggedEvent`). Múltiples *Listeners* reaccionan de forma asíncrona y aislada para actualizar clanes o notificar vía WebSockets, respetando el Principio de Responsabilidad Única.
-* **Ubicación:** `co.edu.eci.dosw.ecifit.model.observer`
-
-### 3. State (Patrón de Comportamiento)
-* **Problema:** Las reglas de negocio cambian radicalmente según el calendario académico (ej. en "Semana de Parciales" se congela el daño a la torre). Controlar esto con banderas booleanas (`if(isMidterms)`) dispersas por todo el sistema genera código espagueti.
-* **Implementación:** El contexto del juego delega su comportamiento a objetos de Estado (`RegularWeekState`, `MidtermsWeekState`). Las reglas restrictivas de los parciales quedan confinadas en su propia clase, haciendo las transiciones de ciclo de vida predecibles, atómicas y fáciles de probar (Unit Testing).
-* **Ubicación:** `co.edu.eci.dosw.ecifit.model.state`
-
-### 4. Abstract Factory (Patrón Creacional)
-* **Problema:** La asignación de Misiones Individuales y Retos de Clan debe ser coherente con el rol del jugador (un Tanque no debe recibir misiones exclusivas de agilidad). Instanciar estos objetos directamente con `new` acopla la creación a la lógica de negocio.
-* **Implementación:** Definimos fábricas concretas por rol (ej. `TankQuestFactory`). El planificador (Cron) solicita la familia completa de misiones a la fábrica abstracta, garantizando que el jugador reciba siempre un combo Misión-Reto 100% temático y compatible, aislando la complejidad de instanciación.
-* **Ubicación:** `co.edu.eci.dosw.ecifit.model.factory`
-
-### 5. Chain of Responsibility (Patrón de Comportamiento)
-* **Problema:** El sistema requiere un motor *Anti-Cheat* robusto para los registros de actividad. Validar integridad de datos, límites físicos humanos (ej. velocidad/distancia irreales) y estado de penalización en un solo bloque de código dificulta su mantenimiento.
-* **Implementación:** Construimos un *Pipeline de Validación*. La petición de actividad atraviesa una cadena de eslabones independientes (`DataIntegrityHandler` -> `PhysiologicalLimitsHandler` -> `SanctionStatusHandler`). Esto permite inyectar nuevas reglas antifraude a futuro sin alterar los validadores existentes.
-* **Ubicación:** `co.edu.eci.dosw.ecifit.model.chain`
-
-### Resumen de patrones
-
-| Patrón | Problema que resuelve | Clases | Diagrama |
+| Patrón | Problema que resuelve | Clases | Uso actual |
 |---|---|---|---|
-| Strategy | El cálculo de puntos varía según el rol del estudiante. Evita condicionales anidados al agregar nuevos roles. | `RolTemporada`, `Tanque`, `Corredor`, `Estratega` | Diagrama de clases |
-| Observer | Registrar una actividad dispara varios efectos (ligas y torre del clan) sin acoplar los módulos. | `ActividadObserver`, `GestorLigas`, `TorreClan` | Diagrama de clases |
-| State | Las reglas cambian según el calendario académico (semana regular o de parciales). | `EstadoTemporada`, `SemanaRegular`, `SemanaParciales` | Diagrama de clases |
-| Abstract Factory | La creación de misiones no debe acoplarse a la lógica de negocio. | `FabricaMisiones`, `FabricaMisionesEstandar`, `Mision`, `MisionDiaria`, `MisionSemanal` | Diagrama de clases |
-| Chain of Responsibility | Validar integridad, anti-cheat y penalizaciones de una actividad sin concentrar todo en un solo bloque. | `ActividadHandler`, `DataIntegrityHandler`, `PhysiologicalLimitsHandler`, `SanctionStatusHandler` | Diagrama de clases |
-
-> 📘 **Documento de Arquitectura (HLD Backend):** Para consultar diagramas de secuencia, matriz RBAC y mapeo de errores detallados, consultar [docs/arquitectura-hld.md](docs/arquitectura-hld.md).
+| Strategy | Cada rol calcula los puntos de una actividad con su propio multiplicador, sin condicionales anidados | `RolTemporada`, `Tanque`, `Corredor`, `Estratega` | En uso al registrar actividades |
+| Chain of Responsibility | Validar una actividad (fechas futuras, duración, intensidad, máximo 300 min) en eslabones independientes | `ActividadHandler`, `SanctionStatusHandler`, `DataIntegrityHandler`, `PhysiologicalLimitsHandler` | En uso en `ActividadValidator` |
+| Abstract Factory | Crear misiones diarias y semanales sin acoplar el servicio a cada tipo | `FabricaMisiones`, `FabricaMisionesEstandar`, `Mision`, `MisionDiaria`, `MisionSemanal` | En uso al generar misiones |
+| Observer | Avisar cuando se registra una actividad | `ActividadObserver`, `GestorLigas`, `TorreClan` | En uso para calcular puntos; `GestorLigas` y `TorreClan` definidos sin conectar |
+| State | Reglas distintas en semana regular y de parciales | `EstadoTemporada`, `SemanaRegular`, `SemanaParciales` | Definido, sin conectar |
 
 ## Diagramas
-### 1. Diagrama de clases
-<img width="2658" height="1331" alt="clasesS2" src="https://github.com/user-attachments/assets/a2c60164-23ac-4b18-be73-bdccecb7e443" />
 
-### 1.1 Justificación de Clases, Interfaces y Clases Abstractas
+Cada diagrama está explicado en el [documento de arquitectura](docs/arquitectura-hld.md#4-diagramas-arquitectónicos).
 
-**Estudiante, Actividad, Clan, Temporada (Clases Concretas / Entidades de Dominio):** Entidades core del sistema con identidad propia, estado mutable y métodos de negocio que encapsulan las invariantes del dominio (control de capacidad de clanes, validación anti-cheat, rachas de constancia y ciclo de vida de la torre) sin dependencias de frameworks ni infraestructura (Clean Architecture).
+### Diagrama de contexto
+![Diagrama de contexto](docs/diagramas/contexto-c4.png)
 
-**Mision (Clase Abstracta):** Modela la plantilla base de los retos del sistema. No se puede instanciar directamente porque toda misión debe poseer una periodicidad definida; encapsula atributos compartidos (id, descripcion, recompensa, completada, estudianteId) y delega obligatoriamente la regla de negocio a sus subtipos mediante el método polimórfico `verificarCumplimiento(a: Actividad)`.
+### Diagrama de clases
+![Diagrama de clases](docs/diagramas/clases.png)
 
-**MisionDiaria y MisionSemanal (Clases Concretas):** Especializaciones de Mision que implementan las reglas particulares de validación temporal y acumulación de esfuerzo (metas de sesión única frente a minutos acumulados semanales).
+### Diagrama de componentes general
+![Diagrama de componentes general](docs/diagramas/componentes-general.png)
 
-**FabricaMisiones (Interfaz):** Contrato creacional del patrón **Abstract Factory**. Desacopla la creación de familias completas de misiones (diarias y semanales) del cliente que las solicita, garantizando coherencia en la asignación de retos y facilitando la incorporación de nuevas familias temáticas sin modificar el código consumidor (Principio Open/Closed).
+### Diagrama de componentes específico
+![Diagrama de componentes específico](docs/diagramas/componentes-especifico.png)
 
-**FabricaMisionesEstandar (Clase Concreta):** Implementación concreta de `FabricaMisiones` que encapsula la lógica de instanciación, asignación de metas y parametrización de recompensas para `MisionDiaria` y `MisionSemanal`.
-
-**RolTemporada (Interfaz):** Contrato de comportamiento del patrón **Strategy**. Desacopla el algoritmo de cálculo de experiencia y puntuación de la entidad Estudiante, permitiendo intercambiar o extender dinámicamente las fórmulas de compensación sin alterar la lógica core del jugador (Principio Open/Closed - OCP).
-
-**Tanque, Corredor, Estratega (Clases Concretas):** Estrategias concretas que implementan `RolTemporada`, aplicando ponderaciones diferenciadas sobre el esfuerzo físico (Fuerza × 1.5, Cardio × 1.4, Balance × 1.3) para recompensar la especialización deportiva del estudiante.
-
-**EstadoTemporada (Interfaz):** Contrato de comportamiento del patrón **State**. Encapsula las variaciones de las reglas del juego según el calendario académico, permitiendo al objeto Temporada alterar dinámicamente la validez de los ataques y sus multiplicadores sin utilizar condicionales anidados (if-else/switch).
-
-**SemanaRegular y SemanaParciales (Clases Concretas):** Estados concretos del ciclo semestral. `SemanaRegular` autoriza el daño entre torres y mantiene multiplicadores estándar; `SemanaParciales` bloquea los ataques a estructuras para proteger a los estudiantes en época de exámenes y aplica una bonificación compensatoria (× 1.5) por actividad deportiva registrada.
-
-**ActividadObserver (Interfaz):** Contrato del patrón **Observer**. Desacopla a la entidad Actividad (sujeto observable) de los efectos colaterales de negocio posteriores a un entrenamiento válido, respetando el Principio de Responsabilidad Única (SRP).
-
-**GestorLigas y TorreClan (Clases Concretas):** Suscriptores concretos que implementan `ActividadObserver`. `GestorLigas` reacciona actualizando el ranking global y evaluando ascensos o descensos de categoría; `TorreClan` calcula el impacto del entrenamiento sobre la estructura del clan rival, restando salud a la torre y evaluando su condición de destrucción.
-
-**NivelLiga (Enumeración):** Estructura inmutable con tipado fuerte que confina las divisiones competitivas (BRONCE, PLATA, ORO, DIAMANTE), eliminando cadenas mágicas (magic strings) y asegurando integridad en las transiciones de categoría del `GestorLigas`.
-
-
-### 2. Diagrama de componentes general
-<img width="722" height="444" alt="comGeneral" src="https://github.com/user-attachments/assets/e656e08c-1331-493e-b420-ce48d56e4caa" />
-
-### 2.1 Justificación de Componentes
-
-- **ECI FIT Frontend (Contenedor SPA):** Aplicación cliente (React, Vite, TailwindCSS) desplegada de forma autónoma. Captura eventos y renderiza la interfaz gamificada sin almacenar lógica crítica de negocio.
-- **ECI FIT Backend (Contenedor API REST):** Servicio core (Spring Boot 3, Java 21). Centraliza las reglas de negocio, cómputo de puntos, patrones GoF, control de fraude y seguridad transaccional.
-- **Data Base (Contenedor de Almacenamiento):** Motor de base de datos relacional (PostgreSQL) o persistencia en memoria. Mantiene la durabilidad de los datos independiente del ciclo de vida de los servicios backend.
-
-### 3. Diagrama de componentes especifico
-<img width="1522" height="1062" alt="ComEspecifico" src="https://github.com/user-attachments/assets/c48eed39-54ea-4767-969e-198870a7372b" />
-
-### 3.1 Justificación de Componentes por Fila
-Cada fila representa un flujo completo e independiente de una funcionalidad (Activity, Student, Clan, Mission, Season) compuesto por:
-
-- **Controller:** Componente de entrada web REST. Recibe la petición HTTP, aplica validación sintáctica (`@Valid`) sobre el RequestDTO y retorna el código de respuesta correspondiente (200, 201, 400, etc.) sin procesar lógica de negocio.
-- **Mapper (Mapper IN):** Componente de presentación implementado con MapStruct. Transforma RequestDTO a Dominio Puro y Dominio Puro a ResponseDTO, evitando que el controlador exponga o conozca entidades internas.
-- **Service:** Componente de lógica de aplicación / casos de uso. Opera exclusivamente con entidades de dominio; no recibe DTOs ni entidades de base de datos.
-- **Validator:** Componente perpendicular de reglas de negocio (`@Component`). Valida restricciones complejas (ej. anti-cheat, límite de 5 miembros en clan) de forma aislada para cumplir el Principio de Responsabilidad Única (SRP) y lanza excepciones tipadas (409, 422).
-- **Mapper (Mapper OUT):** Componente de persistencia. Traduce objetos del Dominio Puro a Entity (JPA) o Document (Mongo) antes de persistir, y viceversa. Aísla la base de datos del núcleo de la aplicación.
-- **Repository:** Componente de acceso a datos que extiende JpaRepository o MongoRepository para ejecutar transacciones en el motor de base de datos.
-- **DB:** Recurso de almacenamiento persistente centralizado donde convergen todos los repositorios.
+Cada fila es un módulo con el mismo recorrido: Controller → Mapper → Service (con su Validator) → EntityMapper → Repository → PostgreSQL. Antes de cualquier controlador, `JwtAuthFilter` valida el token.
 
 ## Base de datos
-![Diagrama de base de datos](docs/diagrama-bd.jpeg)
+![Modelo entidad-relación](docs/diagramas/modelo-er.png)
 
 ### Decisión de persistencia
-Se usa PostgreSQL por su cumplimiento del estándar ACID, necesario para mantener la consistencia en el cálculo concurrente de puntos de clanes y daño a las torres. Además, garantiza integridad referencial mediante claves foráneas y restricciones de unicidad (por ejemplo, sobre el correo institucional), y sus índices optimizan las consultas de rankings.
+Se usa PostgreSQL por su cumplimiento del estándar ACID, necesario para mantener la consistencia en el cálculo concurrente de puntos de clanes y daño a las torres. Además, garantiza integridad mediante restricciones de unicidad (por ejemplo, sobre el correo institucional o la pareja fecha–tipo del menú) y sus índices optimizan las consultas de rankings. El detalle de las 15 tablas está en el [documento de arquitectura](docs/arquitectura-hld.md#41-modelo-entidad-relación-de-base-de-datos-erd).
 
 ## Seguridad
 La API usa autenticación stateless con JWT (JJWT 0.12.3). `JwtAuthFilter` valida el token en cada petición con un secreto definido en la variable de entorno `JWT_SECRET`. Los usuarios se guardan en la tabla `usuarios`, separada del dominio, con contraseñas cifradas con BCrypt.
@@ -209,28 +128,42 @@ Las credenciales inválidas devuelven 401 y el acceso con un rol sin permisos de
 |---|---|---|---|---|
 | Autenticación | POST | `/api/v1/auth/login` | Sí | - |
 | Documentación | GET | `/swagger-ui/**`, `/v3/api-docs/**` | Sí | - |
+| Monitoreo | GET | `/api/v1/health` | Sí | - |
 | Estudiantes | POST | `/api/v1/estudiantes` | No | ADMINISTRADOR |
 | Estudiantes | POST | `/api/v1/estudiantes/personaje` | No | ESTUDIANTE |
+| Estudiantes | GET | `/api/v1/estudiantes` | No | ENTRENADOR, ADMINISTRADOR |
 | Estudiantes | GET | `/api/v1/estudiantes/{id}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
 | Actividades | POST | `/api/v1/actividades` | No | ESTUDIANTE |
 | Actividades | GET | `/api/v1/actividades/estudiante/{estudianteId}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
 | Clanes | POST | `/api/v1/clanes` | No | ESTUDIANTE, ADMINISTRADOR |
 | Clanes | POST | `/api/v1/clanes/unirse` | No | ESTUDIANTE |
 | Clanes | POST | `/api/v1/clanes/abandonar` | No | ESTUDIANTE |
-| Clanes | POST | `/api/v1/clanes/invitaciones` | No | ESTUDIANTE |
-| Clanes | POST | `/api/v1/clanes/invitaciones/{id}/responder` | No | ESTUDIANTE |
-| Clanes | GET | `/api/v1/clanes/invitaciones/estudiante/{estudianteId}` | No | ESTUDIANTE, ADMINISTRADOR |
 | Clanes | GET | `/api/v1/clanes` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
 | Clanes | GET | `/api/v1/clanes/{id}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Invitaciones | POST | `/api/v1/clanes/invitaciones` | No | ESTUDIANTE |
+| Invitaciones | POST | `/api/v1/clanes/invitaciones/{id}/responder` | No | ESTUDIANTE |
+| Invitaciones | GET | `/api/v1/clanes/invitaciones/estudiante/{estudianteId}` | No | ESTUDIANTE, ADMINISTRADOR |
+| Retos de clan | POST | `/api/v1/clanes/retos` | No | ENTRENADOR, ADMINISTRADOR |
+| Retos de clan | POST | `/api/v1/clanes/{clanId}/retos/{retoId}/calcular` | No | ENTRENADOR, ADMINISTRADOR |
+| Retos de clan | POST | `/api/v1/clanes/retos/comparar-duelo` | No | ENTRENADOR, ADMINISTRADOR |
+| Retos de clan | GET | `/api/v1/clanes/{clanId}/retos` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
 | Misiones | POST | `/api/v1/misiones/diarias` | No | ENTRENADOR, ADMINISTRADOR |
 | Misiones | POST | `/api/v1/misiones/semanales` | No | ENTRENADOR, ADMINISTRADOR |
-| Misiones | POST | `/api/v1/misiones/{id}/completar` | No | ESTUDIANTE, ADMINISTRADOR |
 | Misiones | POST | `/api/v1/misiones/{id}/cumplimiento` | No | ESTUDIANTE, ADMINISTRADOR |
+| Misiones | POST | `/api/v1/misiones/{id}/completar` | No | ESTUDIANTE, ADMINISTRADOR |
 | Misiones | GET | `/api/v1/misiones/estudiante/{estudianteId}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
 | Temporadas | POST | `/api/v1/temporadas` | No | ADMINISTRADOR |
 | Temporadas | GET | `/api/v1/temporadas/{id}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
 | Temporadas | GET | `/api/v1/temporadas/activa` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
 | Temporadas | GET | `/api/v1/temporadas/{temporadaId}/ranking` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Gimnasio | POST | `/api/v1/gimnasio/asistencias` | No | ENTRENADOR, ADMINISTRADOR |
+| Nutrición | POST | `/api/v1/nutricion/comidas` | No | ESTUDIANTE, ADMINISTRADOR |
+| Nutrición | POST | `/api/v1/nutricion/comidas/{id}/evaluar` | No | ESTUDIANTE, ADMINISTRADOR |
+| Nutrición | GET | `/api/v1/nutricion/comidas/{id}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Nutrición | GET | `/api/v1/nutricion/comidas/estudiante/{estudianteId}` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Comedor | POST | `/api/v1/comedor/menus` | No | ADMINISTRADOR |
+| Comedor | GET | `/api/v1/comedor/menus` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
+| Comedor | GET | `/api/v1/comedor/menus/hoy` | No | ESTUDIANTE, ENTRENADOR, ADMINISTRADOR |
 
 ## Cómo levantar localmente
 **Prerrequisitos:** Java 21, Maven y Docker.
@@ -249,6 +182,8 @@ Referencia: `.env.example`.
 | DB_USER | Usuario de la base de datos | ecifit |
 | DB_PASSWORD | Contraseña de la base de datos | ****** |
 | JWT_SECRET | Clave para firmar los tokens (mínimo 44 caracteres Base64) | ****** |
+| JWT_EXPIRATION | Duración del token en milisegundos | 86400000 |
+| GEMINI_API_KEY | Llave de la API de Google Gemini para evaluar comidas | ****** |
 
 ## Ejecución de pruebas
 
@@ -262,15 +197,16 @@ Ejecutar `mvn clean test`. El reporte detallado de JaCoCo se genera en `target/s
 - **Cobertura en validadores y anti-cheat:** **94.65%** en `validator` y **100%** en `chain`.
 - **Cobertura en controladores:** **81.57%** (447 / 548 instrucciones).
 
-![mvn-test.png](docs/mvn-test.png)
+![mvn-test.png](docs/evidencias/mvn-test.png)
 
-![cobertura-jacoco.png](docs/cobertura-jacoco.png)
+![cobertura-jacoco.png](docs/evidencias/cobertura-jacoco.png)
 
 ---
 
 ### 2. Set de Pruebas de Funcionamiento (Caja Negra con Postman)
-Ubicación de la colección oficial: [`postman/ecifit-collection.json`](postman/ecifit-collection.json).
-Se ejecuta con el Postman Collection Runner tanto en ambiente local (`http://localhost:8080`) como contra **Azure Producción** (`https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net`).
+Ubicación de la colección oficial: [`postman/ecifit-collection.json`](postman/ecifit-collection.json), con los ambientes [`qa`](postman/qa.postman_environment.json) y [`prod`](postman/prod.postman_environment.json).
+
+**Cómo correrlo:** importar la colección y el ambiente en Postman, seleccionar el ambiente (QA o PROD) y ejecutar la colección completa con el **Collection Runner**. Cada request valida automáticamente el código de respuesta.
 
 | ID | Funcionalidad (RF) | Escenario de Prueba | Método y Request | Esperado | Obtenido | Evidencia |
 |:---:|---|---|---|:---:|:---:|:---:|
@@ -297,33 +233,40 @@ Se ejecuta con el Postman Collection Runner tanto en ambiente local (`http://loc
 ### 3. Video de Respaldo del Demo (Plan B Obligatorio)
 - **Grabación de respaldo:** [Enlace al Video de Respaldo en OneDrive/Teams](https://escuelaing-my.sharepoint.com/:v:/g/personal/juan_munar_mail_escuelaing_edu_co/VideoDemoRespaldoECIFIT) *(Disponible descargado localmente en los equipos de la Estación 3).*
 
+## Limitaciones conocidas
+
+Lo que no alcanzó a cerrarse, con su impacto y cómo se resolvería, está en la [sección 9 del documento de arquitectura](docs/arquitectura-hld.md#9-limitaciones-conocidas). En resumen:
+
+- **RF-05:** las estadísticas del personaje no se separan por atributo (Fuerza, Cardio, Flexibilidad, Nutrición).
+- **RF-38:** los clanes no tienen niveles.
+- **RF-39, RF-40 y RF-41:** no hay reporte ni consulta de la ocupación del gimnasio.
+- Los patrones Observer (`GestorLigas`, `TorreClan`) y State están definidos, pero no conectados al flujo de actividades.
 
 ## CI/CD
-- **ci-qa.yml:** push a `main`, ejecuta pruebas, construye la imagen y despliega en QA.
+- **ci-qa.yml:** push a `main` o `develop`, ejecuta pruebas, construye la imagen y despliega en QA.
 - **ci-prod.yml:** tag `v*.*.*`, despliega en PROD con aprobación manual.
 
 **Secrets configurados:** `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `AZURE_CREDENTIALS`, `JWT_SECRET_QA`, `JWT_SECRET_PROD`, `DB_PASSWORD_QA`, `DB_PASSWORD_PROD`, `AZURE_WEBAPP_NAME_QA`, `AZURE_WEBAPP_NAME_PROD`
 
 [Ver ejecuciones en GitHub Actions](https://github.com/ECI-FIT/ecifit-backend/actions)
 
-![Pipeline QA](docs/pipeline-qa.jpeg)
+![Pipeline QA](docs/evidencias/pipeline-qa.jpeg)
 
-![Pipeline PROD](docs/pipeline-prod.jpeg)
+![Pipeline PROD](docs/evidencias/pipeline-prod.jpeg)
 
 ## Despliegue
 **Imagen Docker:** https://hub.docker.com/r/cobos1/ecifit-backend
 
 ### Diagrama de despliegue
-![diagrama-despliegue.jpeg](docs/diagrama-despliegue.jpeg)
+![Diagrama de despliegue](docs/diagramas/diagrama-despliegue.jpeg)
 
 ## Integrantes
-Los roles cambian en cada sprint. Esta tabla corresponde al Sprint 3.
+Los roles cambian en cada sprint. Esta tabla corresponde al Sprint 4.
 
-| Nombre | Rol en el Sprint 3 | Qué implementó en el Sprint 3 |
-|------------------------------------|---|--------------------------------------------------------------------------------------------------------------------------------------------|
-| Sebastián Camilo Granados López    | Líder técnico | Gestión del sprint en Jira, diagrama de flujo de pantallas, integración y verificación de QA y PROD, README del backend.                   |
-| Daniel Jose Villamizar Castellanos | Backend: funcionalidades y Docker | Funcionalidades pendientes, manejo global de excepciones, pruebas, Dockerización, imagen en Docker Hub, diagramas de clases y componentes. |
-| Juan David Munar Chaparro          | Backend: seguridad | Autenticación JWT, roles y permisos por endpoint, pruebas de seguridad, funcionalidades pendientes, diagrama de base de datos.             |
-| Julian Camilo Giral Cobos          | Backend: CI/CD y Azure | Pipelines de QA y PROD, despliegue en Azure, secrets y variables de entorno, diagrama de despliegue.                                       |
-| Daniel Alfredo Barrera Aranque     | Frontend | Mascota, manual de identidad, mockups finales en Figma, README del frontend.                                                               |
-
+| Nombre | Rol en el Sprint 4 | Qué implementó en el Sprint 4 |
+|---|---|---|
+| Julian Camilo Giral Cobos | Coordinación | Organización de pendientes en Jira, seguimiento del equipo, paquete final y montaje de la feria. |
+| Sebastián Camilo Granados López | Deuda técnica y documentación | Deuda técnica P1 y P2 del backend, RF-23, RF-30 y RF-33, documento de arquitectura del backend y diagramas. |
+| Juan David Munar Chaparro | Estabilidad y demostración | API estable en Azure, set de pruebas de funcionamiento, datos de demo, diagramas de secuencia y video de respaldo. |
+| Daniel Alfredo Barrera Aranque | Identidad visual y arquitectura front | Plantilla de documentos, documento de arquitectura del frontend y módulo de nutrición (RF-12 a RF-15). |
+| Daniel Jose Villamizar Castellanos | Marketing y presentación | Documento de marketing, investigación de mercado, piezas para jurados y presentación inicial. |
