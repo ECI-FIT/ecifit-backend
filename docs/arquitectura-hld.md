@@ -1022,31 +1022,7 @@ Este flujo modela la certificación presencial de actividad deportiva en el gimn
 
 El sistema opera bajo una arquitectura de contenedores Docker en Azure App Service (Linux B1):
 
-```mermaid
-flowchart LR
-    subgraph Internet["Tráfico Externo"]
-        WebFront["Frontend SPA\n(React / Vite)"]
-        Jurados["Jurados y Postman\n(Feria DOSW)"]
-    end
-
-    subgraph AzureCloud["Azure App Service (PaaS)"]
-        subgraph QA["Ambiente QA"]
-            AppQA["EciFit-qa\n(Linux Container 8080)\nhttps://ecifit-qa-...azurewebsites.net"]
-        end
-        subgraph PROD["Ambiente Producción"]
-            AppProd["EciFit-prod\n(Linux Container 8080)\nhttps://ecifit-prod-...azurewebsites.net"]
-        end
-    end
-
-    subgraph DataTier["Base de Datos"]
-        AzurePG[("PostgreSQL 16\nSSL/TLS Activo - 12 Tablas")]
-    end
-
-    WebFront -->|"HTTPS / REST"| AppProd
-    Jurados -->|"HTTPS / REST"| AppProd
-    AppQA -->|"JDBC SSL"| AzurePG
-    AppProd -->|"JDBC SSL"| AzurePG
-```
+![Diagrama de despliegue](diagramas/Despliegue-ecifit.png)
 
 ### 8.2 URLs Oficiales de Producción y QA
 - **Swagger UI Producción:** [https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html](https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html)
