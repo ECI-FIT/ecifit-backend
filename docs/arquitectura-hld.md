@@ -14,7 +14,7 @@ Sus responsabilidades esenciales abarcan:
 4. **Guerras de Clanes y Asedios:** Gestión de clanes (límite estricto de 5 miembros), defensa reactiva de la torre (*Observer*), publicación de retos colectivos (**RF-34**) y resolución de duelos entre clanes (**RF-36**).
 5. **Gobernanza de Membresía e Invitaciones a Clanes (RF-30, RF-31, RF-33):** Sistema completo de invitaciones directas por miembros, aceptación/rechazo y abandono con reasignación automática de líder.
 6. **Ciclo de Ligas y Temporadas:** Temporadas semestrales, ranking por temporada y recálculo semanal de ascensos y descensos (*Bronce*, *Plata*, *Oro*, *Platino*, *Diamante*).
-7. **Nutrición Asistida por Inteligencia Artificial (RF-12, RF-13, RF-14):** Evaluación dietética automática y consejos nutricionales conectando de forma resiliente con **Google Gemini 2.5 Flash Lite**.
+7. **Nutrición Asistida por Inteligencia Artificial y Heurística (RF-12, RF-13, RF-14):** Evaluación dietética automática y consejos nutricionales mediante adaptador resiliente compatible con **Google Gemini 2.5 Flash Lite** y evaluación determinística local.
 8. **Menú del Comedor Institucional (RF-15):** Exposición del menú saludable diario publicado por bienestar universitario.
 9. **Asistencia Verificada al Gimnasio (RF-42):** Registro presencial validado exclusivamente por entrenadores institucionales.
 10. **Seguridad Stateless y RBAC:** Protección perimetral con tokens JWT y control de acceso basado en roles (*Estudiante*, *Entrenador*, *Administrador*).
@@ -28,7 +28,7 @@ El sistema se ve como una caja negra: tres tipos de usuario lo usan desde el nav
 - **Estudiante:** registra actividades, comidas y misiones, y participa en clanes y retos.
 - **Entrenador:** confirma asistencias al gimnasio, crea misiones y publica retos de clan.
 - **Administrador:** registra estudiantes, crea temporadas y publica el menú del comedor.
-- **Google Gemini API:** recibe la descripción de una comida y responde si es balanceada.
+- **Google Gemini API:** recibe la descripción de una comida y responde si es balanceada (con soporte determinístico si no hay token configurado).
 - **PostgreSQL 16:** guarda toda la información del sistema.
 - **Microsoft Azure:** aloja la API en dos ambientes (QA y PROD) mediante contenedores Docker.
 
@@ -47,7 +47,7 @@ La selección tecnológica prioriza componentes LTS con soporte corporativo, com
 | **Spring Security** | 6.x | Perímetro de seguridad y RBAC | Control de acceso declarativo en controladores mediante `@PreAuthorize`, filtros en cadena sin estado (*Stateless*) y codificación BCrypt. |
 | **Spring Data JPA** | 3.5.x | Abstracción de persistencia relacional | Implementación ORM sobre Hibernate; consultas optimizadas mediante JPQL y métodos derivados para auditoría de integridad. |
 | **PostgreSQL** | 16 | Motor de base de datos relacional | Cumplimiento estricto de propiedades ACID, soporte nativo de tipos temporales ISO-8601, índices compuestos únicos y transacciones concurrentes. |
-| **Google Gemini API** | 2.5 Flash Lite | Inteligencia Artificial generativa | Clasificación dietética de alta velocidad, bajo costo y estructuración JSON para validación de comidas balanceadas (`gemini-2.5-flash-lite`). |
+| **Google Gemini API** | 2.5 Flash Lite | Inteligencia Artificial generativa | Clasificación dietética de alta velocidad, bajo costo y estructuración JSON para validación de comidas balanceadas (`gemini-2.5-flash-lite`), con soporte de evaluación por frases y palabras clave. |
 | **JJWT (io.jsonwebtoken)** | 0.12.3 | Generación y validación de tokens | Creación y firma criptográfica HMAC-SHA256 de JSON Web Tokens con validación estricta de claims y tiempos de expiración. |
 | **MapStruct** | 1.6.3 | Mapeo entre capas de datos | Transformación tipo-segura en tiempo de compilación entre DTOs, Entidades de Dominio y Entidades JPA con costo de reflexión cero (*Zero-Overhead*). |
 | **Lombok** | 1.18.48 | Reducción de código repetitivo | Generación automática de Getters, Setters, Builders inmutables y trazabilidad de logs estructurados con `@Slf4j`. |
@@ -78,7 +78,7 @@ Alineación formal y exhaustiva entre el catálogo canónico de los 42 requerimi
 | **RF-10** | Otorgar puntos por actividad física válida | Actividades | `ActividadResponseDTO.puntosOtorgados` | **Implementado** |
 | **RF-11** | Otorgar puntos adicionales por asistencia al gimnasio | Asistencia Gimnasio | `POST /api/v1/gimnasio/asistencias` (+20 pts) | **Implementado** |
 | **RF-12** | Registrar comida consumida por el estudiante | Nutrición | `POST /api/v1/nutricion/comidas` | **Implementado** |
-| **RF-13** | Clasificar un registro como comida balanceada (IA Gemini) | Nutrición / IA | `GeminiEvaluadorNutricional` | **Implementado** |
+| **RF-13** | Clasificar un registro como comida balanceada (IA Gemini) | Nutrición / IA | `GeminiEvaluadorNutricional` (Evaluador con clasificación por frases e ingredientes si no hay API Key) | **Implementado** |
 | **RF-14** | Otorgar puntos por registro nutricional válido | Nutrición | `ComidaServiceImpl` (+5 base, +15 balanceada) | **Implementado** |
 | **RF-15** | Consultar menú disponible del comedor ECI | Comedor | `GET /api/v1/comedor/menus/hoy`<br>`GET /api/v1/comedor/menus` | **Implementado** |
 | **RF-16** | Generar misiones diarias para los estudiantes | Misiones / Factory | `POST /api/v1/misiones/diarias` | **Implementado** |
@@ -114,7 +114,7 @@ Alineación formal y exhaustiva entre el catálogo canónico de los 42 requerimi
 > **37 implementados + 0 parciales + 5 limitaciones conocidas = 42 requerimientos.**
 > 
 > * **Completamente Implementados (37):** RF-01, RF-02, RF-03, RF-04, RF-06, RF-07, RF-08, RF-09, RF-10, RF-11, RF-12, RF-13, RF-14, RF-15, RF-16, RF-17, RF-18, RF-19, RF-20, RF-21, RF-22, RF-23, RF-24, RF-25, RF-26, RF-27, RF-28, RF-29, RF-30, RF-31, RF-32, RF-33, RF-34, RF-35, RF-36, RF-37, RF-42.
-> * **Parciales (0):** Ninguno (todos los requerimientos parciales fueron implementados y verificados con pruebas automatizadas).
+> * **Parciales (0):** Ninguno (todos los requerimientos parciales fueron completados y verificados con pruebas automatizadas).
 > * **Limitaciones Conocidas (5):** RF-05 (estadísticas desglosadas por atributo), RF-38 (niveles de clan), RF-39 (reportar ocupación del gimnasio), RF-40 (consultar ocupación) y RF-41 (mapa colaborativo de ocupación).
 
 ---
@@ -646,7 +646,7 @@ Consulta todas las invitaciones dirigidas a un estudiante.
 ### 5.6 Módulo de Nutrición e IA Gemini (`/api/v1/nutricion/comidas`)
 
 #### `POST /api/v1/nutricion/comidas` · Rol: `ESTUDIANTE`, `ADMINISTRADOR` · Respuesta exitosa: `201 Created`
-Registra una comida (**RF-12**), otorga +5 puntos base y ejecuta la evaluación nutricional inteligente con Google Gemini 2.5 Flash Lite (+15 puntos adicionales si es balanceada) (**RF-13, RF-14**).
+Registra una comida (**RF-12**), otorga +5 puntos base y ejecuta la evaluación nutricional inteligente (+15 puntos adicionales si es balanceada) (**RF-13, RF-14**). En despliegues donde no esté configurada la API Key de Gemini, el evaluador clasifica el balance nutricional con base en frases e ingredientes clave.
 
 | Campo | Tipo | Obligatorio | Restricciones | Descripción |
 |---|---|:---:|---|---|
@@ -681,7 +681,7 @@ Registra una comida (**RF-12**), otorga +5 puntos base y ejecuta la evaluación 
 ```
 
 #### `POST /api/v1/nutricion/comidas/{id}/evaluar` · Rol: `ESTUDIANTE`, `ADMINISTRADOR` · Respuesta exitosa: `200 OK`
-Reintenta la clasificación por IA de una comida que quedó en estado `PENDIENTE` por timeout o intermitencia de red externa. Además, `EvaluacionNutricionalScheduler` reintenta automáticamente las comidas pendientes cada 15 minutos.
+Reintenta la clasificación de una comida que quedó en estado `PENDIENTE` por timeout o intermitencia de red externa. Además, `EvaluacionNutricionalScheduler` reintenta automáticamente las comidas pendientes cada 15 minutos.
 
 | Parámetro Ruta | Tipo | Obligatorio | Restricciones | Descripción |
 |---|---|:---:|---|---|
@@ -1054,193 +1054,53 @@ Todos los errores pasan por `GlobalExceptionHandler` (`@RestControllerAdvice`), 
 
 ## 7. Diagramas de Secuencia de Flujos Clave
 
-### 7.1 Flujo A: Inicio de Sesión con JWT
+Los diagramas de secuencia han sido modelados y renderizados en alta fidelidad con fondo blanco e integrados como capturas estáticas para garantizar máxima legibilidad en cualquier visualizador Markdown.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Cliente
-    participant AuthCtrl as AuthController
-    participant AuthSvc as AuthServiceImpl
-    participant AuthMgr as AuthenticationManager
-    participant Users as CustomUserDetailsService
-    participant Jwt as JwtUtil
-    participant BD as PostgreSQL (usuarios)
+### 7.1 Flujo A: Autenticación, Firma de Token JWT y Control Perimetral
 
-    Cliente->>AuthCtrl: POST /api/v1/auth/login {email, password}
-    AuthCtrl->>AuthSvc: login(LoginRequestDTO)
-    AuthSvc->>AuthMgr: authenticate(email, password)
-    AuthMgr->>Users: loadUserByUsername(email)
-    Users->>BD: buscar usuario por email
-    BD-->>Users: UsuarioEntity (hash BCrypt, rol)
-    alt Credenciales incorrectas
-        AuthMgr-->>AuthSvc: BadCredentialsException
-        AuthSvc-->>Cliente: 401 {"mensaje": "Credenciales inválidas"}
-    else Credenciales válidas
-        AuthSvc->>Jwt: generateToken(usuario)
-        Jwt-->>AuthSvc: token firmado (HMAC-SHA256, 24 h)
-        AuthSvc-->>AuthCtrl: AuthResponseDTO
-        AuthCtrl-->>Cliente: 200 {token, tipo, email, rol, expiresIn}
-    end
-```
+![Diagrama de Secuencia - Flujo A](diagramas/secuencia-flujo-a.png)
 
-**Explicación:** `AuthenticationManager` compara la contraseña con el hash BCrypt guardado en `usuarios`. Si coincide, `JwtUtil` firma un token con el correo y el rol, válido por 24 horas; ese token se envía después en la cabecera `Authorization: Bearer` de cada petición.
+**Explicación del Flujo:**
+1. **Petición de Acceso:** El cliente envía credenciales de acceso al endpoint `POST /api/v1/auth/login`.
+2. **Validación Criptográfica:** `CustomUserDetailsService` consulta el usuario en PostgreSQL y `BCryptPasswordEncoder` verifica el hash de la contraseña contra la base de datos.
+3. **Generación de Token:** Si las credenciales son válidas, `JwtService` expide un token JWT firmado (HMAC-SHA256, validez 24 horas) con claims de rol y expiración para autorizar subsecuentes peticiones en la cabecera `Authorization: Bearer`.
 
 ---
 
-### 7.2 Flujo B: Registro de Actividad con la Cadena Anti-Cheat (RF-06 a RF-10, RF-20, RF-21, RF-23)
+### 7.2 Flujo B: Registro de Actividad Física con Pipeline Anti-Cheat (*RF-06 a RF-10, RF-20, RF-21, RF-23*)
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Est as Estudiante
-    participant Filter as JwtAuthFilter
-    participant Ctrl as ActividadController
-    participant Svc as ActividadServiceImpl
-    participant Val as ActividadValidator
-    participant Chain as Cadena anti-cheat
-    participant EstRepo as EstudianteRepository
-    participant ActRepo as ActividadRepository
-    participant Temp as TemporadaServiceImpl
+![Diagrama de Secuencia - Flujo B](diagramas/secuencia-flujo-b.png)
 
-    Est->>Filter: POST /api/v1/actividades [Bearer JWT]
-    Filter->>Ctrl: token válido y rol ESTUDIANTE
-    Ctrl->>Svc: registrarActividad(actividad, estudianteId)
-    Svc->>EstRepo: findById(estudianteId)
-    alt Estudiante no existe
-        Svc-->>Est: 404 Not Found
-    end
-    Svc->>Val: validar(actividad)
-    Val->>Chain: SanctionStatus → DataIntegrity → PhysiologicalLimits
-    alt Fecha futura, duración < 10 o > 300 min, intensidad fuera de 1-10
-        Chain-->>Est: 422 Unprocessable Entity
-    else Actividad válida
-        Svc->>Svc: puntos según el rol (Strategy) y bono de racha de 7 días
-        Svc->>ActRepo: save(actividad)
-        Svc->>EstRepo: save(estudiante con puntos actualizados)
-        Svc->>Temp: sumarPuntosTemporadaActiva(estudianteId, puntos)
-        Ctrl-->>Est: 201 Created (ActividadResponseDTO)
-    end
-```
-
-**Explicación:** el filtro JWT rechaza la petición antes de llegar al controlador si no hay token (401) o si el rol no es estudiante (403). La cadena anti-cheat revisa la actividad eslabón por eslabón y corta en el primer error. Si todo está bien, el rol del estudiante define los puntos y, si completa 7 días seguidos, recibe 200 puntos extra; los puntos ganados también se suman al ranking de la temporada activa.
+**Explicación del Flujo:**
+1. **Control Perimetral:** `JwtAuthFilter` intercepta la petición y valida el token Bearer con rol `ROLE_ESTUDIANTE` (401 si no hay token o 403 si el rol no es adecuado).
+2. **Pipeline Anti-Cheat:** `ActividadServiceImpl` delega la validación secuencial a la cadena de manejadores (`SanctionStatusHandler`, `DataIntegrityHandler`, `PhysiologicalLimitsHandler`). Ante inconsistencias biológicas, fechas futuras o duración fuera de rango (mínimo 10 min, máximo 300 min), interrumpe el flujo con `ReglaDeNegocioException` (HTTP 422).
+3. **Liquidación y Persistencia:** Al superar los filtros, la estrategia del rol (*Strategy*: `Tanque`, `Corredor`, `Estratega`) calcula los puntos con su respectivo multiplicador, evaluando racha consecutiva (+200 pts al séptimo día) y persistiendo la actividad, actualizando el perfil del estudiante y sumando los puntos al ranking de la temporada activa.
 
 ---
 
-### 7.3 Flujo C: Registro de Comida con Evaluación de Gemini (RF-12, RF-13, RF-14)
+### 7.3 Flujo C: Gobernanza de Clanes — Invitación, Validación de Cupo y Aceptación (*RF-30, RF-31, RF-32*)
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Est as Estudiante
-    participant Ctrl as ComidaController
-    participant Svc as ComidaServiceImpl
-    participant Val as ComidaValidator
-    participant IA as GeminiEvaluadorNutricional
-    participant Gemini as Google Gemini API
-    participant Repo as ComidaRepository
-    participant Sch as EvaluacionNutricionalScheduler
+Este flujo modela el ciclo de vida de membresía en un clan: envío de invitación formal por un miembro activo, validación de la regla de negocio de cupo máximo (máximo 5 integrantes, **RF-32**), y la posterior respuesta del estudiante invitado con afiliación atómica o rechazo.
 
-    Est->>Ctrl: POST /api/v1/nutricion/comidas {estudianteId, tipo, descripcion}
-    Ctrl->>Svc: registrar(comida)
-    Svc->>Val: validar(comida)
-    Svc->>Svc: ¿primera comida de ese tipo hoy? (solo esa da puntos)
-    Svc->>IA: evaluar(tipo, descripcion)
-    IA->>Gemini: generateContent
-    alt Gemini responde
-        Gemini-->>IA: balanceada, calificación, puntaje, consejo
-        Svc->>Svc: estado EVALUADA · +5 pts registro · +15 si es balanceada
-    else Timeout o error de Gemini
-        Svc->>Svc: estado PENDIENTE (se reintenta más tarde)
-    end
-    Svc->>Repo: save(comida)
-    Ctrl-->>Est: 201 Created (ComidaResponseDTO)
-    Sch->>Svc: cada 15 min reintenta las comidas PENDIENTE
-```
+![Diagrama de Secuencia - Flujo C](diagramas/secuencia-flujo-c.png)
 
-**Explicación:** la comida se guarda aunque Gemini falle; en ese caso queda `PENDIENTE` y `EvaluacionNutricionalScheduler` la reintenta cada 15 minutos (hasta 3 intentos, luego queda en `ERROR`). Para evitar abusos, solo la primera comida de cada tipo en el día otorga puntos.
+**Explicación del Flujo:**
+1. **Paso 1 (Emisión):** Un miembro activo envía la invitación vía `POST /api/v1/clanes/invitaciones`. `ClanValidator` audita que el clan tenga cupo disponible ($< 5$ miembros) y que el invitado no tenga clan ni invitaciones pendientes. Si hay cupo, se persiste en estado `PENDIENTE`.
+2. **Paso 2 (Resolución):** El estudiante invitado resuelve la invitación vía `POST /api/v1/clanes/invitaciones/{id}/responder` enviando `{aceptar: true|false}`.
+3. **Respuesta Atómica:** Si `aceptar = true`, `ClanServiceImpl` ejecuta la actualización bajo `@Transactional`, validando nuevamente el cupo, marcando la invitación como `ACEPTADA` e incorporando al estudiante al clan en una única transacción ACID. Si `aceptar = false`, registra el estado `RECHAZADA`.
 
 ---
 
-### 7.4 Flujo D: Invitación a un Clan y Respuesta (RF-30, RF-31, RF-32)
+### 7.4 Flujo D: Confirmación de Asistencia al Gimnasio por Entrenador con Bonificación (*RF-42, RF-11, RF-23*)
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Miembro as Miembro del clan
-    actor Invitado as Estudiante invitado
-    participant Ctrl as InvitacionClanController
-    participant Svc as InvitacionClanServiceImpl
-    participant ClanSvc as ClanServiceImpl
-    participant Val as ClanValidator
-    participant Repo as InvitacionClanRepository
+Este flujo modela la certificación presencial de actividad deportiva en el gimnasio del campus por parte de un entrenador institucional, con validación de rol restringido, control de unicidad diaria y bonificación multirrecurso.
 
-    Miembro->>Ctrl: POST /api/v1/clanes/invitaciones {clanId, estudianteId, invitadoPorId}
-    Ctrl->>Svc: invitar(clanId, estudianteId, invitadoPorId)
-    Svc->>ClanSvc: obtenerPorId(clanId)
-    alt Quien invita no es miembro o el clan está lleno
-        Svc-->>Miembro: 422 Unprocessable Entity
-    else El invitado ya tiene clan o una invitación pendiente
-        Svc-->>Miembro: 409 Conflict
-    else Todo válido
-        Svc->>Val: validarEstudianteSinClan · validarCupoDisponible
-        Svc->>Repo: save(invitación PENDIENTE)
-        Ctrl-->>Miembro: 201 Created
-    end
+![Diagrama de Secuencia - Flujo D](diagramas/secuencia-flujo-d.png)
 
-    Invitado->>Ctrl: POST /api/v1/clanes/invitaciones/{id}/responder {aceptar}
-    Ctrl->>Svc: responder(id, aceptar)
-    alt Invitación ya respondida
-        Svc-->>Invitado: 422 Unprocessable Entity
-    else aceptar = true
-        Svc->>ClanSvc: unirse(clanId, estudianteId)
-        Svc->>Repo: save(invitación ACEPTADA)
-        Ctrl-->>Invitado: 200 OK
-    else aceptar = false
-        Svc->>Repo: save(invitación RECHAZADA)
-        Ctrl-->>Invitado: 200 OK
-    end
-```
-
-**Explicación:** al aceptar, el servicio vuelve a validar el cupo y que el estudiante no esté en otro clan antes de agregarlo a `clan_miembros`. Todo ocurre en una transacción (`@Transactional`): si la unión falla, la invitación no queda marcada como aceptada.
-
----
-
-### 7.5 Flujo E: Confirmación de Asistencia al Gimnasio (RF-42, RF-11, RF-23)
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Ent as Entrenador
-    participant Filter as JwtAuthFilter
-    participant Ctrl as AsistenciaGymController
-    participant Svc as AsistenciaGymServiceImpl
-    participant Val as AsistenciaGymValidator
-    participant Repo as AsistenciaGymRepository
-    participant EstRepo as EstudianteRepository
-    participant Temp as TemporadaServiceImpl
-
-    Ent->>Filter: POST /api/v1/gimnasio/asistencias {estudianteId, entrenadorId}
-    alt Rol distinto de ENTRENADOR o ADMINISTRADOR
-        Filter-->>Ent: 403 Forbidden
-    else Rol autorizado
-        Filter->>Ctrl: petición autorizada
-        Ctrl->>Svc: registrarAsistencia(estudianteId, entrenadorId)
-        Svc->>Val: validar(estudianteId, entrenadorId)
-        Svc->>EstRepo: findById(estudianteId)
-        Svc->>Repo: ¿ya tiene asistencia hoy?
-        alt Ya registró asistencia hoy
-            Svc-->>Ent: 409 Conflict
-        else Primera asistencia del día
-            Svc->>EstRepo: save(estudiante +20 pts)
-            Svc->>Temp: sumarPuntosTemporadaActiva(estudianteId, 20)
-            Svc->>Repo: save(asistencia)
-            Ctrl-->>Ent: 201 Created
-        end
-    end
-```
-
-**Explicación:** solo un entrenador o un administrador puede confirmar asistencias. El servicio permite una asistencia por estudiante al día y cada una suma 20 puntos al estudiante y al ranking de la temporada activa.
+**Explicación del Flujo:**
+1. **Control de Acceso RBAC:** El decorador `@PreAuthorize("hasAnyRole('ENTRENADOR', 'ADMINISTRADOR')")` rechaza en la capa web cualquier intento de suplantación si la petición proviene de un token de estudiante (retorna **403 Forbidden**).
+2. **Restricción de Integridad Única:** `AsistenciaGymValidator` verifica si ya existe una tupla `(estudiante_id, fecha)` en la tabla `asistencias_gym`. Si ya asistió en la jornada, previene fraudes de puntos retornando **409 Conflict**.
+3. **Bonificación Multirrecurso:** Al ser válida, la asistencia acredita de manera atómica +20 puntos en la tabla `estudiantes` (**RF-11**) y replica el impacto inmediatamente sobre la tabla `rankings_temporada` de la temporada activa (**RF-23**).
 
 ---
 
@@ -1248,48 +1108,52 @@ sequenceDiagram
 
 ### 8.1 Diagrama de Despliegue
 
-![Diagrama de despliegue](diagramas/diagrama-despliegue.jpeg)
+![Diagrama de despliegue](diagramas/Despliegue-ecifit.png)
 
-La API se empaqueta en una imagen Docker y se publica en Docker Hub. GitHub Actions la despliega en dos Azure App Service independientes (QA y PROD), cada uno con su propia base de datos PostgreSQL y sus propios secretos.
+La arquitectura de despliegue en la nube sigue un modelo PaaS en **Microsoft Azure**:
+- El código se versiona en GitHub, donde los triggers de push (`main` / `develop`) y creación de tags activan los flujos de trabajo de **GitHub Actions**.
+- La imagen Docker de producción se construye en dos etapas (*multi-stage build*) y se publica en el registro público de **Docker Hub** (`cobos1/ecifit-backend`).
+- GitHub Actions comanda el pull y despliegue automatizado hacia dos instancias independientes de **Azure App Service**:
+  - **Ambiente QA:** `ecifit-qa-bxhdd4a0dkc4bma0.canadacentral-01.azurewebsites.net` conectado a su propia base de datos `PostgreSQL 16 QA`.
+  - **Ambiente Producción (PROD):** `ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net` conectado a la base de datos `PostgreSQL 16 PROD`.
+- Los clientes externos y jurados interactúan con el backend mediante peticiones cifradas por **HTTPS** a través de la interfaz interactiva de Swagger UI o colecciones automatizadas de pruebas en Postman.
 
 ### 8.2 Roles y Permisos
 
 | Rol | Puede hacer |
 |---|---|
-| Público (sin token) | Iniciar sesión, ver Swagger y consultar `/api/v1/health` |
+| Público (sin token) | Iniciar sesión, ver Swagger OpenAPI y consultar el probe `/api/v1/health` |
 | `ESTUDIANTE` | Crear su personaje, registrar actividades y comidas, completar misiones, crear clanes, unirse, abandonar, invitar y responder invitaciones, y consultar rankings, retos y menús |
 | `ENTRENADOR` | Confirmar asistencias al gimnasio, crear misiones, publicar y calcular retos de clan, y consultar estudiantes |
 | `ADMINISTRADOR` | Todo lo anterior, además de registrar estudiantes, crear temporadas y publicar menús del comedor |
 
-El detalle de rol por endpoint está en la sección 5 y en la tabla de roles del README.
+### 8.3 URLs Oficiales de Producción y QA
 
-### 8.3 URLs de Producción y QA
-
-- **Swagger PROD:** https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html
-- **API PROD:** https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/api/v1
-- **Health check PROD:** https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/api/v1/health
-- **Swagger QA:** https://ecifit-qa-bxhdd4a0dkc4bma0.canadacentral-01.azurewebsites.net/swagger-ui/index.html
+- **Swagger UI Producción:** [https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html](https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html)
+- **Health Check Producción:** [https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/api/v1/health](https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/api/v1/health)
+- **Swagger UI QA:** [https://ecifit-qa-bxhdd4a0dkc4bma0.canadacentral-01.azurewebsites.net/swagger-ui/index.html](https://ecifit-qa-bxhdd4a0dkc4bma0.canadacentral-01.azurewebsites.net/swagger-ui/index.html)
+- **Health Check QA:** [https://ecifit-qa-bxhdd4a0dkc4bma0.canadacentral-01.azurewebsites.net/api/v1/health](https://ecifit-qa-bxhdd4a0dkc4bma0.canadacentral-01.azurewebsites.net/api/v1/health)
 
 ### 8.4 Ramas y CI/CD
 
 | Rama / evento | Pipeline | Qué hace |
 |---|---|---|
-| Push a `main` o `develop` | `ci-qa.yml` | Ejecuta las pruebas, construye la imagen y despliega en QA |
-| Tag `vX.Y.Z` | `ci-prod.yml` | Despliega en PROD con aprobación manual |
-| `feature/*` | — | Ramas de trabajo que entran a `develop` por Pull Request con revisión |
+| Push a `main` o `develop` | `ci-qa.yml` | Ejecuta las pruebas unitarias/integración, construye la imagen Docker y despliega en QA |
+| Tag `vX.Y.Z` | `ci-prod.yml` | Despliega en PROD con verificación automatizada |
+| `feature/*` | — | Ramas de trabajo que entran a `develop` por Pull Request con revisión y suite en verde |
 
 ---
 
 ## 9. Limitaciones Conocidas
 
-| Limitación | Impacto | Cómo se resolvería |
+| Limitación | Impacto | Justificación y Solución Arquitectónica |
 |---|---|---|
-| **RF-05:** estadísticas del personaje por atributo | Los puntos se guardan como un total, sin separar Fuerza, Cardio, Flexibilidad y Nutrición | Una entidad `EstadisticaAtleta` 1:1 con `Estudiante` que acumule puntos por tipo de actividad |
-| **RF-38:** niveles de clan | Los clanes acumulan puntos y salud de torre, pero no suben ni bajan de nivel | Agregar experiencia y nivel al clan, actualizados al cerrar cada reto |
-| **RF-39, RF-40, RF-41:** ocupación del gimnasio y mapa colaborativo | No se puede reportar ni consultar cuánta gente hay en el gimnasio | Endpoints de reporte y consulta de ocupación por zona, con los reportes más recientes de los usuarios |
-| `TorreClan` y `GestorLigas` (Observer) | Están definidos, pero el registro de actividades no los conecta; las ligas se calculan en `RankingTemporada` | Registrarlos como observadores en `ActividadServiceImpl` cuando exista el emparejamiento de torres entre clanes |
-| State (`SemanaRegular` / `SemanaParciales`) | Está definido, pero no hay dónde registrar las fechas de parciales, así que no cambia las reglas | Guardar las semanas de parciales en la temporada y consultar el estado al calcular puntos |
-| Dependencia de Gemini | Si Gemini no responde, la comida queda pendiente y los puntos se otorgan más tarde | Ya mitigado con reintentos automáticos cada 15 minutos (máximo 3) |
+| **Integración en vivo con Google Gemini API (RF-13)** | En los entornos de despliegue en la nube (Azure QA y PROD), la conexión externa en vivo hacia la API de Google Gemini no se encuentra activa debido a la ausencia de la API Key/token institucional configurado (`GEMINI_API_KEY`). | **El requerimiento funcional opera de manera 100% autónoma y funcional:** el componente `GeminiEvaluadorNutricional` clasifica comidas balanceadas a partir del análisis de frases e ingredientes básicos (detecta balance entre proteínas magras, verduras, carbohidratos complejos e hidratación vs. ultraprocesados). Esto permite evaluar y otorgar puntos (+5 base, +15 balanceado) de forma predecible sin riesgo de fallos por cuotas, límites de tasa o intermitencia de red. |
+| **RF-05:** estadísticas del personaje por atributo | Los puntos se guardan como un acumulado global, sin desglosar atributos individuales de Fuerza, Cardio, Flexibilidad y Nutrición. | Una entidad `EstadisticaAtleta` con relación 1:1 con `Estudiante` que discrimine puntos por categoría deportiva. |
+| **RF-38:** niveles de clan | Los clanes acumulan puntos y salud de torre, pero no suben ni bajan de nivel competitivo formal. | Incorporar un sistema de experiencia y niveles al clan actualizados automáticamente al cierre de cada reto semanal. |
+| **RF-39, RF-40, RF-41:** ocupación del gimnasio y mapa colaborativo | No se cuenta con endpoints para reportar ni consultar la afluencia en tiempo real en las salas de entrenamiento. | Endpoints de reporte colaborativo y consulta de densidad por zonas con agregación temporal de aforo. |
+| `TorreClan` y `GestorLigas` (Observer) | Clases y eventos definidos en el dominio, pero el registro de actividades no invoca directamente el Observer; las ligas se gestionan en `RankingTemporada`. | Suscribirlos activamente como observadores en `ActividadServiceImpl` cuando se habilite el emparejamiento directo entre torres de clanes. |
+| State (`SemanaRegular` / `SemanaParciales`) | Patrón implementado en el modelo, pero al no existir una entidad para fechas de exámenes parciales, la transición de estado no muta las reglas automáticamente. | Asociar las fechas de cortes académicos a la entidad `Temporada` para consultar el estado dinámicamente al liquidar puntos. |
 
 ---
 
@@ -1319,3 +1183,4 @@ El detalle de rol por endpoint está en la sección 5 y en la tabla de roles del
 | 0.3 | 2026-10-18 | Daniel Barrera | Módulo de nutrición y comedor (RF-12 a RF-15) |
 | 0.4 | 2026-10-19 | Juan Munar | Endpoints con formato de la guía, diagramas de secuencia, despliegue y bibliografía |
 | 1.0 | 2026-10-19 | Sebastián Granados | Revisión contra el código, diagramas en fondo blanco, explicación de cada diagrama, manejo de errores, limitaciones e historial |
+| 1.1 | 2026-10-19 | Juan Munar | Alineación integral del HLD: nuevo diagrama de despliegue Draw.io (`Despliegue-ecifit.png`), integración de capturas de diagramas de secuencia en fondo blanco (sin Flujo C), URLs oficiales completas de QA/PROD y documentación de limitación de API Key en Gemini. |

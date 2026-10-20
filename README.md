@@ -113,6 +113,7 @@ Cada diagrama está explicado en el [documento de arquitectura](docs/arquitectur
 Cada fila es un módulo con el mismo recorrido: Controller → Mapper → Service (con su Validator) → EntityMapper → Repository → PostgreSQL. Antes de cualquier controlador, `JwtAuthFilter` valida el token.
 
 ## Base de datos
+![Diagrama de base de datos](docs/diagramas/diagrama-bd.jpeg)
 ![Modelo entidad-relación](docs/diagramas/modelo-er.png)
 
 ### Decisión de persistencia
@@ -122,6 +123,20 @@ Se usa PostgreSQL por su cumplimiento del estándar ACID, necesario para mantene
 La API usa autenticación stateless con JWT (JJWT 0.12.3). `JwtAuthFilter` valida el token en cada petición con un secreto definido en la variable de entorno `JWT_SECRET`. Los usuarios se guardan en la tabla `usuarios`, separada del dominio, con contraseñas cifradas con BCrypt.
 
 Las credenciales inválidas devuelven 401 y el acceso con un rol sin permisos devuelve 403. Ambos casos se manejan con `CustomAuthenticationEntryPoint`, `CustomAccessDeniedHandler` y `GlobalExceptionHandler`, y responden con `ErrorResponseDTO`.
+
+### Evidencia de Validación de Seguridad (RBAC)
+- **Sin Token / Token Inválido:** Devuelve `401 Unauthorized` (`CP-02`).
+- **Rol Incorrecto (Estudiante accediendo a recurso de Admin):** Devuelve `403 Forbidden` (`CP-04`).
+- **Rol Correcto (Administrador o Estudiante autorizado):** Devuelve `200 OK` / `201 Created` (`CP-01`, `CP-03`).
+
+#### 1. Sin Token / No Autenticado (401 Unauthorized)
+![401 Unauthorized](docs/evidencias/swagger-prod-401.png)
+
+#### 2. Acceso Denegado por Rol Insuficiente (403 Forbidden)
+![403 Forbidden](docs/evidencias/swagger-prod-403.png)
+
+#### 3. Acceso Autorizado con Rol Válido (200 OK)
+![200 OK](docs/evidencias/swagger-prod-200.png)
 
 ### Roles y permisos
 | Módulo | Método | Endpoint | Público | Roles permitidos |
@@ -208,25 +223,27 @@ Ubicación de la colección oficial: [`postman/ecifit-collection.json`](postman/
 
 **Cómo correrlo:** importar la colección y el ambiente en Postman, seleccionar el ambiente (QA o PROD) y ejecutar la colección completa con el **Collection Runner**. Cada request valida automáticamente el código de respuesta.
 
-| ID | Funcionalidad (RF) | Escenario de Prueba | Método y Request | Esperado | Obtenido | Evidencia |
+![Resultado Completo de Pruebas en Postman Runner](docs/evidencias/postman-runner.png)
+
+| ID | Funcionalidad (RF) | Escenario de Prueba | Método y Request | Esperado | Obtenido | Evidencia Verificada |
 |:---:|---|---|---|:---:|:---:|:---:|
-| **CP-01** | RF-01 Login | Autenticación exitosa Administrador | `POST /api/v1/auth/login` | 200 OK + JWT Admin | ✅ 200 OK | `docs/evidencias/cp01-login-admin.png` |
-| **CP-01B** | RF-01 Login | Autenticación exitosa Estudiante | `POST /api/v1/auth/login` | 200 OK + JWT Estudiante | ✅ 200 OK | `docs/evidencias/cp01b-login-est.png` |
-| **CP-01C** | RF-01 Login | Autenticación exitosa Entrenador | `POST /api/v1/auth/login` | 200 OK + JWT Entrenador | ✅ 200 OK | `docs/evidencias/cp01c-login-coach.png` |
-| **CP-02** | RF-01 Login | Login con contraseña errónea | `POST /api/v1/auth/login` | 401 Unauthorized | ✅ 401 Unauthorized | `docs/evidencias/cp02-login-fail.png` |
-| **CP-03** | RF-02 Estudiantes | Crear estudiante con rol ADMIN | `POST /api/v1/estudiantes` | 201 Created | ✅ 201 Created | `docs/evidencias/cp03-crear-estudiante.png` |
-| **CP-04** | RF-02 Estudiantes | Crear estudiante con rol ESTUDIANTE | `POST /api/v1/estudiantes` | 403 Forbidden | ✅ 403 Forbidden | `docs/evidencias/cp04-rbac-forbidden.png` |
-| **CP-04B** | RF-02 Estudiantes | Consultar colección de estudiantes | `GET /api/v1/estudiantes` | 200 OK + Listado | ✅ 200 OK | `docs/evidencias/cp04b-get-todos.png` |
-| **CP-05** | RF-06/07/10 Actividades | Registrar entrenamiento válido | `POST /api/v1/actividades` | 201 Created + Pts | ✅ 201 Created | `docs/evidencias/cp05-actividad-ok.png` |
-| **CP-06** | RF-09 Anti-Cheat | Registrar duración inválida (< 10m) | `POST /api/v1/actividades` | 422 Unprocessable | ✅ 422 Unprocessable | `docs/evidencias/cp06-anticheat.png` |
-| **CP-07** | RF-31 Clanes | Unirse a clan con cupo disponible | `POST /api/v1/clanes/unirse` | 200 OK + Miembro | ✅ 200 OK | `docs/evidencias/cp07-unirse-clan.png` |
-| **CP-07B** | RF-34 Retos Clan | Publicar reto colectivo semanal | `POST /api/v1/clanes/retos` | 201 Created | ✅ 201 Created | `docs/evidencias/cp07b-reto-semanal.png` |
-| **CP-07C** | RF-37 Retos Clan | Consultar retos de un clan | `GET /api/v1/clanes/{id}/retos` | 200 OK + Lista | ✅ 200 OK | `docs/evidencias/cp07c-consultar-retos.png` |
-| **CP-07D** | RF-36 Retos Clan | Calcular resultado de reto de clan | `POST /api/v1/clanes/{cId}/retos/{rId}/calcular` | 200 OK + Progreso | ✅ 200 OK | `docs/evidencias/cp07d-calcular-reto.png` |
-| **CP-07E** | RF-36 Retos Clan | Calcular duelo entre clanes rivales | `POST /api/v1/clanes/retos/comparar-duelo` | 200 OK + Ganador | ✅ 200 OK | `docs/evidencias/cp07e-duelo-clanes.png` |
-| **CP-08** | RF-42 Asistencia Gym | Validar asistencia con Entrenador | `POST /api/v1/gimnasio/asistencias` | 201 Created (+20 pts) | ✅ 201 Created | `docs/evidencias/cp08-asistencia-gym.png` |
-| **CP-09** | RF-28 Temporadas | Consultar temporada activa | `GET /api/v1/temporadas/activa` | 200 OK | ✅ 200 OK | `docs/evidencias/cp09-temporada-activa.png` |
-| **CP-10** | Monitoreo | Health check sin autenticación | `GET /api/v1/health` | 200 OK (Probe Azure) | ✅ 200 OK | `docs/evidencias/cp10-health-azure.png` |
+| **CP-01** | RF-01 Login | Autenticación exitosa Administrador | `POST /api/v1/auth/login` | 200 OK + JWT Admin | ✅ 200 OK | [Swagger 200](docs/evidencias/swagger-prod-200.png) · [Runner](docs/evidencias/postman-runner.png) |
+| **CP-01B** | RF-01 Login | Autenticación exitosa Estudiante | `POST /api/v1/auth/login` | 200 OK + JWT Estudiante | ✅ 200 OK | [Postman Runner](docs/evidencias/postman-runner.png) |
+| **CP-01C** | RF-01 Login | Autenticación exitosa Entrenador | `POST /api/v1/auth/login` | 200 OK + JWT Entrenador | ✅ 200 OK | [Postman Runner](docs/evidencias/postman-runner.png) |
+| **CP-02** | RF-01 Login | Login con contraseña errónea / Sin Token | `POST /api/v1/auth/login` | 401 Unauthorized | ✅ 401 Unauthorized | [Swagger 401](docs/evidencias/swagger-prod-401.png) · [Runner](docs/evidencias/postman-runner.png) |
+| **CP-03** | RF-02 Estudiantes | Crear estudiante con rol ADMIN | `POST /api/v1/estudiantes` | 201 Created | ✅ 201 Created | [Swagger 200](docs/evidencias/swagger-prod-200.png) · [Runner](docs/evidencias/postman-runner.png) |
+| **CP-04** | RF-02 Estudiantes | Crear estudiante con rol ESTUDIANTE | `POST /api/v1/estudiantes` | 403 Forbidden | ✅ 403 Forbidden | [Swagger 403](docs/evidencias/swagger-prod-403.png) · [Runner](docs/evidencias/postman-runner.png) |
+| **CP-04B** | RF-02 Estudiantes | Consultar colección de estudiantes | `GET /api/v1/estudiantes` | 200 OK + Listado | ✅ 200 OK | [Postman Runner](docs/evidencias/postman-runner.png) |
+| **CP-05** | RF-06/07/10 Actividades | Registrar entrenamiento válido | `POST /api/v1/actividades` | 201 Created + Pts | ✅ 201 Created | [Postman Runner](docs/evidencias/postman-runner.png) |
+| **CP-06** | RF-09 Anti-Cheat | Registrar duración inválida (< 10m) | `POST /api/v1/actividades` | 422 Unprocessable | ✅ 422 Unprocessable | [Postman Runner](docs/evidencias/postman-runner.png) |
+| **CP-07** | RF-31 Clanes | Unirse a clan con cupo disponible | `POST /api/v1/clanes/unirse` | 200 OK + Miembro | ✅ 200 OK | [Postman Runner](docs/evidencias/postman-runner.png) |
+| **CP-07B** | RF-34 Retos Clan | Publicar reto colectivo semanal | `POST /api/v1/clanes/retos` | 201 Created | ✅ 201 Created | [Postman Runner](docs/evidencias/postman-runner.png) |
+| **CP-07C** | RF-37 Retos Clan | Consultar retos de un clan | `GET /api/v1/clanes/{id}/retos` | 200 OK + Lista | ✅ 200 OK | [Postman Runner](docs/evidencias/postman-runner.png) |
+| **CP-07D** | RF-36 Retos Clan | Calcular resultado de reto de clan | `POST /api/v1/clanes/{cId}/retos/{rId}/calcular` | 200 OK + Progreso | ✅ 200 OK | [Postman Runner](docs/evidencias/postman-runner.png) |
+| **CP-07E** | RF-36 Retos Clan | Calcular duelo entre clanes rivales | `POST /api/v1/clanes/retos/comparar-duelo` | 200 OK + Ganador | ✅ 200 OK | [Postman Runner](docs/evidencias/postman-runner.png) |
+| **CP-08** | RF-42 Asistencia Gym | Validar asistencia con Entrenador | `POST /api/v1/gimnasio/asistencias` | 201 Created (+20 pts) | ✅ 201 Created | [Postman Runner](docs/evidencias/postman-runner.png) |
+| **CP-09** | RF-28 Temporadas | Consultar temporada activa | `GET /api/v1/temporadas/activa` | 200 OK | ✅ 200 OK | [Postman Runner](docs/evidencias/postman-runner.png) |
+| **CP-10** | Monitoreo | Health check sin autenticación | `GET /api/v1/health` | 200 OK (Probe Azure) | ✅ 200 OK | [Postman Runner](docs/evidencias/postman-runner.png) |
 
 ---
 
@@ -237,6 +254,7 @@ Ubicación de la colección oficial: [`postman/ecifit-collection.json`](postman/
 
 Lo que no alcanzó a cerrarse, con su impacto y cómo se resolvería, está en la [sección 9 del documento de arquitectura](docs/arquitectura-hld.md#9-limitaciones-conocidas). En resumen:
 
+- **Integración en vivo con Gemini API (RF-13):** En los entornos de despliegue en la nube (QA y PROD), la conexión externa en vivo hacia la API de Google Gemini no se encuentra activa debido a la ausencia de la API Key configurada (token). No obstante, el requerimiento funcional opera y clasifica comidas balanceadas a partir de frases e ingredientes básicos (proteínas, vegetales, hidratación), otorgando los puntos (+5 base y +15 balanceado).
 - **RF-05:** las estadísticas del personaje no se separan por atributo (Fuerza, Cardio, Flexibilidad, Nutrición).
 - **RF-38:** los clanes no tienen niveles.
 - **RF-39, RF-40 y RF-41:** no hay reporte ni consulta de la ocupación del gimnasio.
@@ -255,18 +273,34 @@ Lo que no alcanzó a cerrarse, con su impacto y cómo se resolvería, está en l
 ![Pipeline PROD](docs/evidencias/pipeline-prod.jpeg)
 
 ## Despliegue
-**Imagen Docker:** https://hub.docker.com/r/cobos1/ecifit-backend
+- **Swagger en Producción (Azure):** [https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html](https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html)
+- **Health Check Azure (Probe):** [https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/api/v1/health](https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/api/v1/health)
+- **Imagen Docker en Docker Hub:** [https://hub.docker.com/r/cobos1/ecifit-backend](https://hub.docker.com/r/cobos1/ecifit-backend)
+
+![Swagger en Azure PROD](docs/evidencias/swagger-prod.png)
+
+![Imagen en Docker Hub](docs/evidencias/dockerhub.png)
 
 ### Diagrama de despliegue
-![Diagrama de despliegue](docs/diagramas/diagrama-despliegue.jpeg)
+![Diagrama de despliegue](docs/diagramas/Despliegue-ecifit.png)
 
 ## Integrantes
-Los roles cambian en cada sprint. Esta tabla corresponde al Sprint 4.
+### Sprint 4 (Cierre Final y Feria de Proyectos)
 
 | Nombre | Rol en el Sprint 4 | Qué implementó en el Sprint 4 |
-|---|---|---|
-| Julian Camilo Giral Cobos | Coordinación | Organización de pendientes en Jira, seguimiento del equipo, paquete final y montaje de la feria. |
-| Sebastián Camilo Granados López | Deuda técnica y documentación | Deuda técnica P1 y P2 del backend, RF-23, RF-30 y RF-33, documento de arquitectura del backend y diagramas. |
-| Juan David Munar Chaparro | Estabilidad y demostración | API estable en Azure, set de pruebas de funcionamiento, datos de demo, diagramas de secuencia y video de respaldo. |
-| Daniel Alfredo Barrera Aranque | Identidad visual y arquitectura front | Plantilla de documentos, documento de arquitectura del frontend y módulo de nutrición (RF-12 a RF-15). |
-| Daniel Jose Villamizar Castellanos | Marketing y presentación | Documento de marketing, investigación de mercado, piezas para jurados y presentación inicial. |
+|------------------------------------|---|--------------------------------------------------------------------------------------------------------------------------------------------|
+| Julian Camilo Giral Cobos          | Coordinación | Revisar las tareas pendientes del Sprint 3 y organizarlas en Jira. Dar seguimiento a las tareas de cada integrante y ayudar a resolver bloqueos. Consolidar el paquete final de documentos y evidencias. Organizar el montaje del puesto, los turnos y el recorrido de la feria. Coordinar el ensayo general del 19 de octubre. |
+| Sebastián Camilo Granados López    | Deuda técnica y documentación | Identificar y solucionar los errores prioritarios del backend. Atender la deuda técnica P1 antes del 16 de octubre y la P2 antes del 18. Elaborar el documento de arquitectura del backend. Explicar cómo está organizado el servidor y cómo funcionan sus componentes. Revisar que el documento coincida con el código real. |
+| Juan David Munar Chaparro          | Estabilidad y demostración | Comprobar que la API funciona correctamente en Azure. Verificar el inicio de sesión, las funcionalidades principales y el manejo de errores. Preparar datos de ejemplo para demostrar el sistema. Elaborar los diagramas de secuencia que expliquen los procesos principales. Grabar, junto con el equipo, el video de respaldo de la demostración. |
+| Daniel Alfredo Barrera Aranque     | Identidad visual y arquitectura | Crear una plantilla común para los documentos del proyecto. Aplicar el logo, los colores y la tipografía definidos en la identidad visual. Elaborar el documento de arquitectura del frontend. Explicar cómo se organizan las pantallas y cómo se comunica la aplicación con el backend. Revisar que los diagramas y las explicaciones correspondan al prototipo y al sistema actual. |
+| Daniel Jose Villamizar Castellanos | Marketing y presentación | Consolidar el documento de marketing. Preparar y analizar la investigación de mercado con los resultados de la encuesta. Diseñar las piezas y materiales que se mostrarán a los jurados. Preparar la presentación inicial del producto. Mantener una apariencia coherente con la identidad visual del equipo. |
+
+### Histórico Sprint 3
+
+| Nombre | Rol en el Sprint 3 | Qué implementó en el Sprint 3 |
+|------------------------------------|---|--------------------------------------------------------------------------------------------------------------------------------------------|
+| Sebastián Camilo Granados López    | Líder técnico | Gestión del sprint en Jira, diagrama de flujo de pantallas, integración y verificación de QA y PROD, README del backend.                   |
+| Daniel Jose Villamizar Castellanos | Backend: funcionalidades y Docker | Funcionalidades pendientes, manejo global de excepciones, pruebas, Dockerización, imagen en Docker Hub, diagramas de clases y componentes. |
+| Juan David Munar Chaparro          | Backend: seguridad | Autenticación JWT, roles y permisos por endpoint, pruebas de seguridad, funcionalidades pendientes, diagrama de base de datos.             |
+| Julian Camilo Giral Cobos          | Backend: CI/CD y Azure | Pipelines de QA y PROD, despliegue en Azure, secrets y variables de entorno, diagrama de despliegue.                                       |
+| Daniel Alfredo Barrera Aranque     | Frontend | Mascota, manual de identidad, mockups finales en Figma, README del frontend.                                                               |
