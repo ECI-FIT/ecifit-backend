@@ -194,7 +194,7 @@ Cada fila representa un flujo completo e independiente de una funcionalidad (Act
 - **DB:** Recurso de almacenamiento persistente centralizado donde convergen todos los repositorios.
 
 ## Base de datos
-![Diagrama de base de datos](docs/diagrama-bd.jpeg)
+![Diagrama de base de datos](docs/diagramas/diagrama-bd.jpeg)
 
 ### Decisión de persistencia
 Se usa PostgreSQL por su cumplimiento del estándar ACID, necesario para mantener la consistencia en el cálculo concurrente de puntos de clanes y daño a las torres. Además, garantiza integridad referencial mediante claves foráneas y restricciones de unicidad (por ejemplo, sobre el correo institucional), y sus índices optimizan las consultas de rankings.
@@ -203,6 +203,13 @@ Se usa PostgreSQL por su cumplimiento del estándar ACID, necesario para mantene
 La API usa autenticación stateless con JWT (JJWT 0.12.3). `JwtAuthFilter` valida el token en cada petición con un secreto definido en la variable de entorno `JWT_SECRET`. Los usuarios se guardan en la tabla `usuarios`, separada del dominio, con contraseñas cifradas con BCrypt.
 
 Las credenciales inválidas devuelven 401 y el acceso con un rol sin permisos devuelve 403. Ambos casos se manejan con `CustomAuthenticationEntryPoint`, `CustomAccessDeniedHandler` y `GlobalExceptionHandler`, y responden con `ErrorResponseDTO`.
+
+### Evidencia de Validación de Seguridad (RBAC)
+- **Sin Token / Token Inválido:** Devuelve `401 Unauthorized` (`CP-02`).
+- **Rol Incorrecto (Estudiante accediendo a recurso de Admin):** Devuelve `403 Forbidden` (`CP-04`).
+- **Rol Correcto (Administrador o Estudiante autorizado):** Devuelve `200 OK` / `201 Created` (`CP-01`, `CP-03`).
+
+![Pruebas de Seguridad RBAC](docs/evidencias/seguridad-rbac.png)
 
 ### Roles y permisos
 | Módulo | Método | Endpoint | Público | Roles permitidos |
@@ -262,15 +269,17 @@ Ejecutar `mvn clean test`. El reporte detallado de JaCoCo se genera en `target/s
 - **Cobertura en validadores y anti-cheat:** **94.65%** en `validator` y **100%** en `chain`.
 - **Cobertura en controladores:** **81.57%** (447 / 548 instrucciones).
 
-![mvn-test.png](docs/mvn-test.png)
+![mvn-test.png](docs/evidencias/mvn-test.png)
 
-![cobertura-jacoco.png](docs/cobertura-jacoco.png)
+![cobertura-jacoco.png](docs/evidencias/cobertura-jacoco.png)
 
 ---
 
 ### 2. Set de Pruebas de Funcionamiento (Caja Negra con Postman)
 Ubicación de la colección oficial: [`postman/ecifit-collection.json`](postman/ecifit-collection.json).
 Se ejecuta con el Postman Collection Runner tanto en ambiente local (`http://localhost:8080`) como contra **Azure Producción** (`https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net`).
+
+![Resultado Completo de Pruebas en Postman Runner](docs/evidencias/postman-runner.png)
 
 | ID | Funcionalidad (RF) | Escenario de Prueba | Método y Request | Esperado | Obtenido | Evidencia |
 |:---:|---|---|---|:---:|:---:|:---:|
@@ -306,18 +315,34 @@ Se ejecuta con el Postman Collection Runner tanto en ambiente local (`http://loc
 
 [Ver ejecuciones en GitHub Actions](https://github.com/ECI-FIT/ecifit-backend/actions)
 
-![Pipeline QA](docs/pipeline-qa.jpeg)
+![Pipeline QA](docs/evidencias/pipeline-qa.jpeg)
 
-![Pipeline PROD](docs/pipeline-prod.jpeg)
+![Pipeline PROD](docs/evidencias/pipeline-prod.jpeg)
 
 ## Despliegue
-**Imagen Docker:** https://hub.docker.com/r/cobos1/ecifit-backend
+- **Swagger en Producción (Azure):** [https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html](https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html)
+- **Health Check Azure (Probe):** [https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/api/v1/health](https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/api/v1/health)
+- **Imagen Docker en Docker Hub:** [https://hub.docker.com/r/cobos1/ecifit-backend](https://hub.docker.com/r/cobos1/ecifit-backend)
+
+![Swagger en Azure PROD](docs/evidencias/swagger-prod.png)
+
+![Imagen en Docker Hub](docs/evidencias/dockerhub.png)
 
 ### Diagrama de despliegue
-![diagrama-despliegue.jpeg](docs/diagrama-despliegue.jpeg)
+![diagrama-despliegue.jpeg](docs/diagramas/diagrama-despliegue.jpeg)
 
 ## Integrantes
-Los roles cambian en cada sprint. Esta tabla corresponde al Sprint 3.
+### Sprint 4 (Cierre Final y Feria de Proyectos)
+
+| Nombre | Rol en el Sprint 4 | Qué implementó en el Sprint 4 |
+|------------------------------------|---|--------------------------------------------------------------------------------------------------------------------------------------------|
+| Juan David Munar Chaparro          | Backend: Seguridad, QA & Arquitectura | Consolidación exhaustiva del Documento de Arquitectura HLD, pruebas de seguridad RBAC (401/403/200), diseño y ejecución de la suite de pruebas de funcionamiento en Postman (CP-01 a CP-10), aseguramiento de 329 tests unitarios y semillero de datos. |
+| Sebastián Camilo Granados López    | Líder técnico e Integración | Coordinación de sprint en Jira, revisión y aprobación de Pull Requests, sincronización de ramas `develop`/`main` y verificación de despliegues. |
+| Daniel Jose Villamizar Castellanos | Backend: Negocio y Persistencia | Implementación y estabilización de reglas de negocio en clanes, retos colectivos y misiones, validadores de dominio y manejo transaccional. |
+| Julian Camilo Giral Cobos          | DevOps: CI/CD y Cloud | Automatización de pipelines de GitHub Actions (QA y PROD), construcción y etiquetado de imágenes en Docker Hub, configuración de secrets y soporte de Azure. |
+| Daniel Alfredo Barrera Aranque     | Frontend & Experiencia de Usuario | Integración cliente-servidor con el backend en Azure, refinamiento de vistas gamificadas y preparación de material interactivo para la Feria de Proyectos. |
+
+### Histórico Sprint 3
 
 | Nombre | Rol en el Sprint 3 | Qué implementó en el Sprint 3 |
 |------------------------------------|---|--------------------------------------------------------------------------------------------------------------------------------------------|
