@@ -14,7 +14,7 @@ Sus responsabilidades esenciales abarcan:
 4. **Guerras de Clanes y Asedios:** Gestión de clanes (límite estricto de 5 miembros), defensa reactiva de la torre (*Observer*), publicación de retos colectivos (**RF-34**) y resolución de duelos entre clanes (**RF-36**).
 5. **Gobernanza de Membresía e Invitaciones a Clanes (RF-30, RF-31, RF-33):** Sistema completo de invitaciones directas por miembros, aceptación/rechazo y abandono con reasignación automática de líder.
 6. **Ciclo de Ligas y Temporadas:** Temporadas semestrales, ranking por temporada y recálculo semanal de ascensos y descensos (*Bronce*, *Plata*, *Oro*, *Platino*, *Diamante*).
-7. **Nutrición Asistida por Inteligencia Artificial y Heurística (RF-12, RF-13, RF-14):** Evaluación dietética automática y consejos nutricionales mediante adaptador resiliente compatible con **Google Gemini 2.5 Flash Lite** y motor heurístico local.
+7. **Nutrición Asistida por Inteligencia Artificial y Heurística (RF-12, RF-13, RF-14):** Evaluación dietética automática y consejos nutricionales mediante adaptador resiliente compatible con **Google Gemini 2.5 Flash Lite** y evaluación determinística local.
 8. **Menú del Comedor Institucional (RF-15):** Exposición del menú saludable diario publicado por bienestar universitario.
 9. **Asistencia Verificada al Gimnasio (RF-42):** Registro presencial validado exclusivamente por entrenadores institucionales.
 10. **Seguridad Stateless y RBAC:** Protección perimetral con tokens JWT y control de acceso basado en roles (*Estudiante*, *Entrenador*, *Administrador*).
@@ -28,7 +28,7 @@ El sistema se ve como una caja negra: tres tipos de usuario lo usan desde el nav
 - **Estudiante:** registra actividades, comidas y misiones, y participa en clanes y retos.
 - **Entrenador:** confirma asistencias al gimnasio, crea misiones y publica retos de clan.
 - **Administrador:** registra estudiantes, crea temporadas y publica el menú del comedor.
-- **Google Gemini API:** recibe la descripción de una comida y responde si es balanceada (con fallback heurístico si no hay token configurado).
+- **Google Gemini API:** recibe la descripción de una comida y responde si es balanceada (con soporte determinístico si no hay token configurado).
 - **PostgreSQL 16:** guarda toda la información del sistema.
 - **Microsoft Azure:** aloja la API en dos ambientes (QA y PROD) mediante contenedores Docker.
 
@@ -47,7 +47,7 @@ La selección tecnológica prioriza componentes LTS con soporte corporativo, com
 | **Spring Security** | 6.x | Perímetro de seguridad y RBAC | Control de acceso declarativo en controladores mediante `@PreAuthorize`, filtros en cadena sin estado (*Stateless*) y codificación BCrypt. |
 | **Spring Data JPA** | 3.5.x | Abstracción de persistencia relacional | Implementación ORM sobre Hibernate; consultas optimizadas mediante JPQL y métodos derivados para auditoría de integridad. |
 | **PostgreSQL** | 16 | Motor de base de datos relacional | Cumplimiento estricto de propiedades ACID, soporte nativo de tipos temporales ISO-8601, índices compuestos únicos y transacciones concurrentes. |
-| **Google Gemini API** | 2.5 Flash Lite | Inteligencia Artificial generativa | Clasificación dietética de alta velocidad, bajo costo y estructuración JSON para validación de comidas balanceadas (`gemini-2.5-flash-lite`), con fallback heurístico determinístico. |
+| **Google Gemini API** | 2.5 Flash Lite | Inteligencia Artificial generativa | Clasificación dietética de alta velocidad, bajo costo y estructuración JSON para validación de comidas balanceadas (`gemini-2.5-flash-lite`), con soporte de evaluación por frases y palabras clave. |
 | **JJWT (io.jsonwebtoken)** | 0.12.3 | Generación y validación de tokens | Creación y firma criptográfica HMAC-SHA256 de JSON Web Tokens con validación estricta de claims y tiempos de expiración. |
 | **MapStruct** | 1.6.3 | Mapeo entre capas de datos | Transformación tipo-segura en tiempo de compilación entre DTOs, Entidades de Dominio y Entidades JPA con costo de reflexión cero (*Zero-Overhead*). |
 | **Lombok** | 1.18.48 | Reducción de código repetitivo | Generación automática de Getters, Setters, Builders inmutables y trazabilidad de logs estructurados con `@Slf4j`. |
@@ -78,7 +78,7 @@ Alineación formal y exhaustiva entre el catálogo canónico de los 42 requerimi
 | **RF-10** | Otorgar puntos por actividad física válida | Actividades | `ActividadResponseDTO.puntosOtorgados` | **Implementado** |
 | **RF-11** | Otorgar puntos adicionales por asistencia al gimnasio | Asistencia Gimnasio | `POST /api/v1/gimnasio/asistencias` (+20 pts) | **Implementado** |
 | **RF-12** | Registrar comida consumida por el estudiante | Nutrición | `POST /api/v1/nutricion/comidas` | **Implementado** |
-| **RF-13** | Clasificar un registro como comida balanceada (IA Gemini / Heurística) | Nutrición / IA | `GeminiEvaluadorNutricional` (Evaluador heurístico con fallback si no hay API Key) | **Implementado** |
+| **RF-13** | Clasificar un registro como comida balanceada (IA Gemini) | Nutrición / IA | `GeminiEvaluadorNutricional` (Evaluador con clasificación por frases e ingredientes si no hay API Key) | **Implementado** |
 | **RF-14** | Otorgar puntos por registro nutricional válido | Nutrición | `ComidaServiceImpl` (+5 base, +15 balanceada) | **Implementado** |
 | **RF-15** | Consultar menú disponible del comedor ECI | Comedor | `GET /api/v1/comedor/menus/hoy`<br>`GET /api/v1/comedor/menus` | **Implementado** |
 | **RF-16** | Generar misiones diarias para los estudiantes | Misiones / Factory | `POST /api/v1/misiones/diarias` | **Implementado** |
@@ -646,7 +646,7 @@ Consulta todas las invitaciones dirigidas a un estudiante.
 ### 5.6 Módulo de Nutrición e IA Gemini (`/api/v1/nutricion/comidas`)
 
 #### `POST /api/v1/nutricion/comidas` · Rol: `ESTUDIANTE`, `ADMINISTRADOR` · Respuesta exitosa: `201 Created`
-Registra una comida (**RF-12**), otorga +5 puntos base y ejecuta la evaluación nutricional inteligente (+15 puntos adicionales si es balanceada) (**RF-13, RF-14**). En despliegues donde no esté configurada la API Key de Gemini, un motor heurístico local evalúa el balance nutricional con base en ingredientes y patrones clave.
+Registra una comida (**RF-12**), otorga +5 puntos base y ejecuta la evaluación nutricional inteligente (+15 puntos adicionales si es balanceada) (**RF-13, RF-14**). En despliegues donde no esté configurada la API Key de Gemini, el evaluador clasifica el balance nutricional con base en frases e ingredientes clave.
 
 | Campo | Tipo | Obligatorio | Restricciones | Descripción |
 |---|---|:---:|---|---|
@@ -1148,7 +1148,7 @@ La arquitectura de despliegue en la nube sigue un modelo PaaS en **Microsoft Azu
 
 | Limitación | Impacto | Justificación y Solución Arquitectónica |
 |---|---|---|
-| **Integración en vivo con Google Gemini API (RF-13)** | En los entornos de despliegue en la nube (Azure QA y PROD), la conexión externa en vivo hacia la API de Google Gemini no se encuentra activa debido a la ausencia de la API Key/token institucional configurado (`GEMINI_API_KEY`). | **El requerimiento funcional opera de manera 100% autónoma y funcional:** el componente `GeminiEvaluadorNutricional` implementa un motor evaluador heurístico local basado en análisis de frases y palabras clave (detecta balance entre proteínas magras, verduras, carbohidratos complejos e hidratación vs. ultraprocesados). Esto permite evaluar y otorgar puntos (+5 base, +15 balanceado) sin riesgo de fallos por cuotas, límites de tasa o intermitencia de red. |
+| **Integración en vivo con Google Gemini API (RF-13)** | En los entornos de despliegue en la nube (Azure QA y PROD), la conexión externa en vivo hacia la API de Google Gemini no se encuentra activa debido a la ausencia de la API Key/token institucional configurado (`GEMINI_API_KEY`). | **El requerimiento funcional opera de manera 100% autónoma y funcional:** el componente `GeminiEvaluadorNutricional` clasifica comidas balanceadas a partir del análisis de frases e ingredientes básicos (detecta balance entre proteínas magras, verduras, carbohidratos complejos e hidratación vs. ultraprocesados). Esto permite evaluar y otorgar puntos (+5 base, +15 balanceado) de forma predecible sin riesgo de fallos por cuotas, límites de tasa o intermitencia de red. |
 | **RF-05:** estadísticas del personaje por atributo | Los puntos se guardan como un acumulado global, sin desglosar atributos individuales de Fuerza, Cardio, Flexibilidad y Nutrición. | Una entidad `EstadisticaAtleta` con relación 1:1 con `Estudiante` que discrimine puntos por categoría deportiva. |
 | **RF-38:** niveles de clan | Los clanes acumulan puntos y salud de torre, pero no suben ni bajan de nivel competitivo formal. | Incorporar un sistema de experiencia y niveles al clan actualizados automáticamente al cierre de cada reto semanal. |
 | **RF-39, RF-40, RF-41:** ocupación del gimnasio y mapa colaborativo | No se cuenta con endpoints para reportar ni consultar la afluencia en tiempo real en las salas de entrenamiento. | Endpoints de reporte colaborativo y consulta de densidad por zonas con agregación temporal de aforo. |
@@ -1183,4 +1183,4 @@ La arquitectura de despliegue en la nube sigue un modelo PaaS en **Microsoft Azu
 | 0.3 | 2026-10-18 | Daniel Barrera | Módulo de nutrición y comedor (RF-12 a RF-15) |
 | 0.4 | 2026-10-19 | Juan Munar | Endpoints con formato de la guía, diagramas de secuencia, despliegue y bibliografía |
 | 1.0 | 2026-10-19 | Sebastián Granados | Revisión contra el código, diagramas en fondo blanco, explicación de cada diagrama, manejo de errores, limitaciones e historial |
-| 1.1 | 2026-10-19 | Juan Munar | Alineación integral del HLD: nuevo diagrama de despliegue Draw.io (`Despliegue-ecifit.png`), integración de capturas de diagramas de secuencia en fondo blanco (sin Flujo C), URLs oficiales completas de QA/PROD y documentación de limitación de API Key en Gemini con soporte heurístico. |
+| 1.1 | 2026-10-19 | Juan Munar | Alineación integral del HLD: nuevo diagrama de despliegue Draw.io (`Despliegue-ecifit.png`), integración de capturas de diagramas de secuencia en fondo blanco (sin Flujo C), URLs oficiales completas de QA/PROD y documentación de limitación de API Key en Gemini. |
