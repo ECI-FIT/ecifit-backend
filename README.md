@@ -4,7 +4,7 @@ Backend de la plataforma de gamificación deportiva y bienestar de ECI FIT.
 
 - **QA:** https://ecifit-qa-bxhdd4a0dkc4bma0.canadacentral-01.azurewebsites.net/swagger-ui/index.html
 - **PROD:** https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html
-- **Documento de arquitectura (HLD):** [docs/arquitectura-hld.md](docs/arquitectura-hld.md) · [PDF](docs/ECI_FIT_Arquitectura_Backend_v1.0.pdf)
+- **Documento de arquitectura (HLD):** [docs/arquitectura-hld.md](docs/arquitectura-hld.md) · [PDF](docs/ECI_FIT_Arquitectura_Backend_v1.1.pdf)
 - **Frontend:** https://github.com/ECI-FIT/ecifit-frontend.git
 
 ## Índice
