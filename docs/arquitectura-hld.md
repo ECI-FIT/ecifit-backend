@@ -14,7 +14,7 @@ Sus responsabilidades esenciales abarcan:
 4. **Guerras de Clanes y Asedios:** Gestión de clanes (límite estricto de 5 miembros), defensa reactiva de la torre (*Observer*), publicación de retos colectivos (**RF-34**) y resolución de duelos entre clanes (**RF-36**).
 5. **Gobernanza de Membresía e Invitaciones a Clanes (RF-30, RF-31, RF-33):** Sistema completo de invitaciones directas por miembros, aceptación/rechazo y abandono con reasignación automática de líder.
 6. **Ciclo de Ligas y Temporadas:** Temporadas semestrales, ranking por temporada y recálculo semanal de ascensos y descensos (*Bronce*, *Plata*, *Oro*, *Platino*, *Diamante*).
-7. **Nutrición Asistida por Inteligencia Artificial y Heurística (RF-12, RF-13, RF-14):** Evaluación dietética automática y consejos nutricionales mediante adaptador resiliente compatible con **Google Gemini 2.5 Flash Lite** y motor heurístico local.
+7. **Nutrición Asistida por Inteligencia Artificial (RF-12, RF-13, RF-14):** Evaluación dietética automática y consejos nutricionales conectando de forma resiliente con **Google Gemini 2.5 Flash Lite**.
 8. **Menú del Comedor Institucional (RF-15):** Exposición del menú saludable diario publicado por bienestar universitario.
 9. **Asistencia Verificada al Gimnasio (RF-42):** Registro presencial validado exclusivamente por entrenadores institucionales.
 10. **Seguridad Stateless y RBAC:** Protección perimetral con tokens JWT y control de acceso basado en roles (*Estudiante*, *Entrenador*, *Administrador*).
@@ -1065,6 +1065,8 @@ Los diagramas de secuencia han sido modelados y renderizados en alta fidelidad c
 2. **Validación Criptográfica:** `CustomUserDetailsService` consulta el usuario en PostgreSQL y `BCryptPasswordEncoder` verifica el hash de la contraseña contra la base de datos.
 3. **Generación de Token:** Si las credenciales son válidas, `JwtService` expide un token JWT firmado (HMAC-SHA256, validez 24 horas) con claims de rol y expiración para autorizar subsecuentes peticiones en la cabecera `Authorization: Bearer`.
 
+**Explicación:** `AuthenticationManager` compara la contraseña con el hash BCrypt guardado en `usuarios`. Si coincide, `JwtUtil` firma un token con el correo y el rol, válido por 24 horas; ese token se envía después en la cabecera `Authorization: Bearer` de cada petición.
+
 ---
 
 ### 7.2 Flujo B: Registro de Actividad Física con Pipeline Anti-Cheat (*RF-06 a RF-10, RF-20, RF-21, RF-23*)
@@ -1076,11 +1078,23 @@ Los diagramas de secuencia han sido modelados y renderizados en alta fidelidad c
 2. **Pipeline Anti-Cheat:** `ActividadServiceImpl` delega la validación secuencial a la cadena de manejadores (`SanctionStatusHandler`, `DataIntegrityHandler`, `PhysiologicalLimitsHandler`). Ante inconsistencias biológicas, fechas futuras o duración fuera de rango (mínimo 10 min, máximo 300 min), interrumpe el flujo con `ReglaDeNegocioException` (HTTP 422).
 3. **Liquidación y Persistencia:** Al superar los filtros, la estrategia del rol (*Strategy*: `Tanque`, `Corredor`, `Estratega`) calcula los puntos con su respectivo multiplicador, evaluando racha consecutiva (+200 pts al séptimo día) y persistiendo la actividad, actualizando el perfil del estudiante y sumando los puntos al ranking de la temporada activa.
 
+**Explicación:** la comida se guarda aunque Gemini falle; en ese caso queda `PENDIENTE` y `EvaluacionNutricionalScheduler` la reintenta cada 15 minutos (hasta 3 intentos, luego queda en `ERROR`). Para evitar abusos, solo la primera comida de cada tipo en el día otorga puntos.
+
 ---
 
 ### 7.3 Flujo C: Gobernanza de Clanes — Invitación, Validación de Cupo y Aceptación (*RF-30, RF-31, RF-32*)
-
 Este flujo modela el ciclo de vida de membresía en un clan: envío de invitación formal por un miembro activo, validación de la regla de negocio de cupo máximo (máximo 5 integrantes, **RF-32**), y la posterior respuesta del estudiante invitado con afiliación atómica o rechazo.
+
+![Diagrama de Secuencia - Flujo C](diagramas/secuencia-flujo-c.png)
+
+**Explicación del Flujo:**
+1. **Paso 1 (Emisión):** Un miembro activo envía la invitación vía `POST /api/v1/clanes/invitaciones`. `ClanValidator` audita que el clan tenga cupo disponible ($< 5$ miembros) y que el invitado no tenga clan ni invitaciones pendientes. Si hay cupo, se persiste en estado `PENDIENTE`.
+2. **Paso 2 (Resolución):** El estudiante invitado resuelve la invitación vía `POST /api/v1/clanes/invitaciones/{id}/responder` enviando `{aceptar: true|false}`.
+3. **Respuesta Atómica:** Si `aceptar = true`, `ClanServiceImpl` ejecuta la actualización bajo `@Transactional`, validando nuevamente el cupo, marcando la invitación como `ACEPTADA` e incorporando al estudiante al clan en una única transacción ACID. Si `aceptar = false`, registra el estado `RECHAZADA`.
+
+---
+
+### 7.4 Flujo D: Invitación a un Clan y Respuesta (RF-30, RF-31, RF-32)
 
 ![Diagrama de Secuencia - Flujo C](diagramas/secuencia-flujo-c.png)
 
