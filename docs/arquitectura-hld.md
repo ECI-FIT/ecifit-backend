@@ -971,6 +971,7 @@ El sistema intercepta cualquier error mediante un `@RestControllerAdvice` centra
 ### 7.1 Flujo A: Autenticación, Firma de Token JWT y Control Perimetral
 
 ```mermaid
+%%{init: {'theme': 'default', 'themeVariables': { 'darkMode': false, 'background': '#FFFFFF', 'actorBkg': '#FFFFFF', 'actorBorder': '#0284C7', 'actorTextColor': '#0F172A', 'actorLineColor': '#0284C7', 'signalColor': '#0284C7', 'signalTextColor': '#0F172A', 'labelBoxBkgColor': '#F8FAFC', 'labelBoxBorderColor': '#CBD5E1', 'labelTextColor': '#0F172A', 'loopTextColor': '#0F172A', 'noteBkgColor': '#FEF3C7', 'noteBorderColor': '#D97706', 'noteTextColor': '#78350F', 'activationBorderColor': '#0284C7', 'activationBkgColor': '#E0F2FE' }}}%%
 sequenceDiagram
     autonumber
     actor Cliente as Cliente (Web / Postman)
@@ -1006,6 +1007,7 @@ sequenceDiagram
 ### 7.2 Flujo B: Registro de Actividad Física con Pipeline Anti-Cheat (*Chain of Responsibility*)
 
 ```mermaid
+%%{init: {'theme': 'default', 'themeVariables': { 'darkMode': false, 'background': '#FFFFFF', 'actorBkg': '#FFFFFF', 'actorBorder': '#0284C7', 'actorTextColor': '#0F172A', 'actorLineColor': '#0284C7', 'signalColor': '#0284C7', 'signalTextColor': '#0F172A', 'labelBoxBkgColor': '#F8FAFC', 'labelBoxBorderColor': '#CBD5E1', 'labelTextColor': '#0F172A', 'loopTextColor': '#0F172A', 'noteBkgColor': '#FEF3C7', 'noteBorderColor': '#D97706', 'noteTextColor': '#78350F', 'activationBorderColor': '#0284C7', 'activationBkgColor': '#E0F2FE' }}}%%
 sequenceDiagram
     autonumber
     actor Jugador as Estudiante Autenticado
@@ -1055,6 +1057,7 @@ sequenceDiagram
 ### 7.3 Flujo C: Registro y Evaluación Nutricional Asistida por IA (*Google Gemini 2.5 Flash Lite*)
 
 ```mermaid
+%%{init: {'theme': 'default', 'themeVariables': { 'darkMode': false, 'background': '#FFFFFF', 'actorBkg': '#FFFFFF', 'actorBorder': '#0284C7', 'actorTextColor': '#0F172A', 'actorLineColor': '#0284C7', 'signalColor': '#0284C7', 'signalTextColor': '#0F172A', 'labelBoxBkgColor': '#F8FAFC', 'labelBoxBorderColor': '#CBD5E1', 'labelTextColor': '#0F172A', 'loopTextColor': '#0F172A', 'noteBkgColor': '#FEF3C7', 'noteBorderColor': '#D97706', 'noteTextColor': '#78350F', 'activationBorderColor': '#0284C7', 'activationBkgColor': '#E0F2FE' }}}%%
 sequenceDiagram
     autonumber
     actor Estudiante as Estudiante
@@ -1100,6 +1103,7 @@ sequenceDiagram
 Este flujo modela el ciclo de vida de membresía en un clan: envío de invitación formal por un miembro activo, validación de la regla de negocio de cupo máximo (máximo 5 integrantes, **RF-32**), y la posterior respuesta del estudiante invitado con afiliación atómica o rechazo.
 
 ```mermaid
+%%{init: {'theme': 'default', 'themeVariables': { 'darkMode': false, 'background': '#FFFFFF', 'actorBkg': '#FFFFFF', 'actorBorder': '#0284C7', 'actorTextColor': '#0F172A', 'actorLineColor': '#0284C7', 'signalColor': '#0284C7', 'signalTextColor': '#0F172A', 'labelBoxBkgColor': '#F8FAFC', 'labelBoxBorderColor': '#CBD5E1', 'labelTextColor': '#0F172A', 'loopTextColor': '#0F172A', 'noteBkgColor': '#FEF3C7', 'noteBorderColor': '#D97706', 'noteTextColor': '#78350F', 'activationBorderColor': '#0284C7', 'activationBkgColor': '#E0F2FE' }}}%%
 sequenceDiagram
     autonumber
     actor Anfitrion as Miembro Emisor
@@ -1162,6 +1166,7 @@ sequenceDiagram
 Este flujo modela la certificación presencial de actividad deportiva en el gimnasio del campus por parte de un entrenador institucional, con validación de rol restringido, control de unicidad diaria y bonificación multirrecurso.
 
 ```mermaid
+%%{init: {'theme': 'default', 'themeVariables': { 'darkMode': false, 'background': '#FFFFFF', 'actorBkg': '#FFFFFF', 'actorBorder': '#0284C7', 'actorTextColor': '#0F172A', 'actorLineColor': '#0284C7', 'signalColor': '#0284C7', 'signalTextColor': '#0F172A', 'labelBoxBkgColor': '#F8FAFC', 'labelBoxBorderColor': '#CBD5E1', 'labelTextColor': '#0F172A', 'loopTextColor': '#0F172A', 'noteBkgColor': '#FEF3C7', 'noteBorderColor': '#D97706', 'noteTextColor': '#78350F', 'activationBorderColor': '#0284C7', 'activationBkgColor': '#E0F2FE' }}}%%
 sequenceDiagram
     autonumber
     actor Entrenador as Entrenador Institucional
@@ -1239,10 +1244,10 @@ flowchart LR
 ```
 
 ### 8.2 URLs Oficiales de Producción y QA
-- **Swagger UI Producción:** https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html
-- **API Base Producción:** https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/api/v1
-- **Health Check Probe:** https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/api/v1/health
-- **Swagger UI QA:** https://ecifit-qa-bxhdd4a0dkc4bma0.canadacentral-01.azurewebsites.net/swagger-ui/index.html
+- **Swagger UI Producción:** [https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html](https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/swagger-ui/index.html)
+- **Health Check Producción:** [https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/api/v1/health](https://ecifit-prod-e9fafke4eyebbxh2.canadacentral-01.azurewebsites.net/api/v1/health)
+- **Swagger UI QA:** [https://ecifit-qa-bxhdd4a0dkc4bma0.canadacentral-01.azurewebsites.net/swagger-ui/index.html](https://ecifit-qa-bxhdd4a0dkc4bma0.canadacentral-01.azurewebsites.net/swagger-ui/index.html)
+- **Health Check QA:** [https://ecifit-qa-bxhdd4a0dkc4bma0.canadacentral-01.azurewebsites.net/api/v1/health](https://ecifit-qa-bxhdd4a0dkc4bma0.canadacentral-01.azurewebsites.net/api/v1/health)
 
 ### 8.3 Estrategia de Ramificación (Git Flow) y CI/CD
 - `main`: Refleja el código en Producción. Cada release se marca con un tag semántico `vX.Y.Z` que dispara el workflow `.github/workflows/ci-prod.yml`.
